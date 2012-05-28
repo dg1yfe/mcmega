@@ -2,11 +2,12 @@
  * macros.h
  *
  *  Created on: 26.05.2012
- *      Author: eligs
+ *      Author: Felix Erckenbrecht
  */
-
 #ifndef MACROS_H_
 #define MACROS_H_
+
+#include "regmem.h"
 
 #define EZA9
 
@@ -41,7 +42,7 @@
 #define PRESCALER    40         // PLL Prescaler (40 f�r 2m, 127 f�r 70cm)
 #endif
 
-#if !defined BAND_2M || !defined BAND_70CM
+#if !defined BAND_2M && !defined BAND_70CM
 #error No frequency band defined, define one in macros.h
 #endif
 
@@ -65,6 +66,60 @@
 //
 #define SQL_HYST   10           // define squelch hysteresis in 5 ms steps
 //
+#define LCDDELAY  42     		// 42 ms
+
+//************************
+//Clock toggle
+#define SBUS_CT \
+	    SR_CLKDDR |= SR_CLKBIT;  \
+	    SR_CLKPORT&= ~SR_CLKBIT; \
+		SR_CLKDDR &= SR_CLKBIT;  \
+		SR_CLKPORT|= SR_CLKBIT;
+
+// Clock Pin auf Ausgang schalten
+#define SBUS_CO \
+		SR_CLKDDR |= SR_CLKBIT;
+// Clock Pin auf Eingang schalten
+#define SBUS_CI \
+		SR_CLKDDR &= SR_CLKBIT;
+
+// Clock Pin auf Eingang schalten, Pull-Up Widerstand zieht Leitung auf Hi
+#define SBUS_CH SBUS_CI
+
+// Clock Pin auf Ausgang schalten und auf 0 setzen
+#define SBUS_CL \
+	    SR_CLKDDR |= SR_CLKBIT;  \
+	    SR_CLKPORT&= ~SR_CLKBIT;
+;
+#define SBUS_CTGL SB_CH \
+		nop(); nop(); \
+		SB_CL
+
+// Data Pin auf Eingang setzen, ( High durch PullUp )
+#define SBUS_DI \
+		SR_DATADDR &= SR_DATABIT;
+
+// Data Pin auf Ausgang setzen
+#define SBUS_DO \
+		SR_DATADDR |= SR_CLKBIT;
+// Data Hi
+#define SBUS_DH SBUS_DI
+
+// Data Lo
+#define SBUS_DL \
+		SR_DATADDR  |= SR_DATABIT;  \
+		SR_DATAPORT &= ~SR_DATABIT;
+
+// Data & Clock Lo
+#define SBUS_CDL \
+		SBUS_CL\
+		SBUS_DL
+
+// Data & Clock Hi
+#define SBUS_CDH \
+		SBUS_CH \
+		SBUS_DH
+
 // **************************************************************
 #define RED_LED       0x33
 #define YEL_LED       0x31

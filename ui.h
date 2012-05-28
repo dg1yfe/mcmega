@@ -9,5 +9,6 @@
 #define UI_H_
 
 void vUiTask( void * pvParameters) __attribute__((noreturn));
+void init_ui(void);
 
 #endif /* UI_H_ */

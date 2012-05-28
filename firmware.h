@@ -7,7 +7,8 @@
 
 #ifndef FIRMWARE_H_
 #define FIRMWARE_H_
-
+#include "FreeRTOS.h"
+#include "semphr.h"
 extern xSemaphoreHandle SerialBusMutex;
 
 

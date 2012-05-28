@@ -31,7 +31,7 @@
 ****************************************************************************
  *
  */
-
+#include <avr/io.h>
 #include "regmem.h"
 #include "io.h"
 
@@ -44,11 +44,11 @@ void pwr_sw_chk(char cSaveSettings)
 		//TODO: Add 9,6V Power Fail check to EZA9 HW
 		if (cSaveSettings)
 		{
-			storeCurrent();
+			//TODO: storeCurrent();
 		}
 
 		// disable RX Audio
-		SetShiftReg(~SR_RXAUDIOEN, 0);
+		SetShiftReg((uint8_t)~SR_RXAUDIOEN, 0);
 
 		// shut-down Radio
 		// TODO: Check if further bits need to be set/reset e.g. Audio PA

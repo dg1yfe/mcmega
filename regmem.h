@@ -7,6 +7,7 @@
 
 #ifndef REGMEM_H_
 #define REGMEM_H_
+#include <stdint.h>
 //****************************************************************************
 //
 //    MC70 - Firmware for the Motorola MC micro trunking radio
@@ -62,6 +63,15 @@
 #define SR_DATADDR     DDRD
 #define SR_DATABIT     (1 << 6)
 
+#define SR_LATCHPORT   PORTG
+#define SR_LATCHEN     (1 << 3)
+
+#define SBUS_DINPORT	PINE
+#define SBUS_DINBIT		(1 << 2)
+
+#define PLL_LATCHPORT  PORTB
+#define PLL_LATCHEN    (1 << 7)
+
 // Shift register output
 // 0 - Audio PA enable (1=enable)      (PIN 4 ) *
 // 1 - STBY&9,6V (1=enable)            (PIN 5 )
@@ -77,10 +87,11 @@
 #define SR_9V6        (1 << 1)
 #define SR_RXVCOSEL   (1 << 2)
 #define SR_TXPWRLO    (1 << 3)
+#define SR_nCLKSHIFT  (1 << 3)
 #define SR_EXTALARM   (1 << 4)
 #define SR_SELATT     (1 << 5)
 #define SR_MICEN      (1 << 6)
-#define SR_RXAUDIOEN  (1 << 7)
+#define SR_RXAUDIOEN  UINT8_C(1 << 7)
 
 #define SQEXTBIT SR_EXTALARM
 
@@ -88,6 +99,8 @@
 // R E G I S T E R S
 //*******************
 
+extern char SR_data_buf;
+extern char bus_busy;
 extern void * oci_vec;
 extern char tasksw;
 extern char last_tasksw;
@@ -114,7 +127,7 @@ extern char arrow_buf;		// Bit  0 - Arrow 0
 							// Bit 14 - Arrow 6 blink
 
 extern char dbuf[8];		// Main Display Buffer
-extern char cpos;			// Cursorposition
+extern uint8_t cpos;			// Cursorposition
 
 extern char dbuf2[9];		// Display Buffer2 + Byte f�r CPOS
 
@@ -186,23 +199,23 @@ extern char o2_dither;
 // I O   R I N G B U F F E R
 //*****************************
 #define io_menubuf_size   4
-#define io_menubuf_mask io_menubuf_size-1
+#define io_menubuf_mask (io_menubuf_size-1)
 extern char io_menubuf[io_menubuf_size];// Menü Ringbuffer - 8 Byte
-extern char io_menubuf_w;				// Write-Pointer (zu Basisadresse addieren)
-extern char io_menubuf_r;				// Read-Pointer (zu Basisadresse addieren)
+extern uint8_t io_menubuf_w;				// Write-Pointer (zu Basisadresse addieren)
+extern uint8_t io_menubuf_r;				// Read-Pointer (zu Basisadresse addieren)
 extern char io_menubuf_e;				// Overflow Error
 
 #define io_inbuf_size   4
-#define io_inbuf_mask   io_inbuf_size-1
+#define io_inbuf_mask   (io_inbuf_size-1)
 extern char io_inbuf[io_inbuf_size];	// Input Ringbuffer - 4 Byte
-extern char io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-extern char io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
+extern uint8_t io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
+extern uint8_t io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
 extern char io_inbuf_er;				// Overflow Error
 
 #define io_outbuf_size  4
-#define io_outbuf_mask  io_outbuf_size-1
-extern char io_outbuf_w;				// Write-Pointer (zu Basisadresse addieren)
-extern char io_outbuf_r;				// Read-Pointer (zu Basisadresse addieren)
+#define io_outbuf_mask  (io_outbuf_size-1)
+extern uint8_t io_outbuf_w;				// Write-Pointer (zu Basisadresse addieren)
+extern uint8_t io_outbuf_r;				// Read-Pointer (zu Basisadresse addieren)
 extern char io_outbuf_er;				// Overflow Error
 extern char io_outbuf[io_outbuf_size];	// Output Ringbuffer - 16 Byte
 //****************

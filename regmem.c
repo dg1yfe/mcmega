@@ -4,19 +4,20 @@
  *  Created on: 27.05.2012
  *      Author: Felix Erckenbrecht
  */
-
+#include <stdint.h>
 #include "regmem.h"
 
 //*******************
 // R E G I S T E R S
 //*******************
 
+char SR_data_buf;
 void * oci_vec;
 char tasksw;
 char last_tasksw;
 char tasksw_en;
 int  start_task;
-
+char bus_busy;
 char pcc_cdiff_flag; 	// Flag
 
 char led_buf;			// Bit 0 (1)  - gelb
@@ -37,7 +38,7 @@ char arrow_buf;				// Bit  0 - Arrow 0
 							// Bit 14 - Arrow 6 blink
 
 char dbuf[8];				// Main Display Buffer
-char cpos;					// Cursorposition
+uint8_t cpos;					// Cursorposition
 
 char dbuf2[9];				// Display Buffer2 + Byte f�r CPOS
 
@@ -107,17 +108,17 @@ char o2_dither;
 // I O   R I N G B U F F E R
 //*****************************
 char io_menubuf[io_menubuf_size];	// Menü Ringbuffer - 8 Byte
-char io_menubuf_w;					// Write-Pointer (zu Basisadresse addieren)
-char io_menubuf_r;					// Read-Pointer (zu Basisadresse addieren)
+uint8_t io_menubuf_w;					// Write-Pointer (zu Basisadresse addieren)
+uint8_t io_menubuf_r;					// Read-Pointer (zu Basisadresse addieren)
 char io_menubuf_e;					// Overflow Error
 
 char io_inbuf[io_inbuf_size];		// Input Ringbuffer - 4 Byte
-char io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-char io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
+uint8_t io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
+uint8_t io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
 char io_inbuf_er;					// Overflow Error
 
-char io_outbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-char io_outbuf_r;					// Read-Pointer (zu Basisadresse addieren)
+uint8_t io_outbuf_w;					// Write-Pointer (zu Basisadresse addieren)
+uint8_t io_outbuf_r;					// Read-Pointer (zu Basisadresse addieren)
 char io_outbuf_er;					// Overflow Error
 char io_outbuf[io_outbuf_size];		// Output Ringbuffer - 16 Byte
 //****************
