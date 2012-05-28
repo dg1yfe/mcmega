@@ -40,9 +40,6 @@
 #define PTTBIT        (1<< 7)
 
 
-//PLL Lock Input
-#define LOCKPORT      PORTE
-#define LOCKBIT       (1 << 6)
 //Squelch Input
 #define SQPORT        PORTE
 #define SQBIT         (1 << 7)
@@ -71,6 +68,9 @@
 
 #define PLL_LATCHPORT  PORTB
 #define PLL_LATCHEN    (1 << 7)
+//PLL Lock Input
+#define PLL_LOCKPORT      PINE
+#define PLL_LOCKBIT       (1 << 6)
 
 // Shift register output
 // 0 - Audio PA enable (1=enable)      (PIN 4 ) *
@@ -119,7 +119,7 @@ extern char led_buf;	// Bit 0 (1)  - gelb
 						// Bit 7 (128)- change flag
 extern char led_dbuf;
 
-extern char arrow_buf;		// Bit  0 - Arrow 0
+extern uint16_t arrow_buf;		// Bit  0 - Arrow 0
 							// Bit  1 - Arrow 1
 							// ...
 							// Bit  8 - Arrow 0 blink
@@ -129,7 +129,8 @@ extern char arrow_buf;		// Bit  0 - Arrow 0
 extern char dbuf[8];		// Main Display Buffer
 extern uint8_t cpos;			// Cursorposition
 
-extern char dbuf2[9];		// Display Buffer2 + Byte f�r CPOS
+extern char dbuf2[8];		// Display Buffer2 + Byte f�r CPOS
+extern uint8_t cpos2;
 
 extern char f_in_buf[9];	// 9 byte buffer
 

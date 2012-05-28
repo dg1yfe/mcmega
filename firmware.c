@@ -17,7 +17,7 @@
 #include "subs.h"
 #include "int.h"
 #include "io.h"
-
+#include "pll_freq.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
@@ -44,7 +44,7 @@ int main(void)
 	init_SIO();
 	init_OCI();
 	init_ui();
-	//init_pll(FSTEP);
+	init_pll(FSTEP);
 
 	sei();
 
@@ -59,6 +59,7 @@ int main(void)
 
 void vControlTask( void * pvParameters)
 {
+	char i;
 /*
  *              jsr  sci_init              ; serielle Schnittstelle aktivieren
                 jsr  init_SIO              ; SIO Interrupt konfigurieren
@@ -75,10 +76,35 @@ void vControlTask( void * pvParameters)
                 cli
  *
  */
-	// initialize UART Interrupt handling and enable irq
+	lcd_h_reset();
+	lcd_s_reset();
+	cfg_head = 3;
+
+	led_set(GRN_LED, LED_ON);
+	freq_init();
+
+	taskYIELD();
+
+	receive();
+	pll_timer = 1;
+	//enable Audio PA, but disable RX Audio
+	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIO);
 
 	while (1)
     {
-        __asm__ volatile("nop");		// so the endless loop isn't optimized away
+		pwr_sw_chk(0);
+		i=ptt_get_status();
+		if(i & 0x80)
+		{
+			if(i & 0x7f)
+				transmit();
+			else
+				receive();
+		}
+		squelch();
+		taskYIELD();
+		frq_check();
+		wd_reset();
+		s_timer_update();
     }
 }

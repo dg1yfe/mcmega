@@ -30,7 +30,7 @@ char led_buf;			// Bit 0 (1)  - gelb
 						// Bit 7 (128)- change flag
 char led_dbuf;
 
-char arrow_buf;				// Bit  0 - Arrow 0
+uint16_t arrow_buf;			// Bit  0 - Arrow 0
 							// Bit  1 - Arrow 1
 							// ...
 							// Bit  8 - Arrow 0 blink
@@ -40,7 +40,8 @@ char arrow_buf;				// Bit  0 - Arrow 0
 char dbuf[8];				// Main Display Buffer
 uint8_t cpos;					// Cursorposition
 
-char dbuf2[9];				// Display Buffer2 + Byte f�r CPOS
+char dbuf2[8];				// Display Buffer2 + Byte f�r CPOS
+uint8_t cpos2;
 
 char f_in_buf[9];			// 9 byte buffer
 
