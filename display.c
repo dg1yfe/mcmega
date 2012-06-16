@@ -45,6 +45,7 @@ char lcd_s_reset()
 	char ret;
 
 	lcd_timer = 0;
+	lcd_timer_en = 1;
 	// clear RX buffer
 	while(sci_rx(NULL));
 	h = tick_hms + 20; 	// 2 sek timeout

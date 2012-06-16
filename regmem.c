@@ -60,6 +60,7 @@ char gp_timer;				// General Purpose Timer, 1ms Decrement
 char ui_timer;
 char next_hms;
 char lcd_timer;				// 1ms
+char lcd_timer_en;
 
 long frequency;				// aktuelle Frequenz
 
@@ -108,20 +109,10 @@ char o2_dither;
 //*****************************
 // I O   R I N G B U F F E R
 //*****************************
-char io_menubuf[io_menubuf_size];	// Menü Ringbuffer - 8 Byte
-uint8_t io_menubuf_w;					// Write-Pointer (zu Basisadresse addieren)
-uint8_t io_menubuf_r;					// Read-Pointer (zu Basisadresse addieren)
-char io_menubuf_e;					// Overflow Error
-
-char io_inbuf[io_inbuf_size];		// Input Ringbuffer - 4 Byte
-uint8_t io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-uint8_t io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
-char io_inbuf_er;					// Overflow Error
-
-uint8_t io_outbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-uint8_t io_outbuf_r;					// Read-Pointer (zu Basisadresse addieren)
-char io_outbuf_er;					// Overflow Error
-char io_outbuf[io_outbuf_size];		// Output Ringbuffer - 16 Byte
+volatile char tx_buf;
+volatile char rx_char_buf;
+volatile char rx_ack_buf;
+volatile char rx_key_buf;
 //****************
 // E X T   R A M
 //****************

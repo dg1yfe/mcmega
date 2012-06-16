@@ -199,26 +199,11 @@ extern char o2_dither;
 //*****************************
 // I O   R I N G B U F F E R
 //*****************************
-#define io_menubuf_size   4
-#define io_menubuf_mask (io_menubuf_size-1)
-extern char io_menubuf[io_menubuf_size];// Menü Ringbuffer - 8 Byte
-extern uint8_t io_menubuf_w;				// Write-Pointer (zu Basisadresse addieren)
-extern uint8_t io_menubuf_r;				// Read-Pointer (zu Basisadresse addieren)
-extern char io_menubuf_e;				// Overflow Error
+extern volatile char tx_buf;
+extern volatile char rx_char_buf;
+extern volatile char rx_ack_buf;
+extern volatile char rx_key_buf;
 
-#define io_inbuf_size   4
-#define io_inbuf_mask   (io_inbuf_size-1)
-extern char io_inbuf[io_inbuf_size];	// Input Ringbuffer - 4 Byte
-extern uint8_t io_inbuf_w;					// Write-Pointer (zu Basisadresse addieren)
-extern uint8_t io_inbuf_r;					// Read-Pointer (zu Basisadresse addieren)
-extern char io_inbuf_er;				// Overflow Error
-
-#define io_outbuf_size  4
-#define io_outbuf_mask  (io_outbuf_size-1)
-extern uint8_t io_outbuf_w;				// Write-Pointer (zu Basisadresse addieren)
-extern uint8_t io_outbuf_r;				// Read-Pointer (zu Basisadresse addieren)
-extern char io_outbuf_er;				// Overflow Error
-extern char io_outbuf[io_outbuf_size];	// Output Ringbuffer - 16 Byte
 //****************
 // E X T   R A M
 //****************

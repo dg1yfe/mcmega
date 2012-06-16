@@ -106,5 +106,7 @@ void vControlTask( void * pvParameters)
 		frq_check();
 		wd_reset();
 		s_timer_update();
+		sci_rx_handler();
+		sci_tx_handler();
     }
 }

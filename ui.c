@@ -46,10 +46,9 @@ void vUiTask( void * pvParameters)
 
     for(;;)
 	{
-    	menu();
-    	sci_trans_cmd();
     	pll_led(0);
     	led_update();
+    	menu();
     	taskYIELD();
 	}
 }

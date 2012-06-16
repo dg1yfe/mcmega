@@ -544,14 +544,13 @@ char i2c_rx()
 //
 char sci_rx(char * data)
 {
-	if(io_inbuf_r != io_inbuf_w)
+	if(!(rx_char_buf & 0x80))
 	{
 		// do not read data, if pointer is NULL
-		if(data)
-			*data = io_inbuf[io_inbuf_r];
 		taskENTER_CRITICAL();
-		io_inbuf_r++;
-		io_inbuf_r &= io_inbuf_mask;
+		if(data)
+			*data = rx_char_buf;
+		rx_char_buf = 0x80;
 		taskEXIT_CRITICAL();
 		return 0;
 	}
@@ -575,20 +574,18 @@ char sci_rx(char * data)
 void sci_read(char * data)
 {
 	// Wenn Zeiger auf Lese und Schreibpos gleich sind keine Daten gekommen -> warten
-	while(io_inbuf_r == io_inbuf_w);
-	if(data)
-		*data = io_inbuf[io_inbuf_r];
-
+	while(rx_char_buf & 0x80);
 	taskENTER_CRITICAL();
-	io_inbuf_r++;
-	io_inbuf_r &= io_inbuf_mask;
+	if(data)
+		*data = rx_char_buf;
+	rx_char_buf = 0x80;
 	taskEXIT_CRITICAL();
 }
 //************************
 // S C I   R X   M
 //************************
 //
-// Echo/Kommandobest�tigung lesen
+// Taste von Bedienteil lesen (non-blocking)
 //
 // Parameter:  none
 //
@@ -604,17 +601,16 @@ char sci_rx_m(char * data)
 {
 	uint8_t raw;
 
-	if(io_menubuf_r == io_menubuf_w)
+	if(rx_key_buf & 0x80)
 	{
 		*data = 0;
 		raw = 0x80;
 	}
 	else
 	{
-		raw = io_menubuf[io_menubuf_r];
 		taskENTER_CRITICAL();
-		io_menubuf_r++;
-		io_menubuf_r &= io_menubuf_mask;
+		raw = rx_key_buf;
+		rx_key_buf = 0x80;
 		taskEXIT_CRITICAL();
 		*data = key_convert[raw];
 	}
@@ -625,7 +621,7 @@ char sci_rx_m(char * data)
 // S C I   R E A D   M
 //************************
 //
-// Eingabe von Display lesen (blocking)
+// Eingabe von Bedienteil lesen (blocking)
 //
 // Parameter:  none
 //
@@ -640,56 +636,22 @@ char sci_read_m( char * data)
 {
 	uint8_t raw;
 
-	while(io_menubuf_r == io_menubuf_w)
+	while(rx_key_buf & 0x80)
 	{
 		taskYIELD();
 		if(m_timer==0)
 			return -1;
 	}
 
-	raw = io_menubuf[io_menubuf_r];
 	taskENTER_CRITICAL();
-	io_menubuf_r++;
-	io_menubuf_r &= io_menubuf_mask;
+	raw = rx_key_buf;
+	rx_key_buf = 0x80;
 	taskEXIT_CRITICAL();
 	*data = key_convert[raw];
 
 	return raw;
 }
 
-//************************
-// S C I   T X   B U F
-//************************
-//
-// Put char to TX buffer (for irq driven tx)
-//
-// Parameter:  none
-//
-// Ergebnis : A - Status (0=ok, 1=buffer full)
-//            B - TX Byte
-//
-// changed Regs : A, B
-//
-// required Stack Space : 2
-//
-char sci_tx_buf(char data)
-{
-	char w;
-
-	w=io_outbuf_w;
-	w++;
-	w&=io_outbuf_mask;
-	if(w != io_outbuf_r)
-	{
-		io_outbuf[io_outbuf_w] = data;
-		io_outbuf_w = w;
-		// report success
-		return 0;
-	}
-
-	// Buffer full
-	return 1;
-}
 //************************
 // S C I   T X
 //************************
@@ -708,12 +670,14 @@ char sci_tx_buf(char data)
 void sci_tx(char data)
 {
 	// wait until Byte was transmitted
-	while(!(UCSR0A & (1 << TXC0)));
-	// send data
-	UDR0 = data;
+	while(!(tx_buf & 0x80))
+		taskYIELD();
 
-	// wait until Byte was transmitted
-	while(!(UCSR0A & (1 << TXC0)));
+	// disable lcd_timer
+	lcd_timer_en = 0;
+	// send data
+	tx_buf = data & 0x7f;
+
 }
 
 //
@@ -736,14 +700,17 @@ void sci_tx_w( char data)
 {
 	char delay;
 
+	// wait until Byte was transmitted
 	while(lcd_timer && !(UCSR0A & (1 << TXC0)))
 	{
 		taskYIELD();
 	}
-	// wait until Byte was transmitted
-	while(!(UCSR0A & (1 << TXC0)));
+
 	// send data
-	UDR0 = data;
+	taskENTER_CRITICAL();
+	lcd_timer_en = 1;
+
+	tx_buf = data;
 
 	switch(data)
 	{
@@ -763,12 +730,112 @@ void sci_tx_w( char data)
 		default:
 			delay = LCDDELAY;
 	}
-	// wait until Byte was transmitted
-	while(!(UCSR0A & (1 << TXC0)));
 
 	// set lcd timer
 	lcd_timer = delay;
 
+	taskEXIT_CRITICAL();
+}
+
+/*
+ *  SCI Handler
+ *
+ */
+#define KEYLOCK 0x74
+#define KEY_UNLOCK 0x75
+
+void sci_rx_handler()
+{
+	if (UCSR0A & RXC0)
+	{
+		char rx;
+
+		if(!(UCSR0A & ((1<<UPE0) | (1<<FE0))))
+		{
+			// receiption ok
+
+			rx = UDR0;
+			if(rx && ((rx < 0x20) || (rx == KEYLOCK)))
+			{
+				taskENTER_CRITICAL();
+				if (rx == KEYLOCK)
+				{
+					rx_ack_buf = KEY_UNLOCK;
+				}
+				else
+//				if(rx_key_buf==0)
+				{
+					rx_key_buf = rx;
+					rx_ack_buf = rx;
+				}
+				taskEXIT_CRITICAL();
+			}
+			else
+			{
+//				if(!(rx_char_buf & 0x80))
+				{
+					rx_char_buf = rx;
+				}
+			}
+		}
+		else
+		{
+			(volatile) rx = UDR0;
+		}
+	}
+}
+
+
+void sci_tx_handler()
+{
+
+	// check if the TX Reg is currently empty
+	if(UCSR0A & (1<<TXC0))
+	{
+		char tx;
+
+		if(!lcd_timer_en || !lcd_timer)
+		{
+			// check if a keystroke needs to be acknowledged
+			tx = rx_ack_buf;
+			if(tx)
+			{
+				UDR0 = tx;
+				rx_ack_buf = 0;		// mark ack buffer as empty
+			}
+			else
+			{
+				// check if there is something to be sent in the buffer
+				tx = tx_buf;
+				if(!(tx & 0x80))
+				{
+					UDR0 = tx;
+					tx_buf = 0x80;
+				}
+			}
+			if(!(UCSR0A & (1<<TXC0)))
+			{
+				switch(tx)
+				{
+					// send data related to extended chars without delay
+					case 0x4D:
+					case 0x5D:
+					case 0x4E:
+					case 0x5E:
+					case 0x4F:
+					case 0x5F:
+						delay = 0;
+						break;
+					// display clear command need 4* normal delay
+					case 0x78:
+						delay = LCDDELAY * 4;
+						break;
+					default:
+						delay = LCDDELAY;
+				}
+			}
+		}
+	}
 }
 
 //************************
@@ -780,7 +847,7 @@ void sci_tx_w( char data)
 //
 char check_inbuf()
 {
-	return ((io_inbuf_w - io_inbuf_r) & io_inbuf_mask);
+	return (rx_char_buf & 0x80);
 }
 //
 //************************
@@ -813,129 +880,27 @@ char sci_ack(const char data)
 {
 	char ret = 1;
 
-	// empty buffer until only 1 char is left
-	while(check_inbuf() >1)
-	{
-		sci_read(NULL);
-	}
-
 	ui_timer = LCDDELAY;
-	while(ui_timer && (check_inbuf()==0))
+	while(ui_timer && (!rx_char_buf))
 	{
 		taskYIELD();
 	}
 
 	// check if char was received
-	if(check_inbuf())
+	if(rx_char_buf)
 	{
 		char read;
 
 		// read received char from buffer
 		sci_read(&read);
-		// check if command was ignored becaue a key was pressed
-		if(read == 0x7f)
+
+		if(data == read)
 		{
-			// read key from control head and put it into menu buffer
-			sci_read_cmd();
-		}
-		else
-		{
-			// check if received char equals sent char
-			if(data != read)
-			{	// if not
-				// check if keylock is active
-				if(read == 0x74)
-				{	//send unlock command
-					pputchar('p',0x75,0);
-				}
-			}
-			else
-				ret = 0;
+			ret = 0;
 		}
 	}
 
 	return ret;
-}
-//****************************
-// S C I   R E A D   C M D
-//****************************
-//
-// Parameter : B - Kommando / Eingabe Byte
-//
-// Returns : nothing
-//
-// required Stack Space : 9
-//
-//
-void sci_read_cmd()
-{
-	char c;
-
-	sci_read(&c);
-
-	// empty buffer
-	while(sci_rx(NULL)==0);
-	sci_tx_w(c);
-	men_buf_write(c);
-}
-
-//****************************
-// S C I   T R A N S   C M D
-//****************************
-//
-// Parameter : none
-//
-// Returns : none
-//
-//
-void sci_trans_cmd()
-{
-	char c;
-
-	if (sci_rx(&c))
-		return;
-
-	// input values are < 0x20
-	// everything > 0x20 is a command ack
-	while (c < 0x20)
-	{
-		if( check_inbuf() == 0)
-		{
-			sci_tx_w(c);
-			men_buf_write(c);
-			break;
-		}
-		// read next char from buf
-		sci_read(&c);
-	}
-}
-
-//****************************
-// M E N   B U F   W R I T E
-//****************************
-//
-// Parameter : B - Kommando / Eingabe Byte
-//
-// Returns : nothing
-//
-// changed Regs: A,B,X
-//
-// Required Stack Space : 2
-//
-void men_buf_write( char data )
-{
-	char w;
-
-	w = io_menubuf_w;
-	w++;
-	w &= io_menubuf_mask;
-	// if there is space in the menu buffer, transfer data
-	// otherwise we ignore it
-	if (w != io_menubuf_r)
-	{
-		io_menubuf[io_menubuf_w] = data;
-		io_menubuf_w = w;
-	}
 }
 
 

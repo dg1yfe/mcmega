@@ -41,14 +41,10 @@ void vApplicationTickHook()
 
 void init_SIO()
 {
-	io_outbuf_w = 0;
-	io_outbuf_r = 0;
-
-	io_inbuf_w = 0;
-	io_inbuf_r = 0;
+	//TODO : Bitrate
 
 	// enable UART RX interrupt
-	UCSR0B |= (1 << RXCIE0);
+	//UCSR0B |= (1 << RXCIE0);
 }
 
 
