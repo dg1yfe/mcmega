@@ -455,3 +455,37 @@ void arrow_set(char pos, char state)
 
 	// TODO: Implement arrow setting like LED setting using set & update function
 }
+
+#define LCD_SOLID 0
+#define LCD_BLINK 1
+//*************************
+// L C D   C H R   M O D E
+//*************************
+//
+// Parameter : B - Position  (0-7)
+//             A - Solid/Blink
+//                 0 = Solid,
+//                 1 = Blink
+//
+// Returns : nothing
+//
+// required Stack Space : 6+Subroutines
+//
+//
+void lcd_chr_mode(uint8_t position, char mode)
+{
+	if (position < 8)
+	{
+		char c;
+
+		c = dbuf[position];
+
+		if(mode)
+			c |= CHR_BLINK;
+		else
+			c &= ~CHR_BLINK;
+		lcd_cpos(position);
+		pputchar('c', c, 0);
+	}
+}
+

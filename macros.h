@@ -243,6 +243,24 @@
 #define N0 0x10
 #define RAUTE 0x0C
 
+#define KC_NONE -1
+#define KC_D1 0x11
+#define KC_D2 0x12
+#define KC_D3 0x13
+#define KC_D4 0x14
+#define KC_D5 0x15
+#define KC_D6 0x16
+#define KC_D7 0x17
+#define KC_D8 0x18
+#define KC_ENTER 0x10
+#define KC_EXIT  0x19
+
+/*
+ * Control Head definitions, used for key convert table
+ */
+#define CHD3 0
+#define CHD2 1
+
 /*
  * ;****************************************************************************
 ;

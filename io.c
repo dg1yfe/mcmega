@@ -75,12 +75,36 @@ char e_char_convert[] PROGMEM = {
 		0x24,  0x25,  0x26,  0x00,  0x00,  0x03,  0x03,  0x04
 };
 
-char key_convert[] PROGMEM = {
-	0x00, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-	0x03, 0x06, 0x09, 0x19, 0x02, 0x05, 0x08, 0x00, 0x01, 0x04, 0x07, 0x10};
+char key_convert[][] PROGMEM = {
+	// Control Head #3
+	//     ---------------------------  1   2   3
+	//     !                         !
+	// D1  !                         !  4   5   6
+	//     !                         !
+	// D2  !                         !  7   8   9
+	//     ---------------------------
+	//     D3  (D4)  D5  (D6)  D7  (D8) *   0   #
+	//
+	// --,   D1,   D2,   D3,   D4,   D5,   D6,   D7,   D8,
+	{0x00, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+	//  3, 6, 9,    #   , 2, 5,  8, 0, 1, 4, 7,    *
+		3, 6, 9,KC_ENTER, 2, 5,  8, 0, 1, 4, 7, KC_EXIT},
 
-// D1, D2, D3, D4, D5, D6, D7, D8,
-//  3,  6,  9,  #,  2,  5,  8,  0,  1,  4,  7,  *
+	// Control Head #2
+	//     ---------------------------
+	//     !                         !
+	// D1  !                         !    5
+	//     !                         !
+	// D2  !                         !    8
+	//     ---------------------------
+	//     D3   D4   D5   D6   D7   D8
+	//
+	// --,   D1,   D2,   D3,   D4,   D5,   D6,   D7,   D8,
+	{0x00,KC_D1,KC_D2,KC_D3,KC_D4,KC_D5,KC_D6,KC_D7,KC_D8,
+	//  3, 6, 9,    #,    2,    5   ,     8   , 0, 1, 4, 7,    *
+	    3, 6, 9,KC_ENTER, 2, KC_EXIT, KC_ENTER, 0, 1, 4, 7, KC_EXIT},
+};
+
 
 /*
 ;****************
@@ -612,7 +636,7 @@ char sci_rx_m(char * data)
 		raw = rx_key_buf;
 		rx_key_buf = 0x80;
 		taskEXIT_CRITICAL();
-		*data = key_convert[raw];
+		*data = key_convert[cfg_head][raw];
 	}
 	return raw;
 }
@@ -647,7 +671,8 @@ char sci_read_m( char * data)
 	raw = rx_key_buf;
 	rx_key_buf = 0x80;
 	taskEXIT_CRITICAL();
-	*data = key_convert[raw];
+
+	*data = key_convert[cfg_head][raw];
 
 	return raw;
 }

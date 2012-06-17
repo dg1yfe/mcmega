@@ -39,8 +39,7 @@ void uintdecd(char data);
 
 
 
-extern char key_convert[];
-
+extern char key_convert[][];
 
 
 

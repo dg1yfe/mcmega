@@ -21,5 +21,6 @@ void lcd_fill();
 void led_set(char led, char status);
 void led_update();
 void arrow_set(char pos, char state);
+void lcd_chr_mode(uint8_t position, char mode);
 
 #endif /* DISPLAY_H_ */

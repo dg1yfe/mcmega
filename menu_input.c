@@ -168,41 +168,27 @@ inline void m_frq_prnt()
 //
 // Editiert einen Bereich im Display
 //
-// Parameter: A - Niedrigstes/Erstes Digit  (Bit 0-3)
-//                H�chstes/Letztes Digit (Bit 4-7)
-//            B - Mode :  0 - Dezimal
-//                        1 - Alphanumerisch
-//                        2 - Alphabet
+// Parameter: lopos - Niedrigstes/Erstes Digit
+//            hipos - H�chstes/Letztes Digit
+//        	  Mode :  0 - Dezimal
+//                    1 - Alphanumerisch
+//                    2 - Alphabet
+//					 -1 - Init
 //
-// Ergebnis : X - Zeiger auf 0-terminierten String (f_in_buffer)
-//            A - Status :  0 - OK
-//                          1 - Abbruch
+// Ergebnis : Status :  0 - continue editig
+//                      1 - input ok (f_in_buf)
+//					   -1 - abort
 //
-// changed Regs : A,B,X
-//
-// required Stack Space : 7+Subroutines
-//
-// Stack depth on entry : 4
-//
-// 4 - first pos
-// 3 - last pos
-// 2 - lower limit
-// 1 - upper limit
-// 0 - current pos
 #define MDE_FIRST_POS 4
 #define MDE_LAST_POS  3
 #define MDE_LOWER_LIM 2
 #define MDE_UPPER_LIM 1
 #define MDE_CUR_POS   0
 //
-// returns :	0 - abort / timeout
-//				1 - enter, string in f_in_buf
-//
-char m_digit_editor(char lopos, char highpos, char mode)
+char m_digit_editor(char key, char lopos, char highpos, char mode)
 {
 	static signed currentpos = 0;
 	char hival, loval;
-	char buf;
 	char exit = 0;
 
 	switch(mode)
@@ -222,132 +208,64 @@ char m_digit_editor(char lopos, char highpos, char mode)
 			hival = 'z';
 			loval = 'a';
 			break;
-	}
-
-	if(currentpos<0)
-	{
-		currentpos = lopos;
-	}
-
-	lcd_chr_mode(1);
-
-	while(m_timer && !exit)
-	{
-		sci_trans_cmd();
-		pll_led(0);
-		led_update();
-		taskYIELD();
-		if (!(sci_rx_m(&buf) & 0x80))
+		case -1:
 		{
-			m_reset_timer();
-
-			if(cfg_head == 2)
-			{
-				switch(buf)
-				{
-					case HD2_ENTER:
-						mde_enter();
-						break;
-					case HD2_EXIT:
-						exit=2;
-					default:
-						break;
-				}
-			}
-			else
-			{
-				switch(buf)
-				{
-					case HD3_ENTER:
-						mde_enter();
-						exit = 1;
-						break;
-					case HD3_EXIT:
-						exit = 2;
-					default:
-						break;
-				}
-			}
-
-			switch(buf)
-			{
-				case KC_D1:
-					mde_up(currentpos, loval, hival);
-					break;
-				case KC_D2:
-					mde_down(currentpos, loval, hival);
-					break;
-				case KC_D6:
-					mde_next(&currentpos, lopos, hipos);
-					break;
-				case KC_D3:
-					mde_next(&currentpos, lopos, hipos);
-					break;
-				default:
-					break;
-			}
+			lcd_cpos(lopos);
+			currentpos = lopos;
+			// make character blink
+			lcd_chr_mode(currentpos, 1);
+			return 0;
 		}
 	}
 
-	if(exit==2)
+	switch(buf)
 	{
-		lcd_chr_mode(0);
-		exit = 0;
+		case KC_D1:
+			if(dbuf[currentpos] >= hival)
+				dbuf[currentpos]=loval;
+			else
+				dbuf[currentpos]++;
+
+			lcd_cpos(currentpos);
+			pputchar('c',dbuf[currentpos] | CHR_BLINK,0);
+			break;
+		case KC_D2:
+			if(dbuf[currentpos] <= loval)
+				dbuf[currentpos]=hival;
+			else
+				dbuf[currentpos]--;
+
+			lcd_cpos(currentpos);
+			pputchar('c',dbuf[currentpos] | CHR_BLINK,0);
+			break;
+		case KC_D6:
+		case KC_D3:
+			lcd_chr_mode(currentpos,0);
+			if(currentpos <= lopos)
+				currentpos = hipos;
+			else
+				currentpos++;
+			lcd_chr_mode(currentpos,1);
+			break;
+		case KC_ENTER:
+		{
+			uint8_t count;
+
+			lcd_chr_mode(currentpos, 0);
+
+			count=hipos - lopos + 1;
+			memcpy(f_in_buf, &dbuf[lopos], count);
+			f_in_buf[count] = 0;
+			exit = 1;
+			break;
+		}
+		case KC_EXIT:
+			lcd_chr_mode(currentpos, 0);
+			exit=-1;
+			break;
+		default:
+			break;
 	}
 
 	return(exit);
 }
-
-
-
-inline void mde_up(uint8_t currentpos, char loval, char hival)
-{
-	if(dbuf[currentpos] == hival)
-		dbuf[currentpos]=loval;
-	else
-		dbuf[currentpos]++;
-
-	lcd_cpos(currentpos);
-	pputchar('c',dbuf[currentpos] | 0x80,0);
-}
-
-
-inline void mde_down(uint8_t currentpos, char loval, char hival)
-{
-	if(dbuf[currentpos] == loval)
-		dbuf[currentpos]=hival;
-	else
-		dbuf[currentpos]--;
-
-	lcd_cpos(currentpos);
-	pputchar('c',dbuf[currentpos] | 0x80,0);
-}
-
-
-//*************
-inline void mde_next(uint8_t * currentpos, uint8_t lopos, uint8_t hipos)
-{
-	lcd_chr_mode(0);
-	if(currentpos == lopos)
-		currentpos = hipos;
-	else
-		currentpos++;
-
-	lcd_chr_mode(currentpos);
-
-}
-
-
-//----------------
-inline void mde_enter(uint8_t currentpos, const uint8_t lopos, const uint8_t hipos)
-{
-	uint8_t count;
-
-	lcd_chr_mode(currentpos, 0);
-
-	count=hipos - lopos + 1;
-	memcpy(f_in_buf, &dbuf[lopos], count);
-	f_in_buf[count] = 0;
-}
-
-

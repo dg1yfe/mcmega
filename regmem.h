@@ -161,6 +161,9 @@ extern long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeiche
 extern long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 extern char rxtx_state;			// 0=RX
+
+char pwr_mode;				// Lo / Hi Power
+
 extern char ptt_debounce;
 
 //cfg_defch_save
@@ -168,8 +171,6 @@ extern char ui_ptt_req;			//
 
 extern char cfg_head;				// Type of Control Head
 
-extern char m_svar1;
-extern char m_svar2;
 extern char m_state;
 extern int  m_timer;				// 100ms
 extern char m_timer_en;

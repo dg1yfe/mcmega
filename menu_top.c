@@ -7,6 +7,8 @@
 
 
 #include <stdlib.h>
+#include <stdint.h>
+
 #include <avr/pgmspace.h>
 #include "macros.h"
 #include "regmem.h"
@@ -14,10 +16,10 @@
 typedef struct PROGMEM
 {
 	char * label;
-	void * fptr;
+	void * fptr(char key);
 } const T_MENUITEM;
 
-T_MENUITEM m_top_menu[] =
+T_MENUITEM m_submenu_list[] =
 {
 		{ PSTR("MENU    "), m_recall_submenu},
 		{ PSTR("RECALL  "), m_recall_submenu},
@@ -28,6 +30,7 @@ T_MENUITEM m_top_menu[] =
 		{ PSTR("POWER   "), m_power_submenu}
 };
 
+static uint8_t menu_index;
 
 
 //*****************************
@@ -55,132 +58,59 @@ void m_top(uint8_t key)
 {
 	void (*fptr)(uint8_t key);
 
-	if(cfg_head == 3)
+	switch(key)
 	{
-// Control Head 3
-//     ---------------------------  1   2   3
-//     !                         !
-// D1  !                         !  4   5   6
-//     !                         !
-// D2  !                         !  7   8   9
-//     ---------------------------
-//     D3  (D4)  D5  (D6)  D7  (D8) *   0   #
-//
-		switch(key)
-		{
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-			case 8:
-			case 9:
-				m_start_input(key);
-				break;
-			case 0x10:
-				m_none();
-				break;
-			case KC_D1:
-				m_frq_up();
-				break;
-			case KC_D2:
-				m_frq_down();
-				break;
-			case KC_D3:
-				m_sql_switch();
-				break;
-			case KC_D4:
-				m_test();
-				//m_none();
-				//m_prnt_tc();
-				break;
-			case KC_D5:
-				m_tone();
-				break;
-			case KC_D6:
-				m_none();
-				break;
-			case KC_D7:
-				m_txshift(key);
-				break;
-			case KC_D8:
-				m_recall();
-				break;
-			case 0x19:
-				m_frq_store();
-			default:
-				m_none();
-		}
-	}
-	else
-	if(cfg_head == 2)
-	{
-// Control Head 2
-//     ---------------------------
-//     !                         !
-// D1  !                         !    5
-//     !                         !
-// D2  !                         !    8
-//     ---------------------------
-//     D3   D4   D5   D6   D7   D8
-//
-		switch(key)
-		{
-			case 0:
-				m_prnt_tc();
-				break;
-			case 1:
-				m_test2();
-				break;
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-			case 6:
-			case 7:
-				m_test();
-				break;
-			case 8:
-				m_menu();
-				break;
-			case 9:
-				m_test();
-				break;
-			case 0x10:
-				m_tone_stop();
-				break;
-			case KC_D1:
-				m_frq_up();
-				break;
-			case KC_D2:
-				m_frq_down();
-				break;
-			case KC_D3:
-				m_sql_switch();
-				break;
-			case KC_D4:
-				m_test();
-				break;
-			case KC_D5:
-				m_tone();
-				break;
-			case KC_D6:
-				m_digit();
-				break;
-			case KC_D7:
-				m_txshift(key);
-				break;
-			case KC_D8:
-				m_recall();
-				break;
-			case 0x19:
-				m_none();
-			default:
-				m_none();
-		}
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+			m_start_input(key);
+			break;
+		case KC_EXIT:
+			break;
+		case KC_D1:
+			m_frq_up();
+			break;
+		case KC_D2:
+			m_frq_down();
+			break;
+		case KC_D3:
+			m_sql_switch();
+			break;
+		case KC_D4:
+			m_test();
+			//m_none();
+			//m_prnt_tc();
+			break;
+		case KC_D5:
+			m_tone();
+			break;
+		case KC_D6:
+			if(cfg_head == CHD2)
+			{
+				if(!m_timer_en)
+					save_dbuf();
+				// initialize digit editor
+				m_digit_editor(0, 0, 0, -1);
+				m_state = FREQ_DIGIT;
+			}
+			break;
+		case KC_D7:
+			m_txshift(key);
+			break;
+		case KC_D8:
+			m_recall();
+			break;
+		case KC_ENTER:
+			m_submenu();
+		default:
+			break;
 	}
 }
 
@@ -252,7 +182,7 @@ void m_tone()
 //
 inline void m_txshift(char key)
 {
-	if(m_timer_en==0)
+	if(!m_timer_en)
 	{
 		save_dbuf();
 	}
@@ -289,81 +219,41 @@ inline void mts_print()
 inline void mts_switch(char key)
 {
 	m_reset_timer();
-	if(cfg_head==2)
+	switch(key)
 	{
-		switch(key)
-		{
-			case 5:
-				offset = -offset;
-				txshift = offset;
-				ui_txshift = offset;
+		case KC_ENTER:
+			offset = -offset;
+			txshift = offset;
+			ui_txshift = offset;
+			taskYIELD();
+			mts_print();
+			break;
+		case KC_D7:
+			mts_toggle();
+			m_reset_timer();
+			if(offset)
+			{
+				ui_txshift = 0;
 				taskYIELD();
-				mts_print();
-				break;
-			case KC_D7:
-				mts_toggle();
-				m_reset_timer();
-				if(offset)
-				{
-					ui_txshift = 0;
-					taskYIELD();
-				}
-				else
-				{
-					ui_txshift = txshift;
-					taskYIELD();
-				}
-				mts_print();
-				break;
-			case KC_D6:
-				mts_digit();
-				break;
-			case 8:
-				m_timer=0;
-				break;
-			default:
-				restore_dbuf();
-				// TODO: m_top() ?
-				break;
-		}
-	}
-	else
-	{
-		switch(key)
-		{
-			case KC_STERN:
-				offset = -offset;
-				txshift = offset;
-				ui_txshift = offset;
+			}
+			else
+			{
+				ui_txshift = txshift;
 				taskYIELD();
-				mts_print();
-				break;
-			case KC_D7:
-				mts_toggle();
-				m_reset_timer();
-				if(offset)
-				{
-					ui_txshift = 0;
-					taskYIELD();
-				}
-				else
-				{
-					ui_txshift = txshift;
-					taskYIELD();
-				}
-				mts_print();
-				break;
-			case KC_D6:
-				mts_digit();
-				break;
-			case KC_RAUTE:
-				m_timer=0;
-				break;
-			default:
-				restore_dbuf();
-				// TODO: m_top() ?
-				break;
-		}
+			}
+			mts_print();
+			break;
+		case KC_D6:
+			m_state = TXSHIFT_DIGIT;
+			m_digit_editor(0,0,0,-1);
+			break;
+		case KC_EXIT:
+			m_timer=0;
+			break;
+		default:
+			restore_dbuf();
+			// TODO: m_top() ?
+			break;
 	}
 }
 
@@ -377,24 +267,30 @@ inline void mts_switch(char key)
 //
 void mts_digit()
 {
-	if(m_digit_editor(1,2,0))
-		m_timer = 0;
-	else
+	char res;
+
+	m_reset_timer();
+
+	if(res = m_digit_editor(key, 1,2,0))
 	{
-		long f;
-		f = atoi(dbuf);
-		f *= 1000;
-		txshift = f;
-		ui_txshift = f;
-		taskYIELD();
-		m_state = IDLE;
-		m_timer = 8;	// wait 800 ms before reverting to frequency
+		if(res>0)
+		{
+			long f;
+			f = atoi(dbuf);
+			f *= 1000;
+			txshift = f;
+			ui_txshift = f;
+			taskYIELD();
+			m_state = IDLE;
+			m_timer = 8;	// wait 800 ms before reverting to frequency
+//TODO Print "OK"
+		}
+		else
+			m_timer = 0;
 	}
 }
-//                ldaa #(1<<4)+2        // digits 1 & 2 editable
-//                clrb                  // decimal mode
- //               jsr  m_digit_editor   // call digit editor
-//                bra  msh_set_str      // set shift
+
+
 //**************************************
 // M   S E T   S H I F T
 //
@@ -469,82 +365,64 @@ void m_prnt_tc()
 //
 // Call Submenu
 //
-void m_menu()
+inline void m_submenu(char key)
 {
 	if(!m_timer_en)
 	{
 		save_dbuf();
 	}
 	m_reset_timer();
-	lcd_cpos(0);
-	m_svar1 = 0;
-	m_state = MENU_SELECT;
-	printf(m_menu_str);
-}
-
-//*************
-// M   M E N U
-//
-// Call Submenu
-//
-void m_menu_select(char key)
-{
-	m_reset_timer();
-	if(cfg_head == 2)
+	switch(m_state)
 	{
-		switch(key)
-		{
-		case HD2_ENTER:
-			mms_execute();
-			break;
-		case HD2_EXIT:
-			mms_exit();
-			break;
-		case KC_D1:
-			mms_cycle_up();
-			break;
-		case KC_D2:
-			mms_cycle_down();
-			break;
 		default:
+		{
+			lcd_cpos(0);
+			menu = 0;
+			m_state = MENU_SELECT;
+			menu_index = 0;
+			printf(m_menu_str);
 			break;
+		}
+		case MENU_SELECT:
+		{
+			switch(key)
+			{
+				case KC_D1:
+				{
+					if(m_index == M_MENU_ENTRIES)
+						m_index = 1;
+					else
+						m_index++;
+					lcd_cpos(0);
+					printf(m_submenu_list[m_index].label);
+					break;
+				}
+				case KC_D2:
+				{
+					if(m_index == 0)
+						m_index = M_MENU_ENTRIES;
+					else
+						m_index--;
+					lcd_cpos(0);
+					printf(m_submenu_list[m_index].label);
+					break;
+				}
+				case KC_ENTER:
+				{
+					m_submenu_list[m_index].fptr();
+					break;
+				}
+				case KC_EXIT:
+				{
+					m_timer = 0;
+					break;
+				}
+			}
 		}
 	}
 }
 
-void mms_cycle_down()
-{
-	if(m_svar1==0)
-	{
-		m_svar1 = M_MENU_ENTRIES;
-	}
-	else
-		m_svar1--;
 
-	lcd_cpos(0);
-
-
-	printf(m_top_menu[m_svar1].label);
-
-}
-
-
-//***************
-void mms_execute()
-{
-	void *(fcptr)();
-
-	fcptr = m_top_menu[m_svar1].fptr;
-	m_svar1 = 0;
-	fcptr();
-}
-
-//***************
-inline void mms_exit()
-{
-	m_timer = 0;
-	m_end();
-}
 //***************************
 // M   D I G I T
 //
@@ -552,24 +430,29 @@ inline void mms_exit()
 //
 // Stack depth on entry: 2
 //
-char m_digit(void)
+char m_freq_digit(void)
 {
-	if(!m_timer_en)
-	{
-		save_dbuf();
-	}
+	signed char res;
+
 	m_reset_timer();
 
-	if(m_digit_editor(4,3,0))
+	if(res = m_digit_editor(key, 4,3,0))
 	{
 		long f;
 
-		f = atol(f_in_buf);
-		f *= 1000;
-		frq_update(&f);
-
-		taskYIELD();
-		m_state = IDLE;
-		m_timer = 0;	// wait 800 ms before reverting to frequency
+		if(res>0)
+		{
+			f = atol(f_in_buf);
+			f *= 1000;
+			frq_update(&f);
+			taskYIELD();
+			printf(m_ok);
+			vTaskDelay(200);
+			m_frq_prnt();
+		}
+		else
+		{
+			m_timer = 0;	// wait 800 ms before reverting to frequency
+		}
 	}
 }

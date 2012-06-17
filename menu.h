@@ -22,6 +22,17 @@ extern char m_sq_on_str[];
 extern char m_sq_off_str[];
 
 
+#define IDLE  	     0
+#define F_IN 	     1
+#define MEM_SELECT   2
+#define MEM_STORE    3
+#define MEM_RECALL_LOAD 4
+#define TXSHIFT_SW   5
+#define MENU_SELECT  6
+#define TXSHIFT_DIGIT  7
+//#define MEM_SEL_DIGIT 5
+
+
 void menu_init();
 void menu();
 

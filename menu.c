@@ -14,6 +14,7 @@
 #include "macros.h"
 #include "regmem.h"
 #include "io.h"
+#include "menu.h"
 
 char m_ok_str[] PROGMEM = "OK";
 char m_no_lock_str[] PROGMEM =  "NO LOCK ";
@@ -37,25 +38,12 @@ void menu_init()
 	m_state = IDLE;
 	// disable menu timeout timer
 	m_timer_en = 0;
-	// reset menu variables
-	m_svar1 = 0;
-	m_svar2 = 0;
 
 	// set squelch mode
 	sql_mode = SQM_CARRIER;
 	arrow_set(2,1);
 
 }
-//; Menu
-//#DEFINE IDLE  	     0
-//#DEFINE F_IN 	     1
-//#DEFINE MEM_SELECT   2
-//#DEFINE MEM_STORE    3
-//#DEFINE MEM_RECALL_LOAD 4
-//#DEFINE TXSHIFT_SW   5
-//#DEFINE MENU_SELECT  6
-//;#DEFINE MEM_SEL_DIGIT 5
-//;
 
 
 //
@@ -84,7 +72,7 @@ void menu()
 		switch(m_state)
 		{
 		case F_IN:
-			m_f_in();
+			m_f_in(c);
 			break;
 		case MEM_SELECT:
 			m_mem_select();
@@ -98,12 +86,21 @@ void menu()
 		case TXSHIFT_SW :
 			m_txshift();
 			break;
+		case TXSHIFT_DIGIT :
+			mts_digit(c);
+			break;
 		case MENU_SELECT:
-			m_menu_select();
+			m_menu_select(c);
+			break;
+		case FREQ_DIGIT:
+			m_freq_digit(c);
+			break;
+		case POWER_SELECT:
+			m_power_submenu(c);
 			break;
 		default:
 		case IDLE:
-			m_top();
+			m_top(c);
 			break;
 		}
 	}
@@ -114,16 +111,13 @@ void menu()
 	if (m_timer_en)
 	{
 		// if it reached zero
-		if(m_timer==0)
+		if(!m_timer)
 		{	// disable timer
 			m_timer_en = 0;
 			// restore previous display content
 			restore_dbuf();
 			// go back to IDLE state
 			m_state = IDLE;
-			// reset menu variables
-			m_svar1 = 0;
-			m_svar2 = 0;
 		}
 	}
 }
@@ -135,4 +129,12 @@ inline void m_reset_timer()
 {
 	m_timer = MENUTIMEOUT;
 	m_timer_en = 1;
+}
+
+
+inline void m_norestore()
+{
+	m_timer_en = 0;
+	// go back to IDLE state
+	m_state = IDLE;
 }
