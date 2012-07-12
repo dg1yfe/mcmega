@@ -149,6 +149,7 @@ extern char gp_timer;		// General Purpose Timer, 1ms Decrement
 extern char ui_timer;
 extern char next_hms;
 extern char lcd_timer;		// 1ms
+extern char lcd_timer_en;
 
 //trx_state       .db
 
