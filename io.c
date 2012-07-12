@@ -299,14 +299,15 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 {
 	char i, d;
 
-    // 0 - Audio PA enable (1=enable)      (PIN 4 ) *
-    // 1 - STBY&9,6V                       (PIN 5 )
-    // 2 - T/R Shift                       (PIN 6 ) *
-    // 3 - Hi/Lo Power (1=Lo Power)        (PIN 7 ) *
-    // 4 - Ext. Alarm                      (PIN 14) *
-    // 5 - Sel.5 ATT   (1=Attenuated Tones)(PIN 13) *
-    // 6 - Mic enable  (1=enable)          (PIN 12) *
-    // 7 - Rx Audio enable (1=enable)      (PIN 11)
+// SR_AUDIOPA   - 0 - Audio PA enable (1=enable)      (PIN 4 ) *
+// SR_9V6       - 1 - STBY&9,6V                       (PIN 5 )
+// SR_RXVCOSEL  - 2 - T/R Shift (1=TX)                (PIN 6 ) *
+// SR_TXPWRLO   - 3 - Hi/Lo Power (1=Lo Power)        (PIN 7 ) *
+// SR_nCLKSHIFT - 3
+// SR_EXTALARM  - 4 - Ext. Alarm                      (PIN 14) *
+// SR_SELATT    - 5 - Sel.5 ATT   (1=Attenuated Tones)(PIN 13) *
+// SR_MICEN     - 6 - Mic enable  (1=enable)          (PIN 12) *
+// SR_RXAUDIOEN - 7 - Rx Audio enable (1=enable)      (PIN 11)
 
 	// get exclusive Bus access
 	xSemaphoreTake(SerialBusMutex, portMAX_DELAY);

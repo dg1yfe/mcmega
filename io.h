@@ -8,6 +8,22 @@
 #ifndef IO_H_
 #define IO_H_
 
+	/*
+	 * Port D:
+	 * Bit 0	: SWB+
+	 * Bit 1	: PTT (input)
+	 * Bit 2-3	: UART1
+	 * Bit 4	: Signalling Decode (IC1)
+	 * Bit 5	: Clock
+	 * Bit 6	: Data out
+	 * Bit 7	: #DPTT
+	 */
+#define DPTT (1<<PD7)
+#define PORT_DPTT PORTD
+
+#define BIT_SQL (1<<PE7)
+#define PIN_SQL PINE
+
 // initialize IO ports, needs to be called before any IO operation takes place
 void init_io( void );
 
@@ -21,6 +37,9 @@ void i2c_ack();
 char i2c_tstack();
 void i2c_tx(char data);
 char i2c_rx();
+
+void sci_rx_handler();
+void sci_tx_handler();
 
 char sci_rx(char * data);
 void sci_read(char * data);

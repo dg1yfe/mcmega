@@ -18,6 +18,7 @@
 #include "int.h"
 #include "io.h"
 #include "pll_freq.h"
+#include "display.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
@@ -88,7 +89,7 @@ void vControlTask( void * pvParameters)
 	receive();
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
-	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIO);
+	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIOEN);
 
 	while (1)
     {
