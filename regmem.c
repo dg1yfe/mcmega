@@ -76,18 +76,20 @@ char pwr_mode;				// Lo / Hi Power
 
 char ptt_debounce;
 
-//cfg_defch_save
+char cfg_defch_save;
 char ui_ptt_req;			//
 
-char cfg_head;				// Type of Control Head
+uint8_t cfg_head;				// Type of Control Head
 
 char m_state;
-int  m_timer;				// 100ms
+int  m_timer = 0;			// 100ms
 char m_timer_en;
 
 char sql_timer;
 char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
-char sql_ctr;
+char sql_flag;
+
+char mem_bank;
 
 char pll_locked_flag;		// Bit 0 - PLL not locked
 char pll_timer;

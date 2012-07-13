@@ -15,8 +15,8 @@
 #include "io.h"
 #include "display.h"
 
-static void set_rx_freq(unsigned long * freq);
-static void set_tx_freq(unsigned long * freq);
+void set_rx_freq(unsigned long * freq);
+void set_tx_freq(unsigned long * freq);
 unsigned long frq_get_freq(void);
 
 //*****************
@@ -164,7 +164,7 @@ void pll_set_channel(unsigned long channel)
 // changed Regs : none
 //
 //
-static void set_rx_freq(unsigned long * freq)
+void set_rx_freq(unsigned long * freq)
 {
 	unsigned long f;
 	ldiv_t divresult;
@@ -197,7 +197,7 @@ static void set_rx_freq(unsigned long * freq)
 // changed Regs : none
 //
 //
-static void set_tx_freq(unsigned long * freq)
+void set_tx_freq(unsigned long * freq)
 {
 	unsigned long f;
 	ldiv_t divresult;

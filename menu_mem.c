@@ -6,6 +6,7 @@
  */
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <avr/pgmspace.h>
 
 #include "FreeRTOS.h"
@@ -15,12 +16,17 @@
 #include "regmem.h"
 #include "io.h"
 #include "menu.h"
-
+#include "menu_mem.h"
+#include "menu_input.h"
+#include "eeprom.h"
+#include "pll_freq.h"
+#include "display.h"
+#include "subs.h"
 
 #define MEM_SLOT_MAX 25
 
 char m_recall_str[] PROGMEM = "RECALL";
-char m_recall_str[] PROGMEM = "STORE";
+char m_store_str[] PROGMEM = "STORE";
 char m_err_eep_str[] PROGMEM = "Err Slot";
 
 //
@@ -47,7 +53,7 @@ char m_err_eep_str[] PROGMEM = "Err Slot";
 //
 // Speicherbank für Frequenzspeicherplätze wählen
 //
-void m_recall(char key)
+void m_recall_submenu(char key)
 {
 	if(!m_timer_en)
 	{
@@ -69,7 +75,7 @@ void m_recall(char key)
 }
 
 
-void m_store(char key)
+void m_store_submenu(char key)
 {
 	if(!m_timer_en)
 	{
@@ -151,7 +157,7 @@ void m_mem_select(char key)
 			case KC_ENTER:
 			{
 				char err = 0;
-				if(m_state == M_SELECT_STORE)
+				if(m_state == MEM_SELECT_STORE)
 				{
 					lcd_cpos(0);
 					if(mem_bank > MEM_SLOT_MAX)
@@ -159,13 +165,13 @@ void m_mem_select(char key)
 					else
 					{	// TODO: So richtig?
 						lcd_cpos(0);
-						if(eep_wr_ch_freq(mem_bank))
+						if(store_eep_ch(mem_bank))
 						{
-							printf(m_failed);
+							printf(m_failed_str);
 						}
 						else
 						{
-							printf(m_stored);
+							printf(m_stored_str);
 						}
 						lcd_fill();
 						vTaskDelay(200);
@@ -185,7 +191,7 @@ void m_mem_select(char key)
 						lcd_clr(0);
 						m_state = IDLE;
 
-						printf(m_ok);
+						printf_P(m_ok_str);
 						vTaskDelay(200);
 						m_frq_prnt();
 					}

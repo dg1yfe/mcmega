@@ -36,7 +36,7 @@
 //
 // Port Function Macros
 //
-#define PTTPORT       Port6_Data
+#define PTTPORT       PORTD
 #define PTTBIT        (1<< 7)
 
 
@@ -83,14 +83,14 @@
 // 7 - Rx Audio enable (1=enable)      (PIN 11)
 // EXT ALARM is controlled via SR in EZA9
 
-#define SR_AUDIOPA    (1 << 0)
-#define SR_9V6        (1 << 1)
-#define SR_RXVCOSEL   (1 << 2)
-#define SR_TXPWRLO    (1 << 3)
-#define SR_nCLKSHIFT  (1 << 3)
-#define SR_EXTALARM   (1 << 4)
-#define SR_SELATT     (1 << 5)
-#define SR_MICEN      (1 << 6)
+#define SR_AUDIOPA    UINT8_C(1 << 0)
+#define SR_9V6        UINT8_C(1 << 1)
+#define SR_RXVCOSEL   UINT8_C(1 << 2)
+#define SR_TXPWRLO    UINT8_C(1 << 3)
+#define SR_nCLKSHIFT  UINT8_C(1 << 3)
+#define SR_EXTALARM   UINT8_C(1 << 4)
+#define SR_SELATT     UINT8_C(1 << 5)
+#define SR_MICEN      UINT8_C(1 << 6)
 #define SR_RXAUDIOEN  UINT8_C(1 << 7)
 
 #define SQEXTBIT SR_EXTALARM
@@ -167,10 +167,10 @@ char pwr_mode;				// Lo / Hi Power
 
 extern char ptt_debounce;
 
-//cfg_defch_save
+extern char cfg_defch_save;
 extern char ui_ptt_req;			//
 
-extern char cfg_head;				// Type of Control Head
+extern uint8_t cfg_head;				// Type of Control Head
 
 extern char m_state;
 extern int  m_timer;				// 100ms
@@ -178,7 +178,9 @@ extern char m_timer_en;
 
 extern char sql_timer;
 extern char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
-extern char sql_ctr;
+extern char sql_flag;
+
+extern char mem_bank;
 
 extern char pll_locked_flag;		// Bit 0 - PLL not locked
 extern char pll_timer;

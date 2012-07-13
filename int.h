@@ -11,4 +11,7 @@
 void init_SIO(void);
 void init_OCI(void);
 
+extern volatile uint8_t int_lcd_timer_dec;
+
+
 #endif /* INT_H_ */

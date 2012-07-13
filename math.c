@@ -44,7 +44,7 @@
 
 long exp10_9 = 1000000000;
 //           // Tabelle um 10 zu potenzieren - 32Bit Eintr�ge
-long exp10[] = { 100000000,
+long exp10tab[] = { 100000000,
 				10000000,
 				1000000,
 				100000,

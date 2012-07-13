@@ -33,7 +33,7 @@ static void store_dbuf(char data);
 void uinthex( const char data);
 void uintdec(char data);
 void ulongout(char modif, char * data);
-void decout(uint8_t modif, uint8_t truncate, uint8_t * data);
+void decout(uint8_t modif, uint8_t truncate, char * data);
 
 int putchar_wrapper (char c, FILE *stream);
 
@@ -75,7 +75,7 @@ char e_char_convert[] PROGMEM = {
 		0x24,  0x25,  0x26,  0x00,  0x00,  0x03,  0x03,  0x04
 };
 
-char key_convert[][] PROGMEM = {
+char key_convert[2][21] PROGMEM = {
 	// Control Head #3
 	//     ---------------------------  1   2   3
 	//     !                         !
@@ -258,7 +258,7 @@ void init_io()
 	SR_data_buf = 0;
 	led_buf = 0;
 	arrow_buf = 0;
-	sql_ctr = 0;
+	sql_flag = 0;
 	ui_ptt_req = 0;
 	bus_busy = 0;
 
@@ -806,7 +806,7 @@ void sci_rx_handler()
 		}
 		else
 		{
-			(volatile) rx = UDR0;
+			rx = UDR0;
 		}
 	}
 }
@@ -819,6 +819,7 @@ void sci_tx_handler()
 	if(UCSR0A & (1<<TXC0))
 	{
 		char tx;
+		uint8_t delay = 0;
 
 		if(!lcd_timer_en || !lcd_timer)
 		{
@@ -860,6 +861,8 @@ void sci_tx_handler()
 						delay = LCDDELAY;
 				}
 			}
+			// set lcd timer
+			lcd_timer = delay;
 		}
 	}
 }
@@ -884,8 +887,9 @@ char check_inbuf()
 // Result    : A - Bytes in Buffer
 //
 char check_outbuf()
-{
-	return ((io_outbuf_w - io_outbuf_r) & io_outbuf_mask);
+{	// TODO: remove
+	//return ((io_outbuf_w - io_outbuf_r) & io_outbuf_mask);
+	return 0;
 }
 //
 //****************
@@ -1266,7 +1270,7 @@ void ulongout(char modif, char * data)
 }
 
 
-void decout(uint8_t modif, uint8_t truncate, uint8_t * data)
+void decout(uint8_t modif, uint8_t truncate, char * data)
 {
 #define SIGINVBEFORERETURN 0x10
 #define NEGSIGN 0x20

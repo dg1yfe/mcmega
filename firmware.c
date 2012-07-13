@@ -79,10 +79,11 @@ void vControlTask( void * pvParameters)
  */
 	lcd_h_reset();
 	lcd_s_reset();
+	int_lcd_timer_dec = 1;
 	cfg_head = 3;
 
 	led_set(GRN_LED, LED_ON);
-	freq_init();
+	//freq_init();
 
 	taskYIELD();
 
@@ -90,10 +91,12 @@ void vControlTask( void * pvParameters)
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
 	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIOEN);
+	s_timer_init();
 
 	while (1)
     {
 		pwr_sw_chk(0);
+		s_timer_update();
 		i=ptt_get_status();
 		if(i & 0x80)
 		{
@@ -106,7 +109,6 @@ void vControlTask( void * pvParameters)
 		taskYIELD();
 		frq_check();
 		wd_reset();
-		s_timer_update();
 		sci_rx_handler();
 		sci_tx_handler();
     }

@@ -40,7 +40,8 @@
 #include "regmem.h"
 #include "io.h"
 #include "menu.h"
-
+#include "subs.h"
+#include "int.h"
 
 /*
  * Initialisiert Software Timer

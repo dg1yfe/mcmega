@@ -34,6 +34,9 @@
 #include "regmem.h"
 #include "firmware.h"
 
+
+char eep_read(char flags, char * data);
+
 /*
 ;***************************
 ; E E P   R A N D   R E A D
@@ -74,11 +77,11 @@ char eep_rand_read(unsigned int address, char * data)
 	buf |= 0xa0;
 
 	i2c_tx(buf);
-	if(err=i2c_tstack())
+	if((err=i2c_tstack()))
 		return 1;
 
 	i2c_tx( (char) address);
-	if(err=i2c_tstack())
+	if((err=i2c_tstack()))
 		return 2;
 
 	buf = (address >> 8);
@@ -94,6 +97,8 @@ char eep_rand_read(unsigned int address, char * data)
 	err = 0;
 	tasksw_en--;
 	bus_busy--;
+
+	return 0;
 }
 
 
@@ -131,14 +136,14 @@ char eep_read(char flags, char * data)
 	buf |= 0xa1;
 
 	i2c_tx(buf);
-	if(i2c_tstack)
+	if(i2c_tstack())
 		return 3;
 
 	// read byte from I2C
 	*data = i2c_rx();
 
 	if(!(flags & 0x80))
-		i2c_stop;		// Send I2C stop, if flag was not set
+		i2c_stop();		// Send I2C stop, if flag was not set
 
 	bus_busy--;
 	tasksw_en--;
@@ -185,16 +190,20 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 	bus_busy++;
 	tasksw_en++;
 
-	*bytesread = 0;
+	if(bytesread)
+		*bytesread = 0;
+
+	err = 0;
 	while(!err)
 	{
 		// begin with random read to set address
-		if(err=eep_rand_read(address | 0x8000, (char *) dest))
+		if((err=eep_rand_read(address | 0x8000, (char *) dest)))
 			return err;
 		// increase destination address, and decrease bytecount
 		dest++;
 		bytecount--;
-		*bytesread++;
+		if(bytesread)
+			*bytesread++;
 		// while there are bytes to copy
 		while(bytecount)
 		{
@@ -212,7 +221,8 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 				*((char *)dest++) = buf;
 
 				bytecount--;
-				*bytesread++;
+				if(bytesread)
+					*bytesread++;
 			}
 		}
 		i2c_stop();
@@ -250,21 +260,21 @@ char eep_write(unsigned int address, char * data)
 
 	i2c_start();
 
-	buf = (address >> 7) & 0xae | 0xa0;
+	buf = ((address >> 7) & 0xae) | 0xa0;
 	i2c_tx(buf);
 
-	if(err=i2c_tstack)
+	if((err=i2c_tstack()))
 		return 1;
 
 	buf = (char) address;
 	i2c_tx(buf);
 
-	if(err=i2c_tstack)
+	if((err=i2c_tstack()))
 		return 2;
 
 	i2c_tx(*data);
 
-	if(err=i2c_tstack)
+	if((err=i2c_tstack()))
 		return 3;
 
 	i2c_stop();
@@ -275,7 +285,7 @@ char eep_write(unsigned int address, char * data)
 	while(ui_timer && err)
 	{
 		i2c_start();
-		buf = (address >> 7) & 0xae | 0xa0;
+		buf = ((address >> 7) & 0xae) | 0xa0;
 		i2c_tx(buf);
 		// check for ACK (ACK = write finished)
 		err=i2c_tstack();
@@ -316,7 +326,6 @@ char eep_write(unsigned int address, char * data)
  */
 char eep_write_seq(unsigned int address, char bytecount, void * data)
 {
-	char buf;
 	char err;
 
 	bus_busy++;
@@ -338,46 +347,62 @@ char eep_write_seq(unsigned int address, char bytecount, void * data)
 
 unsigned int eep_get_size()
 {
+	unsigned int addr;
+	char dummy;
 
+	addr = 0;
+
+	do
+	{
+		if(eep_rand_read(addr, &dummy))
+			break;
+		addr += 0x80;
+	}while(addr < 0x0800);
+
+	return addr;
 }
 
 
 char eep_chk_crc()
 {
-
+	return 0;
 }
 
 char eep_write_crc()
 {
+	return 0;
+}
+
+char eep_rd_ch_freq(uint8_t slot, long * f)
+{
+	void * buf;
+	char err;
+	long fbuf;
+
+	buf = alloca((size_t)10);
+
+	if(slot > 24)
+		return -1;
+
+	slot = slot * 10;
+	slot += 0x100;
+	err = eep_seq_read(10, slot, buf, NULL);
+
+	if(err)
+		return(err);
+
+	// get channel
+	fbuf = *((uint16_t *) buf);
+	fbuf >>=3;		// 13 significant Bits
+	fbuf *= 1250;	// multiply by 1250 to obtain frequency
+	fbuf += FBASE; // add Base frequency
+	*f = fbuf;
+
+	return 0;
 
 }
 
 /*
-;*************************
-; E E P   G E T   S I Z E
-;*************************
-;
-; Parameter: keine
-;
-; Ergebnis : D - EEPROM Gr��e in Bytes
-;
-;
-eep_get_size
-                clrb
-                clra
-egs_page_loop
-                pshb
-                psha
-                jsr  eep_rand_read  ; pageweise EEPROM Random Read versuchen
-                tsta                ; Auf ACK testen
-                pula
-                pulb
-                bne  egs_r_error    ; Kein ACK, dann Ende
-                addd #$0080
-                cmpa #$08
-                bcs  egs_page_loop
-egs_r_error
-                rts
 
 ;***********************
 ; E E P   C H K   C R C *BROKEN*

@@ -11,6 +11,6 @@
 inline uint8_t raise(uint8_t power);
 
 extern long exp10_9;
-extern long exp10[];
+extern long exp10tab[];
 
 #endif /* MATH_H_ */

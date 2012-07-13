@@ -15,18 +15,24 @@
 #include "regmem.h"
 #include "io.h"
 #include "menu.h"
+#include "menu_sub.h"
+#include "menu_input.h"
+#include "menu_mem.h"
+#include "menu_top.h"
+#include "display.h"
 
 char m_ok_str[] PROGMEM = "OK";
 char m_no_lock_str[] PROGMEM =  "NO LOCK ";
 char m_out_str[] PROGMEM =  "out of";
 char m_range_str[] PROGMEM =  "Range ";
 char m_writing[] PROGMEM =  "writing";
-char m_stored[] PROGMEM =  "stored";
-char m_failed[] PROGMEM =  "failed";
+char m_stored_str[] PROGMEM =  "stored";
+char m_failed_str[] PROGMEM =  "failed";
 char m_delete[] PROGMEM =  "deleting";
 char m_offset[] PROGMEM =  "TXSHIFT";
 char m_sq_on_str[] PROGMEM =  "SQ ON";
 char m_sq_off_str[] PROGMEM =  "SQ OFF";
+char m_menu_str[] PROGMEM = "MENU";
 
 
 //*****************************
@@ -75,22 +81,22 @@ void menu()
 			m_f_in(c);
 			break;
 		case MEM_SELECT:
-			m_mem_select();
+			m_mem_select(c);
 			break;
 		case MEM_STORE:
-			m_store();
+			m_store_submenu(c);
 			break;
 		case MEM_RECALL_LOAD :
-			m_recall_load();
+			m_recall_submenu(c);
 			break;
 		case TXSHIFT_SW :
-			m_txshift();
+			m_txshift(c);
 			break;
 		case TXSHIFT_DIGIT :
 			mts_digit(c);
 			break;
 		case MENU_SELECT:
-			m_menu_select(c);
+			m_submenu(c);
 			break;
 		case FREQ_DIGIT:
 			m_freq_digit(c);
@@ -122,6 +128,11 @@ void menu()
 	}
 }
 
+
+void m_none(char key)
+{
+	return;
+}
 
 //**************************************
 ////Eingabe Timeout zurücksetzen

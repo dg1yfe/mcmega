@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -24,12 +25,22 @@
 #include "macros.h"
 #include "io.h"
 #include "display.h"
+#include "menu.h"
+#include "menu_top.h"
+#include "pll_freq.h"
 
 
 inline void mde_up(uint8_t currentpos, char loval, char hival);
 inline void mde_down(uint8_t currentpos, char loval, char hival);
 inline void mde_next(uint8_t * currentpos, uint8_t lopos, uint8_t hipos);
 inline void mde_enter(uint8_t currentpos, const uint8_t lopos, const uint8_t hipos);
+inline void m_print(char key);
+inline void m_start_input(char key);
+void m_backspace (void);
+void m_clr_displ (void);
+inline void m_set_freq (void);
+inline void m_set_freq_x(void);
+inline void m_frq_prnt(void);
 
 
 inline void m_start_input(char key)
@@ -69,7 +80,9 @@ inline void m_f_in(char key)
 	}
 }
 
-inline m_non_numeric(char key)
+
+
+inline void m_non_numeric(char key)
 {
 	switch(key)
 	{
@@ -80,7 +93,7 @@ inline m_non_numeric(char key)
 	}
 	case 4:
 	{
-		m_clr_display();
+		m_clr_displ();
 		break;
 	}
 	case 7:
@@ -95,7 +108,7 @@ inline m_non_numeric(char key)
 	}
 	default:
 	{
-		m_none();
+		m_none(key);
 		break;
 	}
 	}
@@ -147,7 +160,7 @@ inline void m_set_freq_x()
 	lcd_clr(0);
 	m_state = IDLE;
 
-	printf(m_ok);
+	printf_P(m_ok_str);
 	vTaskDelay(200);
 	m_frq_prnt();
 }
@@ -185,10 +198,10 @@ inline void m_frq_prnt()
 #define MDE_UPPER_LIM 1
 #define MDE_CUR_POS   0
 //
-char m_digit_editor(char key, char lopos, char highpos, char mode)
+char m_digit_editor(char key, uint8_t lopos, char hipos, char mode)
 {
 	static signed currentpos = 0;
-	char hival, loval;
+	char hival = 0, loval = 0;
 	char exit = 0;
 
 	switch(mode)
@@ -218,7 +231,7 @@ char m_digit_editor(char key, char lopos, char highpos, char mode)
 		}
 	}
 
-	switch(buf)
+	switch(key)
 	{
 		case KC_D1:
 			if(dbuf[currentpos] >= hival)

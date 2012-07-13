@@ -56,6 +56,12 @@ void men_buf_write( char data );
 void pputchar(char mode, char data, char * extdata);
 void uintdecd(char data);
 
+#define SIGINVBEFORERETURN 0x10
+#define NEGSIGN 0x20
+#define PRINTSIGN 0x40
+#define FILLWITHSPACE 0x80
+void decout(uint8_t modif, uint8_t truncate, char * data);
+
 
 
 extern char key_convert[][];

@@ -44,12 +44,16 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "io.h"
-#include "display.h"
-
 #include "macros.h"
 #include "regmem.h"
+#include "io.h"
+#include "display.h"
 #include "firmware.h"
+#include "pll_freq.h"
+#include "eeprom.h"
+
+inline void vco_switch(char vco);
+
 
 void pwr_sw_chk(char cSaveSettings)
 {
@@ -94,7 +98,7 @@ void wd_reset()
 {
 	if(!bus_busy)
 	{
-		wd_toggle_ms();
+		watchdog_toggle_ms();
 	}
 }
 
@@ -136,7 +140,7 @@ void receive()
 {
 	led_set(YEL_LED, LED_OFF);
 
-	PORT_DPTT |= (1 << DPTT);	// Disable PA drive
+	PORT_DPTT |=  DPTT;			// Disable PA drive
 	SetShiftReg(0, ~SR_MICEN);	// Disable Mic Amp
 
 	vTaskDelay(TX_TO_RX_TIME);	// Wait TX to RX Time
@@ -162,7 +166,7 @@ void transmit()
 	led_set(YEL_LED, LED_ON);
 	vco_switch(1);
 	set_tx_freq(&frequency);
-	SetShiftReg(SR_RXVCOSEL, ~SR_RXAUDIOEN);
+	SetShiftReg(SR_RXVCOSEL, (uint8_t) ~SR_RXAUDIOEN);
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
 	if(pwr_mode)
@@ -179,8 +183,8 @@ void transmit()
 
 void squelch()
 {
-	// return if timer is non-zeor or we are in TX
-	if(!(sql_timer || rxtx_state))
+	// return if timer is non-zero or we are in TX
+	if(!sql_timer && !rxtx_state)
 	{
 		sql_timer = SQL_INTERVAL;
 		if(sql_mode)
@@ -196,7 +200,7 @@ void squelch()
 				}
 				else
 				{	// disable Audio, set Ext Alarm high
-					SetShiftReg(SR_EXTALARM,~SR_RXAUDIOEN,);
+					SetShiftReg(SR_EXTALARM,(uint8_t)~SR_RXAUDIOEN);
 				}
 			}
 		}
@@ -229,7 +233,7 @@ unsigned int crc16(unsigned int bytecount, void * data, unsigned int init)
 	crc = init;
 	while(bytecount--)
 	{
-		crc = _crc16_update(crc, *data++);
+		crc = _crc16_update(crc, *((char *)data++));
 	}
 	return crc;
 }
@@ -264,7 +268,7 @@ char read_eep_ch(uint16_t slot, long * freq)
 
 	slot = slot * 10;
 	slot += 0x100;
-	err = eep_seq_read(10, slot, buf);
+	err = eep_seq_read(10, slot, buf, NULL);
 
 	if(err)
 		return(err);
@@ -278,7 +282,7 @@ char read_eep_ch(uint16_t slot, long * freq)
 
 	buf++;
 	// get TX shift, stored in 12.5 kHz Steps
-	fbuf = *((uint16_t) buf);
+	fbuf = *((uint16_t *) buf);
 	fbuf &= 0x1ff;	// use 9 bit, max 12,775 MHz Shift
 	fbuf *= 25000;	// multiply by 25 kHz
 	ui_txshift = fbuf;
@@ -356,7 +360,7 @@ char store_current(void)
 
 	buf++;
 
-	fbuf = tx_shift;			// get active TX shift
+	fbuf = txshift;				// get active TX shift
 	if(fbuf < 0)
 	{
 		fbuf *= -1;
@@ -379,13 +383,13 @@ char store_current(void)
 
 	buf-=3;						// set buf ptr to pos 0;
 
-	return eep_write_seq(3, 0x1fa , buf);	// write data to EEPROM
+	return eep_write_seq(0x1fa, 3 , buf);	// write data to EEPROM
 
 }
 
 
 
-char read_current(const long * freq,const long * txshift,const long * offset)
+char read_current(long * freq,long * txshift, long * offset)
 {
 	void * buf;
 	char err;
@@ -395,7 +399,7 @@ char read_current(const long * freq,const long * txshift,const long * offset)
 	if(buf == NULL)
 		return -1;
 
-	err = eep_seq_read(3, 0x1fa, buf);
+	err = eep_seq_read(0x1fa, 3, buf, NULL);
 
 	if(err)
 		return(err);
@@ -409,7 +413,7 @@ char read_current(const long * freq,const long * txshift,const long * offset)
 
 	buf++;
 	// get TX shift, stored in 12.5 kHz Steps
-	fbuf = *((uint16_t) buf);
+	fbuf = *((uint16_t *) buf);
 	fbuf &= 0x1ff;	// use 9 bit, max 12,775 MHz Shift
 	fbuf *= 25000;	// multiply by 25 kHz
 
@@ -418,7 +422,7 @@ char read_current(const long * freq,const long * txshift,const long * offset)
 		fbuf *= -1;
 	}
 
-	*tx_shift = fbuf;
+	*txshift = fbuf;
 
 	if(*((char*)buf) & 4)
 	{

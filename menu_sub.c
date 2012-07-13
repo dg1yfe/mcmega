@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
+#include <stdio.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -15,7 +16,7 @@
 #include "regmem.h"
 #include "io.h"
 #include "menu.h"
-
+#include "display.h"
 
 // Small Submenus
 //
@@ -86,12 +87,12 @@ void m_power_submenu(char key)
 		lcd_cpos(0);
 		if(pwr_mode)
 		{
-			printf_P(m_power_lo_str);
+			printf_P(PSTR("LO PWR"));
 			arrow_set(3, 0);
 		}
 		else
 		{
-			printf_P(m_power_hi_str);
+			printf_P(PSTR("HI PWR"));
 			arrow_set(3, 1);
 		}
 
@@ -145,7 +146,7 @@ void m_defch_submenu(char key)
 					if(buf = eep_write(0x1fd, buf))
 					{
 						lcd_cpos(0);
-						printf_P(m_failed);
+						printf_P(m_failed_str);
 						lcd_fill();
 						vTaskDelay(500);
 						lcd_cpos(0);
@@ -157,7 +158,7 @@ void m_defch_submenu(char key)
 					else
 					{
 						lcd_cpos(0);
-						printf_P(m_ok);
+						printf_P(m_ok_str);
 						lcd_fill();
 						vTaskDelay(500);
 						m_timer = 0;
@@ -170,11 +171,11 @@ void m_defch_submenu(char key)
 					if(!(err = store_current()))
 					{
 						lcd_cpos(0);
-						printf_P(m_ok);
+						printf_P(m_ok_str);
 						lcd_fill();
 						vTaskDelay(500);
 						lcd_cpos(0);
-						printf_P(m_stored);
+						printf_P(m_stored_str);
 						lcd_fill();
 						vTaskDelay(1000);
 						m_timer = 0;
@@ -182,7 +183,7 @@ void m_defch_submenu(char key)
 					else
 					{
 						lcd_cpos(0);
-						printf_P(m_failed);
+						printf_P(m_failed_str);
 						lcd_fill();
 						vTaskDelay(500);
 						lcd_cpos(0);
@@ -229,7 +230,7 @@ void m_version_submenu(char key)
 {
 	m_reset_timer();
 	lcd_cpos(0);
-	printf_P(ver_str);
+	printf_P(PSTR("12.001"));
 	lcd_fill();
 }
 

@@ -8,112 +8,48 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-
+#include <stdio.h>
 #include <avr/pgmspace.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+
 #include "macros.h"
 #include "regmem.h"
+#include "io.h"
+#include "pll_freq.h"
+#include "display.h"
+#include "menu.h"
+#include "menu_input.h"
+#include "menu_sub.h"
+#include "menu_mem.h"
+#include "subs.h"
 
-typedef struct PROGMEM
+typedef struct
 {
-	char * label;
-	void * fptr(char key);
-} const T_MENUITEM;
+	char label[9];
+	void (* fptr)(char key);
+} T_MENUITEM;
 
-T_MENUITEM m_submenu_list[] =
+
+void m_set_shift(void);
+inline void mts_switch(char key);
+inline void mts_print(void);
+
+T_MENUITEM m_submenu_list[] PROGMEM =
 {
-		{ PSTR("MENU    "), m_recall_submenu},
-		{ PSTR("RECALL  "), m_recall_submenu},
-		{ PSTR("STORE   "), m_store_submenu},
-		{ PSTR("TX CTCSS"), m_none},
-		{ PSTR("RX CTCSS"), m_none},
-		{ PSTR("DTMF    "), m_none},
-		{ PSTR("POWER   "), m_power_submenu}
+		{ "MENU    ", m_recall_submenu},
+		{ "RECALL  ", m_recall_submenu},
+		{ "STORE   ", m_store_submenu},
+		{ "TX CTCSS", m_none},
+		{ "RX CTCSS", m_none},
+		{ "DTMF    ", m_none},
+		{ "POWER   ", m_power_submenu}
 };
 
-static uint8_t menu_index;
+#define M_MENU_ENTRIES sizeof(m_submenu_list) / sizeof(T_MENUITEM)
 
-
-//*****************************
-// M E N U   I D L E
-//*****************************
-//
-// Menu / IDLE Subroutines
-//
-// Main Menu / Top Level
-//
-// Parameter : none
-//
-// Ergebnis : none
-//
-// changed Regs : A,B,X
-//
-//
-//************************
-// Stack depth on entry: 1
-//
-//*******************************
-// M   T O P
-//
-void m_top(uint8_t key)
-{
-	void (*fptr)(uint8_t key);
-
-	switch(key)
-	{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-			m_start_input(key);
-			break;
-		case KC_EXIT:
-			break;
-		case KC_D1:
-			m_frq_up();
-			break;
-		case KC_D2:
-			m_frq_down();
-			break;
-		case KC_D3:
-			m_sql_switch();
-			break;
-		case KC_D4:
-			m_test();
-			//m_none();
-			//m_prnt_tc();
-			break;
-		case KC_D5:
-			m_tone();
-			break;
-		case KC_D6:
-			if(cfg_head == CHD2)
-			{
-				if(!m_timer_en)
-					save_dbuf();
-				// initialize digit editor
-				m_digit_editor(0, 0, 0, -1);
-				m_state = FREQ_DIGIT;
-			}
-			break;
-		case KC_D7:
-			m_txshift(key);
-			break;
-		case KC_D8:
-			m_recall();
-			break;
-		case KC_ENTER:
-			m_submenu();
-		default:
-			break;
-	}
-
-}
 
 //*******************************
 // M   F R Q   U P
@@ -123,7 +59,7 @@ void m_top(uint8_t key)
 inline void m_frq_up()
 {
 	frequency += FSTEP;
-	frq_update();
+	frq_update(&frequency);
 	m_frq_prnt();
 }
 
@@ -134,8 +70,8 @@ inline void m_frq_up()
 //
 inline void m_frq_down()
 {
-	frequency -= FSETP;
-	frq_update();
+	frequency -= FSTEP;
+	frq_update(&frequency);
 	m_frq_prnt();
 }
 //*******************************
@@ -205,7 +141,7 @@ inline void m_txshift(char key)
 inline void mts_print()
 {
 	lcd_cpos(0);
-	decout(PRINTSIGN | 5, 3, offset);
+	decout(PRINTSIGN | 5, 3, (char *)&offset);
 	//TODO: Replace with printf ?
 	lcd_fill();
 	freq_offset_print();
@@ -230,7 +166,7 @@ inline void mts_switch(char key)
 			mts_print();
 			break;
 		case KC_D7:
-			mts_toggle();
+			// toggle shift state on/off
 			m_reset_timer();
 			if(offset)
 			{
@@ -266,13 +202,13 @@ inline void mts_switch(char key)
 //
 // Stack depth on entry: 1
 //
-void mts_digit()
+void mts_digit(char key)
 {
 	char res;
 
 	m_reset_timer();
 
-	if(res = m_digit_editor(key, 1,2,0))
+	if((res = m_digit_editor(key, 1,2,0)))
 	{
 		if(res>0)
 		{
@@ -334,7 +270,7 @@ void m_prnt_rc()
 //
 void m_test()
 {
-	tone_start(123*4);
+	tone_start();
 }
 
 void m_tone_stop()
@@ -368,6 +304,8 @@ void m_prnt_tc()
 //
 inline void m_submenu(char key)
 {
+	static uint8_t m_index;
+
 	if(!m_timer_en)
 	{
 		save_dbuf();
@@ -378,9 +316,8 @@ inline void m_submenu(char key)
 		default:
 		{
 			lcd_cpos(0);
-			menu = 0;
 			m_state = MENU_SELECT;
-			menu_index = 0;
+			m_index = 0;
 			printf(m_menu_str);
 			break;
 		}
@@ -410,7 +347,7 @@ inline void m_submenu(char key)
 				}
 				case KC_ENTER:
 				{
-					m_submenu_list[m_index].fptr();
+					m_submenu_list[m_index].fptr(key);
 					break;
 				}
 				case KC_EXIT:
@@ -431,13 +368,13 @@ inline void m_submenu(char key)
 //
 // Stack depth on entry: 2
 //
-char m_freq_digit(void)
+char m_freq_digit(char key)
 {
 	signed char res;
 
 	m_reset_timer();
 
-	if(res = m_digit_editor(key, 4,3,0))
+	if( (res = m_digit_editor(key, 4,3,0)) )
 	{
 		long f;
 
@@ -447,7 +384,7 @@ char m_freq_digit(void)
 			f *= 1000;
 			frq_update(&f);
 			taskYIELD();
-			printf(m_ok);
+			printf_P(m_ok_str);
 			vTaskDelay(200);
 			m_frq_prnt();
 		}
@@ -456,4 +393,90 @@ char m_freq_digit(void)
 			m_timer = 0;	// wait 800 ms before reverting to frequency
 		}
 	}
+	return res;
 }
+
+
+//*****************************
+// M E N U   I D L E
+//*****************************
+//
+// Menu / IDLE Subroutines
+//
+// Main Menu / Top Level
+//
+// Parameter : none
+//
+// Ergebnis : none
+//
+// changed Regs : A,B,X
+//
+//
+//************************
+// Stack depth on entry: 1
+//
+//*******************************
+// M   T O P
+//
+void m_top(uint8_t key)
+{
+//	void (*fptr)(uint8_t key);
+
+	switch(key)
+	{
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+			m_start_input(key);
+			break;
+		case KC_EXIT:
+			break;
+		case KC_D1:
+			m_frq_up();
+			break;
+		case KC_D2:
+			m_frq_down();
+			break;
+		case KC_D3:
+			m_sql_switch();
+			break;
+		case KC_D4:
+			m_test();
+			//m_none();
+			//m_prnt_tc();
+			break;
+		case KC_D5:
+			m_tone();
+			break;
+		case KC_D6:
+			if(cfg_head == CHD2)
+			{
+				if(!m_timer_en)
+					save_dbuf();
+				// initialize digit editor
+				m_digit_editor(0, 0, 0, -1);
+				m_state = FREQ_DIGIT;
+			}
+			break;
+		case KC_D7:
+			m_txshift(key);
+			break;
+		case KC_D8:
+			m_recall_submenu(key);
+			break;
+		case KC_ENTER:
+			m_submenu(key);
+		default:
+			break;
+	}
+
+}
+
+
