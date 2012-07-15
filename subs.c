@@ -355,7 +355,7 @@ char store_current(void)
 
 	fdiv = ldiv(fbuf, 1250);	// divide by 1250 Hz
 	fbuf = fdiv.quot;
-	((uint16_t) fbuf) <<= 3;
+	fbuf = ((uint16_t) fbuf) << 3;
 	*((uint16_t *) buf) = (uint16_t) fbuf;	// store 13 Bit in Buffer
 
 	buf++;
@@ -374,7 +374,8 @@ char store_current(void)
 
 	fdiv = ldiv(fbuf, 25000);	// divide by 25 kHz
 	fbuf = fdiv.quot;
-	((uint16_t) fbuf) &= 0x1ff;	// reduce to 9 active bits
+
+	fbuf = ((uint16_t) fbuf) & 0x1ff;	// reduce to 9 active bits
 
 	*((uint16_t *) buf) |= (uint16_t) fbuf;	// and store in temporal buffer
 	buf+=2;
@@ -389,7 +390,7 @@ char store_current(void)
 
 
 
-char read_current(long * freq,long * txshift, long * offset)
+char read_current(unsigned long * freq,long * txshift, long * offset)
 {
 	void * buf;
 	char err;

@@ -30,17 +30,17 @@
 #include "pll_freq.h"
 
 
-inline void mde_up(uint8_t currentpos, char loval, char hival);
-inline void mde_down(uint8_t currentpos, char loval, char hival);
-inline void mde_next(uint8_t * currentpos, uint8_t lopos, uint8_t hipos);
-inline void mde_enter(uint8_t currentpos, const uint8_t lopos, const uint8_t hipos);
-inline void m_print(char key);
-inline void m_start_input(char key);
+void mde_up(uint8_t currentpos, char loval, char hival);
+void mde_down(uint8_t currentpos, char loval, char hival);
+void mde_next(uint8_t * currentpos, uint8_t lopos, uint8_t hipos);
+void mde_enter(uint8_t currentpos, const uint8_t lopos, const uint8_t hipos);
+void m_print(char key);
+void m_start_input(char key);
 void m_backspace (void);
 void m_clr_displ (void);
-inline void m_set_freq (void);
-inline void m_set_freq_x(void);
-inline void m_frq_prnt(void);
+void m_set_freq (void);
+void m_set_freq_x(void);
+void m_frq_prnt(void);
 
 
 inline void m_start_input(char key)
@@ -65,7 +65,7 @@ inline void m_print(char key)
 //
 // Frequenzeingabe, Eingabe entgegennehmen
 //
-inline void m_f_in(char key)
+void m_f_in(char key)
 {
 	if(key < KC_NON_NUMERIC)
 	{
@@ -82,7 +82,7 @@ inline void m_f_in(char key)
 
 
 
-inline void m_non_numeric(char key)
+static inline void m_non_numeric(char key)
 {
 	switch(key)
 	{
@@ -145,7 +145,7 @@ void m_clr_displ ()
 //
 // eingegebene Frequenz setzen
 //
-inline void m_set_freq ()
+void m_set_freq ()
 {
 	f_in_buf[cpos] = 0;
 	m_set_freq_x();
@@ -154,7 +154,7 @@ inline void m_set_freq ()
 
 inline void m_set_freq_x()
 {
-	long f;
+	unsigned long f;
 	f = atol(f_in_buf);
 	frq_update(&f);
 	lcd_clr(0);
@@ -198,7 +198,7 @@ inline void m_frq_prnt()
 #define MDE_UPPER_LIM 1
 #define MDE_CUR_POS   0
 //
-char m_digit_editor(char key, uint8_t lopos, char hipos, char mode)
+char m_digit_editor(char key, uint8_t lopos, char hipos, int8_t mode)
 {
 	static signed currentpos = 0;
 	char hival = 0, loval = 0;

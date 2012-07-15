@@ -158,7 +158,7 @@ void restore_dbuf()
 //
 //  Parameter :
 //
-inline void lcd_timer_reset()
+inline void lcd_timer_reset(void)
 {
 	lcd_timer = LCDDELAY;
 }

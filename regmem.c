@@ -62,12 +62,12 @@ char next_hms;
 char lcd_timer;				// 1ms
 char lcd_timer_en;
 
-long frequency;				// aktuelle Frequenz
+unsigned long frequency;	// aktuelle Frequenz
 
 long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
 long txshift;
 long channel;				// aktuell in der PLL gesetzter Kanal
-long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
+unsigned long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
 long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 char rxtx_state;			// 0=RX

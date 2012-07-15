@@ -203,7 +203,7 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 		dest++;
 		bytecount--;
 		if(bytesread)
-			*bytesread++;
+			(*bytesread)++;
 		// while there are bytes to copy
 		while(bytecount)
 		{
@@ -222,7 +222,7 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 
 				bytecount--;
 				if(bytesread)
-					*bytesread++;
+					(*bytesread)++;
 			}
 		}
 		i2c_stop();
@@ -373,7 +373,7 @@ char eep_write_crc()
 	return 0;
 }
 
-char eep_rd_ch_freq(uint8_t slot, long * f)
+char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 {
 	void * buf;
 	char err;

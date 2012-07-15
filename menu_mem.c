@@ -99,14 +99,14 @@ void m_store_submenu(char key)
 
 void m_show_slot()
 {
-	long f;
+	unsigned long f;
 
 	lcd_cpos(0);
 	eep_rd_ch_freq(mem_bank, &f);
 	{
 		f -= FBASE_MEM_RECALL;
 		// print frequency, truncate last 3 digits
-		decout(0, 3, &f);
+		decout(0, 3, (char *)&f);
 		pputchar('c',' ',0);
 		lcd_cpos(6);
 		// print bank & slot
@@ -180,7 +180,7 @@ void m_mem_select(char key)
 				}
 				else
 				{
-					long f;
+					unsigned long f;
 					if(eep_rd_ch_freq(mem_bank, &f))
 					{
 						err = 1;

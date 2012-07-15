@@ -34,8 +34,8 @@ typedef struct
 
 
 void m_set_shift(void);
-inline void mts_switch(char key);
-inline void mts_print(void);
+void mts_switch(char key);
+void mts_print(void);
 
 T_MENUITEM m_submenu_list[] PROGMEM =
 {
@@ -117,7 +117,7 @@ void m_tone()
 //
 // Anzeige der aktuellen TX Shift
 //
-inline void m_txshift(char key)
+void m_txshift(char key)
 {
 	if(!m_timer_en)
 	{
@@ -153,7 +153,7 @@ inline void mts_print()
 // Aktivieren/Deaktivieren der Ablage, Vorzeichenwahl (+/-)
 //
 //
-inline void mts_switch(char key)
+void mts_switch(char key)
 {
 	m_reset_timer();
 	switch(key)
@@ -302,7 +302,7 @@ void m_prnt_tc()
 //
 // Call Submenu
 //
-inline void m_submenu(char key)
+void m_submenu(char key)
 {
 	static uint8_t m_index;
 
@@ -376,7 +376,7 @@ char m_freq_digit(char key)
 
 	if( (res = m_digit_editor(key, 4,3,0)) )
 	{
-		long f;
+		unsigned long f;
 
 		if(res>0)
 		{

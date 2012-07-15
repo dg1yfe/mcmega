@@ -64,7 +64,7 @@ void decout(uint8_t modif, uint8_t truncate, char * data);
 
 
 
-extern char key_convert[][];
+extern char key_convert[2][21];
 
 
 

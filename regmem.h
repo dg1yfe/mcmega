@@ -153,12 +153,12 @@ extern char lcd_timer_en;
 
 //trx_state       .db
 
-extern long frequency;				// aktuelle Frequenz
+extern unsigned long frequency;	// aktuelle Frequenz
 
 extern long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
 extern long txshift;
-extern long channel;				// aktuell in der PLL gesetzter Kanal
-extern long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
+extern long channel;			// aktuell in der PLL gesetzter Kanal
+extern unsigned long ui_frequency;	// Über UI eingegebene Frequenz wird hier gespeichert
 extern long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 extern char rxtx_state;			// 0=RX

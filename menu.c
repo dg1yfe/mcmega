@@ -136,14 +136,15 @@ void m_none(char key)
 
 //**************************************
 ////Eingabe Timeout zurücksetzen
-inline void m_reset_timer()
+
+void m_reset_timer()
 {
 	m_timer = MENUTIMEOUT;
 	m_timer_en = 1;
 }
 
 
-inline void m_norestore()
+void m_norestore()
 {
 	m_timer_en = 0;
 	// go back to IDLE state

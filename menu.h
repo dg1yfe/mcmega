@@ -42,8 +42,8 @@ extern char m_menu_str[] PROGMEM;
 void menu_init();
 void menu();
 void m_none(char key);
-inline void m_reset_timer();
-inline void m_norestore();
+extern void m_reset_timer();
+extern void m_norestore();
 
 
 #endif /* MENU_H_ */

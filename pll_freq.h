@@ -9,7 +9,7 @@
 #define PLL_FREQ_H_
 
 char init_pll(unsigned int spacing);
-void pll_led(void);
+void pll_led(char force);
 char pll_lock_chk(void);
 void pll_set_channel(unsigned long channel);
 void set_freq(unsigned long * freq);

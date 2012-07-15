@@ -9,17 +9,17 @@
 #define DISPLAY_H_
 
 
-void lcd_h_reset();
-char lcd_s_reset();
+void lcd_h_reset(void);
+char lcd_s_reset(void);
 void lcd_clr(char clear_leds);
-void lcd_backspace();
-void save_dbuf();
-void restore_dbuf();
-inline void lcd_timer_reset();
+void lcd_backspace(void);
+void save_dbuf(void);
+void restore_dbuf(void);
+extern void lcd_timer_reset(void);
 void lcd_cpos(unsigned char pos);
-void lcd_fill();
+void lcd_fill(void);
 void led_set(char led, char status);
-void led_update();
+void led_update(void);
 void arrow_set(char pos, char state);
 void lcd_chr_mode(uint8_t position, char mode);
 

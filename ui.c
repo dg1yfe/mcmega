@@ -13,6 +13,8 @@
 #include "macros.h"
 #include "regmem.h"
 #include "display.h"
+#include "pll_freq.h"
+#include "menu.h"
 
 char version_str[] PROGMEM = "0.9";
 

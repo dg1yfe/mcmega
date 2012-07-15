@@ -19,6 +19,7 @@
 #include "io.h"
 #include "pll_freq.h"
 #include "display.h"
+#include "timer.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
@@ -36,8 +37,8 @@ int main(void)
 	// create Mutex for HW access
 	SerialBusMutex = xSemaphoreCreateMutex();
 	// create Main Tasks
-	xTaskCreate( vUiTask, "User if", 384, NULL, 2, &xUiTaskHandle);
-	xTaskCreate( vControlTask, "Control", 256, NULL, 1, &xControlTaskHandle);
+	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 2, &xUiTaskHandle);
+	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 1, &xControlTaskHandle);
 	// TODO: check if Task was created and try to display error
 
 	// initialize timer interrupt stuff;
@@ -90,7 +91,7 @@ void vControlTask( void * pvParameters)
 	receive();
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
-	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIOEN);
+	SetShiftReg(SR_AUDIOPA, (uint8_t)~(SR_RXAUDIOEN));
 	s_timer_init();
 
 	while (1)

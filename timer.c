@@ -88,9 +88,11 @@ void s_timer_update()
 			next_hms += 100;
 			tick_hms++;
 
-			m_timer = m_timer ? m_timer-- : 0;
+			if(m_timer)
+				m_timer--;
 
-			pll_timer = pll_timer ? pll_timer-- : 0;
+			if(pll_timer)
+				m_timer--;
 
 			// decrement tone timer if > 0
 			if(tone_timer)
