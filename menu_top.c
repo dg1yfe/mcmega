@@ -56,7 +56,7 @@ T_MENUITEM m_submenu_list[] PROGMEM =
 //
 // Frequenz einen Kanal nach oben
 //
-inline void m_frq_up()
+static inline void m_frq_up()
 {
 	frequency += FSTEP;
 	frq_update(&frequency);
@@ -68,7 +68,7 @@ inline void m_frq_up()
 //
 // Frequenz einen Kanal nach unten
 //
-inline void m_frq_down()
+static inline void m_frq_down()
 {
 	frequency -= FSTEP;
 	frq_update(&frequency);

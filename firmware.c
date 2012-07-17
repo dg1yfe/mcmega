@@ -29,6 +29,11 @@ int main(void)
 {
 	xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
+	// create Main Tasks
+	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 2, &xUiTaskHandle);
+	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 1, &xControlTaskHandle);
+	// TODO: check if Task was created and try to display error
+
 	init_io();
 	// check if radio is switched on
 	// power down if it is not
@@ -36,10 +41,6 @@ int main(void)
 
 	// create Mutex for HW access
 	SerialBusMutex = xSemaphoreCreateMutex();
-	// create Main Tasks
-	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 2, &xUiTaskHandle);
-	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 1, &xControlTaskHandle);
-	// TODO: check if Task was created and try to display error
 
 	// initialize timer interrupt stuff;
 	init_sci();

@@ -277,8 +277,14 @@ void init_sci()
 	/* Set baud rate to 1200 7e1 */
 	/* UBRR = Sysclk / (16 * Bitrate) -1 */
 	/* UBRR = 4924800 Hz / (16 * 1200 1/s) - 1 = 255,5 */
-	UBRR0H = 0;
-	UBRR0L = 255;	// ca 1202 Bit / s
+#define SCI_BAUD 1200L
+
+#define SCI_DIV ((F_CPU / (16 * SCI_BAUD) -1))
+#define SCI_HIDIV ( SCI_DIV >> 8)
+#define SCI_LODIV ( SCI_DIV & 0xff)
+
+	UBRR0H = SCI_HIDIV;
+	UBRR0L = SCI_LODIV;	// ca 1202 Bit / s
 
 	/* Set frame format: 7data, odd parity, 1stop bit */
 	UCSR0C = (1 << UPM01) |

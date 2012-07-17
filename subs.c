@@ -52,8 +52,6 @@
 #include "pll_freq.h"
 #include "eeprom.h"
 
-inline void vco_switch(char vco);
-
 
 void pwr_sw_chk(char cSaveSettings)
 {
@@ -135,6 +133,21 @@ char ptt_get_status()
 	return state;
 }
 
+/*
+ * Select RX or TX VCO
+ * vco = 1 - TX VCO
+ */
+static inline void vco_switch(char vco)
+{
+	if(vco)
+	{
+		SetShiftReg(0,~SR_RXVCOSEL);
+	}
+	else
+	{
+		SetShiftReg(SR_RXVCOSEL,0xff);
+	}
+}
 
 void receive()
 {
@@ -207,21 +220,6 @@ void squelch()
 	}
 }
 
-/*
- * Select RX or TX VCO
- * vco = 1 - TX VCO
- */
-inline void vco_switch(char vco)
-{
-	if(vco)
-	{
-		SetShiftReg(0,~SR_RXVCOSEL);
-	}
-	else
-	{
-		SetShiftReg(SR_RXVCOSEL,0xff);
-	}
-}
 
 /*
  * Calculate CRC-16
