@@ -12,6 +12,7 @@
 
 #include "macros.h"
 #include "regmem.h"
+#include "firmware.h"
 #include "io.h"
 
 void lcd_clr(char clear_leds);
@@ -27,10 +28,11 @@ void lcd_cpos(unsigned char pos);
 //
 void lcd_h_reset()
 {
+	//UDR0 = 0x00;// EZA9 hat keinen HW Reset Ausgang f�r das LCD
 	while(!(UCSR0A & (1<<UDRE0)));
 	UDR0 = 0;	// EZA9 hat keinen HW Reset Ausgang f�r das LCD
 	while(!(UCSR0A & (1<<UDRE0)));
-	UDR0 = 0;	// LCD per Kommando zur�cksetzen
+	UDR0 = 0x7f;	// LCD per Kommando zur�cksetzen
 }
 
 
@@ -49,32 +51,43 @@ char lcd_s_reset()
 	lcd_timer = 0;
 	lcd_timer_en = 1;
 	// clear RX buffer
-	while(sci_rx(NULL));
-	h = tick_hms + 20; 	// 2 sek timeout
+	//while(sci_rx(NULL));
 
+
+	h = tick_hms + 20;
 	ret = -1;
-	do
+	// wait for next char from UART
+	
+	while( ret && (h != tick_hms))
 	{
-		if(check_inbuf() )
+		char cnt = 4;
+
+		if(xQueueReceive( xRxQ, &c, LCDDELAY / portTICK_RATE_MS ) == pdPASS)
 		{
-			sci_read(&c);
 			if(c == 0x7e)
 			{
 				// acknowledge LCD reset
-				sci_tx(c);
+				sci_tx_w(c);
 				// set lcd_timer to long timeout
 				lcd_timer = LCDDELAY*4;
 				// clear LCD and LEDs
 				lcd_clr(1);
 				// return success;
 				ret = 0;
-				break;
 			}
+			else
+				sci_tx_w(0x7f);
 		}
 		else
-			taskYIELD();
-	}while(h != tick_hms);
-
+		{
+			if(cnt--==0)
+			{
+				cnt = 4;
+				sci_tx(0x7e);
+				vTaskDelay(LCDDELAY);
+			}
+		}
+	}
 	return ret;
 }
 

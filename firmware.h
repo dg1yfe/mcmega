@@ -11,5 +11,6 @@
 #include "semphr.h"
 extern xSemaphoreHandle SerialBusMutex;
 extern xQueueHandle xRxQ, xRxKeyQ;
+extern xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 #endif /* FIRMWARE_H_ */

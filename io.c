@@ -181,7 +181,7 @@ void init_io()
 	 *  Bit 7	: Test
 	 */
 
-	DDRA  = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3);
+	DDRA  = (0 << 3) | (1 << 2) | (1 << 1) | (1 << 0);
 	PORTA = (1 << 2);
 
 	/*
@@ -233,7 +233,7 @@ void init_io()
 	 */
 
 	DDRE  = ( 1 << 3 );
-	PORTE = 0;
+	PORTE = 1;
 
 	/*
 	 * Port F:
@@ -699,7 +699,9 @@ void sci_tx(char data)
 	lcd_timer_en = 0;
 	// send data
 	tx_buf = data & 0x7f;
-
+	
+	while(!(UCSR0A & (1<<TXC0)))
+		vTaskDelay(1);
 }
 
 //
@@ -723,9 +725,9 @@ void sci_tx_w( char data)
 	char delay;
 
 	// wait until Byte was transmitted
-	while(lcd_timer && !(UCSR0A & (1 << TXC0)))
+	while(lcd_timer || !(tx_buf & 0x80) || !(UCSR0A & (1 << TXC0)))
 	{
-		taskYIELD();
+		vTaskDelay(1);
 	}
 
 	// send data
@@ -768,7 +770,7 @@ void sci_tx_w( char data)
 
 void sci_rx_handler()
 {
-	if (UCSR0A & RXC0)
+	if (UCSR0A & (1 << RXC0))
 	{
 		char rx;
 
@@ -849,6 +851,7 @@ void sci_tx_handler()
 						break;
 					// display clear command need 4* normal delay
 					case 0x78:
+					case 0x7e:
 						delay = LCDDELAY * 4;
 						break;
 					default:
@@ -903,21 +906,18 @@ char check_outbuf()
 char sci_ack(const char data)
 {
 	char ret = 1;
-
+	char read;
+/*
 	ui_timer = LCDDELAY;
+
 	while(ui_timer && (!rx_char_buf))
 	{
 		taskYIELD();
 	}
-
-	// check if char was received
-	if(rx_char_buf)
+*/
+	if(xQueueReceive( xRxQ, &read, LCDDELAY ) == pdPASS)
 	{
-		char read;
-
-		// read received char from buffer
-		sci_read(&read);
-
+	// check if char was received
 		if(data == read)
 		{
 			ret = 0;
@@ -1008,9 +1008,9 @@ void pputchar(char mode, char data, char * extdata)
 			// check if char is already displayed at current position
 			// exit if it is
 			if (pc_cache(data))
-				return;
-			else
 				store_dbuf(data);
+			else
+				return;
 
 			// exclude blink bit
 			c = data & ~CHR_BLINK;

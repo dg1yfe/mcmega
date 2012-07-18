@@ -13,6 +13,7 @@
 
 #include "regmem.h"
 #include "macros.h"
+#include "firmware.h"
 #include "ui.h"
 #include "subs.h"
 #include "int.h"
@@ -25,6 +26,7 @@ void vControlTask( void * pvParameters) __attribute__((noreturn));
 
 xSemaphoreHandle SerialBusMutex;
 xQueueHandle xRxQ, xRxKeyQ;
+xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 int main(void)
 {
@@ -84,14 +86,14 @@ void vControlTask( void * pvParameters)
  */
 
 	lcd_h_reset();
-
+	
 
 	led_set(GRN_LED, LED_ON);
 	//freq_init();
-
+	receive();
+	
 	taskYIELD();
 
-	receive();
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
 	SetShiftReg(SR_AUDIOPA, (uint8_t)~(SR_RXAUDIOEN));
@@ -110,10 +112,13 @@ void vControlTask( void * pvParameters)
 				receive();
 		}
 		squelch();
-		taskYIELD();
+
 		frq_check();
 		wd_reset();
 		sci_rx_handler();
 		sci_tx_handler();
+
+		vTaskDelay(1);
+//		taskYIELD();
     }
 }
