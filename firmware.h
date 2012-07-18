@@ -10,6 +10,6 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 extern xSemaphoreHandle SerialBusMutex;
-
+extern xQueueHandle xRxQ, xRxKeyQ;
 
 #endif /* FIRMWARE_H_ */

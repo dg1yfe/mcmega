@@ -27,8 +27,10 @@ void lcd_cpos(unsigned char pos);
 //
 void lcd_h_reset()
 {
-	sci_tx(0);	// EZA9 hat keinen HW Reset Ausgang f�r das LCD
-	sci_tx(0);	// LCD per Kommando zur�cksetzen
+	while(!(UCSR0A & (1<<UDRE0)));
+	UDR0 = 0;	// EZA9 hat keinen HW Reset Ausgang f�r das LCD
+	while(!(UCSR0A & (1<<UDRE0)));
+	UDR0 = 0;	// LCD per Kommando zur�cksetzen
 }
 
 

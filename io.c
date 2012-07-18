@@ -14,6 +14,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "queue.h"
+
 
 #include "macros.h"
 #include "regmem.h"
@@ -316,7 +318,8 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 // SR_RXAUDIOEN - 7 - Rx Audio enable (1=enable)      (PIN 11)
 
 	// get exclusive Bus access
-	xSemaphoreTake(SerialBusMutex, portMAX_DELAY);
+	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
+		xSemaphoreTake(SerialBusMutex, portMAX_DELAY);
 	bus_busy++;
 
 	//
@@ -352,7 +355,8 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 
 	// Bus access finished
 	bus_busy--;
-	xSemaphoreGive(SerialBusMutex);
+	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
+		xSemaphoreGive(SerialBusMutex);
 	// exit critical section
 	taskEXIT_CRITICAL();
 }
@@ -575,14 +579,13 @@ char i2c_rx()
 //
 char sci_rx(char * data)
 {
-	if(!(rx_char_buf & 0x80))
+	char rxd;
+
+	if(xQueueReceive( xRxQ, &rxd, 0 ) == pdPASS)
 	{
 		// do not read data, if pointer is NULL
-		taskENTER_CRITICAL();
 		if(data)
-			*data = rx_char_buf;
-		rx_char_buf = 0x80;
-		taskEXIT_CRITICAL();
+			*data = rxd;
 		return 0;
 	}
 	else
@@ -604,13 +607,11 @@ char sci_rx(char * data)
 //
 void sci_read(char * data)
 {
+	char rxd;
 	// Wenn Zeiger auf Lese und Schreibpos gleich sind keine Daten gekommen -> warten
-	while(rx_char_buf & 0x80);
-	taskENTER_CRITICAL();
+	xQueueReceive( xRxQ, &rxd, portMAX_DELAY );
 	if(data)
-		*data = rx_char_buf;
-	rx_char_buf = 0x80;
-	taskEXIT_CRITICAL();
+		*data = rxd;
 }
 //************************
 // S C I   R X   M
@@ -632,17 +633,13 @@ char sci_rx_m(char * data)
 {
 	uint8_t raw;
 
-	if(rx_key_buf & 0x80)
+	if(xQueueReceive( xRxKeyQ, &raw, 0) == errQUEUE_EMPTY)
 	{
 		*data = 0;
 		raw = 0x80;
 	}
 	else
 	{
-		taskENTER_CRITICAL();
-		raw = rx_key_buf;
-		rx_key_buf = 0x80;
-		taskEXIT_CRITICAL();
 		*data = key_convert[cfg_head][raw];
 	}
 	return raw;
@@ -667,17 +664,10 @@ char sci_read_m( char * data)
 {
 	uint8_t raw;
 
-	while(rx_key_buf & 0x80)
+	if(xQueueReceive( xRxKeyQ, &raw, m_timer) == errQUEUE_EMPTY)
 	{
-		taskYIELD();
-		if(m_timer==0)
-			return -1;
+		return -1;
 	}
-
-	taskENTER_CRITICAL();
-	raw = rx_key_buf;
-	rx_key_buf = 0x80;
-	taskEXIT_CRITICAL();
 
 	*data = key_convert[cfg_head][raw];
 
@@ -703,7 +693,7 @@ void sci_tx(char data)
 {
 	// wait until Byte was transmitted
 	while(!(tx_buf & 0x80))
-		taskYIELD();
+		vTaskDelay(1);
 
 	// disable lcd_timer
 	lcd_timer_en = 0;
@@ -789,7 +779,6 @@ void sci_rx_handler()
 			rx = UDR0;
 			if(rx && ((rx < 0x20) || (rx == KEYLOCK)))
 			{
-				taskENTER_CRITICAL();
 				if (rx == KEYLOCK)
 				{
 					rx_ack_buf = KEY_UNLOCK;
@@ -797,16 +786,15 @@ void sci_rx_handler()
 				else
 //				if(rx_key_buf==0)
 				{
-					rx_key_buf = rx;
+					xQueueSendToBack( xRxKeyQ, &rx, 1/portTICK_RATE_MS);
 					rx_ack_buf = rx;
 				}
-				taskEXIT_CRITICAL();
 			}
 			else
 			{
 //				if(!(rx_char_buf & 0x80))
 				{
-					rx_char_buf = rx;
+					xQueueSendToBack( xRxQ,&rx, 1/portTICK_RATE_MS);
 				}
 			}
 		}

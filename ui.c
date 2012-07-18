@@ -12,9 +12,11 @@
 
 #include "macros.h"
 #include "regmem.h"
+#include "firmware.h"
 #include "display.h"
 #include "pll_freq.h"
 #include "menu.h"
+#include "int.h"
 
 char version_str[] PROGMEM = "0.9";
 
@@ -26,6 +28,10 @@ void init_ui()
 
 void vUiTask( void * pvParameters)
 {
+
+	lcd_s_reset();
+	int_lcd_timer_dec = 1;
+	cfg_head = 3;
 
 	printf_P(PSTR("DG1YFE"));
 	lcd_fill();

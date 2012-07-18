@@ -24,13 +24,14 @@
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
 xSemaphoreHandle SerialBusMutex;
+xQueueHandle xRxQ, xRxKeyQ;
 
 int main(void)
 {
 	xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 	// create Main Tasks
-	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 2, &xUiTaskHandle);
+	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 1, &xUiTaskHandle);
 	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 1, &xControlTaskHandle);
 	// TODO: check if Task was created and try to display error
 
@@ -41,6 +42,8 @@ int main(void)
 
 	// create Mutex for HW access
 	SerialBusMutex = xSemaphoreCreateMutex();
+	xRxQ = xQueueCreate( 1, sizeof( char ) );
+	xRxKeyQ = xQueueCreate( 1, sizeof( char ) );
 
 	// initialize timer interrupt stuff;
 	init_sci();
@@ -79,10 +82,9 @@ void vControlTask( void * pvParameters)
                 cli
  *
  */
+
 	lcd_h_reset();
-	lcd_s_reset();
-	int_lcd_timer_dec = 1;
-	cfg_head = 3;
+
 
 	led_set(GRN_LED, LED_ON);
 	//freq_init();
