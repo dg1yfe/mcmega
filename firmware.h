@@ -9,8 +9,6 @@
 #define FIRMWARE_H_
 #include "FreeRTOS.h"
 #include "semphr.h"
-extern xSemaphoreHandle SerialBusMutex;
-extern xQueueHandle xRxQ, xRxKeyQ, xTxQ, xTxAckQ;
 extern xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 #endif /* FIRMWARE_H_ */

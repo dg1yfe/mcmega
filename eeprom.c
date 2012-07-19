@@ -26,6 +26,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "io.h"
 #include "display.h"
@@ -68,7 +69,7 @@ char eep_rand_read(unsigned int address, char * data)
 	char buf;
 	char err;
 
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
 	i2c_start();
@@ -96,7 +97,7 @@ char eep_rand_read(unsigned int address, char * data)
 
 	err = 0;
 	tasksw_en--;
-	bus_busy--;
+	xSemaphoreGiveRecursive(SerialBusMutex);
 
 	return 0;
 }
@@ -124,7 +125,7 @@ char eep_read(char flags, char * data)
 {
 	char buf;
 
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
 	// Start I2C comm
@@ -145,7 +146,7 @@ char eep_read(char flags, char * data)
 	if(!(flags & 0x80))
 		i2c_stop();		// Send I2C stop, if flag was not set
 
-	bus_busy--;
+	xSemaphoreGiveRecursive(SerialBusMutex);
 	tasksw_en--;
 	return 0;
 }
@@ -187,7 +188,7 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 	char err;
 
 	bytecount = 0;
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
 	if(bytesread)
@@ -227,7 +228,7 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 		}
 		i2c_stop();
 	}
-	bus_busy--;
+	xSemaphoreGiveRecursive(SerialBusMutex);
 	tasksw_en--;
 	return 0;
 }
@@ -255,7 +256,7 @@ char eep_write(unsigned int address, char * data)
 	char buf;
 	char err;
 
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
 	i2c_start();
@@ -295,7 +296,7 @@ char eep_write(unsigned int address, char * data)
 
 	i2c_stop();
 	tasksw_en--;
-	bus_busy--;
+	xSemaphoreGiveRecursive(SerialBusMutex);
 
 	return err;
 }
@@ -328,7 +329,7 @@ char eep_write_seq(unsigned int address, char bytecount, void * data)
 {
 	char err;
 
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
 	err=0;
@@ -339,7 +340,7 @@ char eep_write_seq(unsigned int address, char bytecount, void * data)
 	}
 
 	tasksw_en--;
-	bus_busy--;
+	xSemaphoreGiveRecursive(SerialBusMutex);
 
 	return err;
 

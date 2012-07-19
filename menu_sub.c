@@ -145,7 +145,7 @@ void m_defch_submenu(char key)
 					buf |= (index & 2);
 					cfg_defch_save = buf;
 					taskEXIT_CRITICAL();
-					if((buf = eep_write(0x1fd, buf)))
+					if((buf = eep_write(0x1fd, &buf)))
 					{
 						lcd_cpos(0);
 						printf_P(m_failed_str);

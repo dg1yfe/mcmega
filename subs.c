@@ -43,6 +43,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
 
 #include "macros.h"
 #include "regmem.h"
@@ -94,9 +95,10 @@ void watchdog_toggle_ms()
 
 void wd_reset()
 {
-	if(!bus_busy)
+	if(xSemaphoreTakeRecursive(SerialBusMutex,0))
 	{
 		watchdog_toggle_ms();
+		xSemaphoreGiveRecursive(SerialBusMutex);
 	}
 }
 

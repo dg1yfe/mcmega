@@ -8,6 +8,9 @@
 #ifndef IO_H_
 #define IO_H_
 
+#include "FreeRTOS.h"
+#include "semphr.h"
+
 	/*
 	 * Port D:
 	 * Bit 0	: SWB+
@@ -65,8 +68,7 @@ void decout(uint8_t modif, uint8_t truncate, char * data);
 
 
 extern char key_convert[2][21];
-
-
-
+extern xSemaphoreHandle SerialBusMutex;
+extern xQueueHandle xRxKeyQ, xRxQ;
 
 #endif /* IO_H_ */

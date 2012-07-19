@@ -24,8 +24,6 @@
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
-xSemaphoreHandle SerialBusMutex;
-xQueueHandle xRxQ, xRxKeyQ, xTxQ, xTxAckQ;
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 int main(void)
@@ -42,18 +40,10 @@ int main(void)
 	// power down if it is not
 	pwr_sw_chk( 0 );
 
-	// create Mutex for HW access
-	SerialBusMutex = xSemaphoreCreateMutex();
-	xRxQ = xQueueCreate( 1, sizeof( char ) );
-	xRxKeyQ = xQueueCreate( 1, sizeof( char ) );
-	xTxQ = xQueueCreate( 1, sizeof( char ) );
-	xTxAckQ = xQueueCreate( 1, sizeof( char ) );
 	// initialize timer interrupt stuff;
-	init_sci();
 	init_SIO();
 	init_OCI();
 	init_ui();
-	init_pll(FSTEP);
 
 	sei();
 
@@ -85,6 +75,8 @@ void vControlTask( void * pvParameters)
                 cli
  *
  */
+	init_sci();
+	init_pll(FSTEP);
 
 	lcd_h_reset();
 	

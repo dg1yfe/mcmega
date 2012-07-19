@@ -39,6 +39,11 @@ void decout(uint8_t modif, uint8_t truncate, char * data);
 
 int putchar_wrapper (char c, FILE *stream);
 
+xSemaphoreHandle TxDone;
+xSemaphoreHandle SerialBusMutex;
+xQueueHandle xRxQ, xRxKeyQ, xTxQ;
+
+uint8_t tx_stall = 0;
 
 static FILE mystdout = FDEV_SETUP_STREAM(putchar_wrapper, NULL,
 										 _FDEV_SETUP_WRITE);
@@ -262,7 +267,9 @@ void init_io()
 	arrow_buf = 0;
 	sql_flag = 0;
 	ui_ptt_req = 0;
-	bus_busy = 0;
+
+	// create Mutex for HW access
+	SerialBusMutex = xSemaphoreCreateRecursiveMutex();
 
     // Select RX VCO
     // Enable 9,6V regulator, disable Clockshift, set EXTALARM to high (open)
@@ -299,6 +306,13 @@ void init_sci()
 	 * Disable RX interrupt */
 	UCSR0B = (0 << RXCIE0) | (1<<RXEN0)|(1<<TXEN0);
 
+	// create queues required for sci communication
+	xRxQ = xQueueCreate( 1, sizeof( char ) );
+	xRxKeyQ = xQueueCreate( 1, sizeof( char ) );
+	xTxQ = xQueueCreate( 1, sizeof( char ) );
+
+	vSemaphoreCreateBinary( TxDone );
+	xSemaphoreTake( TxDone, 0 );
 }
 
 
@@ -319,7 +333,7 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 
 	// get exclusive Bus access
 	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
-		xSemaphoreTake(SerialBusMutex, portMAX_DELAY);
+		xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	bus_busy++;
 
 	//
@@ -354,9 +368,8 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 	SR_LATCHPORT &= ~SR_LATCHEN;
 
 	// Bus access finished
-	bus_busy--;
 	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
-		xSemaphoreGive(SerialBusMutex);
+		xSemaphoreGiveRecursive(SerialBusMutex);
 	// exit critical section
 	taskEXIT_CRITICAL();
 }
@@ -371,8 +384,7 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	char i, bits;
 	long data;
 
-	xSemaphoreTake(SerialBusMutex, portMAX_DELAY);
-	bus_busy++;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 
 	if(RegSelect)
 	{
@@ -419,8 +431,7 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	PLL_LATCHPORT &= ~PLL_LATCHEN;
 
 	// Bus access finished
-	bus_busy--;
-	xSemaphoreGive(SerialBusMutex);
+	xSemaphoreGiveRecursive(SerialBusMutex);
 	taskEXIT_CRITICAL();
 }
 
@@ -613,6 +624,8 @@ void sci_read(char * data)
 	if(data)
 		*data = rxd;
 }
+
+
 //************************
 // S C I   R X   M
 //************************
@@ -691,18 +704,16 @@ char sci_read_m( char * data)
 //
 void sci_tx(char data)
 {
-	char dummy;
-
-	// wait until Byte was transmitted
-	while(xQueuePeek(xTxQ, &dummy, portMAX_DELAY));
+	// wait until serial interface is free
+	xSemaphoreTake( TxDone, portMAX_DELAY );
 
 	// disable lcd_timer
 	lcd_timer_en = 0;
 	// send data
 	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
 	
-	while(!(UCSR0A & (1<<TXC0)))
-		vTaskDelay(1);
+	// wait until TX completed
+	xSemaphoreTake( TxDone, portMAX_DELAY );
 }
 
 //
@@ -726,20 +737,38 @@ void sci_tx_w( char data)
 	char delay;
 
 	// wait until Byte was transmitted
-	while(lcd_timer || !(UCSR0A & (1 << TXC0)))
-	{
-		vTaskDelay(1);
-	}
+	xSemaphoreTake( TxDone, portMAX_DELAY );
 
 	// send data
 	lcd_timer_en = 1;
 
 	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
 
-	// wait until char is sent
-	do{
-		vTaskDelay(1);
-	}while(!(UCSR0A & (1<<TXC0)));
+	switch((uint8_t)data)
+	{
+		// send data related to extended chars without delay
+		case 0x4D:
+		case 0x5D:
+		case 0x4E:
+		case 0x5E:
+		case 0x4F:
+		case 0x5F:
+			delay = 0;
+			break;
+		// display clear command need 4* normal delay
+		case 0x78:
+		case 0x7e:
+			delay = LCDDELAY * 4;
+			break;
+		default:
+			delay = LCDDELAY;
+	}
+
+	// wait until TX completed
+	xSemaphoreTake( TxDone, portMAX_DELAY );
+
+	// reset LCD Timer
+	lcd_timer = delay;
 }
 
 /*
@@ -759,7 +788,7 @@ void sci_rx_handler()
 
 		if(!(UCSR0A & ((1<<UPE0) | (1<<FE0))))
 		{
-			// receiption ok
+			// reception ok
 
 			rx = UDR0;
 			if(!extended && rx && ((rx < 0x20) || (rx == KEYLOCK)))
@@ -767,21 +796,22 @@ void sci_rx_handler()
 				if (rx == KEYLOCK)
 				{
 					rx = KEY_UNLOCK;
-					xQueueSendToBack( xTxAckQ, &rx, 0);
+					rx_ack_buf = rx;
 				}
 				else
-//				if(rx_key_buf==0)
 				{
 					xQueueSendToBack( xRxKeyQ, &rx, 0);
-					xQueueSendToBack( xTxAckQ, &rx, 0);
+					rx_ack_buf = rx;
 				}
 			}
 			else
 			{
-//				if(!(rx_char_buf & 0x80))
+				if(rx != 0x7f)
 				{
 					xQueueSendToBack( xRxQ, &rx, 0);
 				}
+				else	// control head awaits ack for something, postpone own transmission for some time
+					tx_stall = LCDDELAY;
 
 				// check if char just received was first byte of 2 byte combo
 				rx |= 0x11;
@@ -806,46 +836,33 @@ void sci_tx_handler()
 		char tx;
 		uint8_t delay = 0;
 
+		// TX complete flag set
+		// give TxDone Semaphore
+		// do not care about it been already given or not (ignore return value)
+		xSemaphoreGive( TxDone);
+
 		if(!lcd_timer_en || !lcd_timer)
 		{
 			// check if a keystroke needs to be acknowledged
-			if(xQueueReceive( xTxAckQ, &tx, 0) == pdPASS)
+			if((tx=rx_ack_buf))
 			{
 				UDR0 = tx;
+				delay = LCDDELAY;
+				xSemaphoreTake( TxDone, 0 );
 			}
 			else
 			{
-				// check if there is something to be sent in the buffer
+				// check if tx is stalled
+				if(tx_stall)
+					tx_stall--;
+				else
+					// check if there is something to be sent in the buffer
 				if(xQueueReceive( xTxQ, &tx, 0) == pdPASS)
 				{
 					UDR0 = tx;
+					xSemaphoreTake( TxDone, 0 );
 				}
 			}
-
-			if(!(UCSR0A & (1<<TXC0)))
-			{
-				switch(tx)
-				{
-					// send data related to extended chars without delay
-					case 0x4D:
-					case 0x5D:
-					case 0x4E:
-					case 0x5E:
-					case 0x4F:
-					case 0x5F:
-						delay = 0;
-						break;
-					// display clear command need 4* normal delay
-					case 0x78:
-					case 0x7e:
-						delay = LCDDELAY * 4;
-						break;
-					default:
-						delay = LCDDELAY;
-				}
-			}
-			// set lcd timer
-			lcd_timer = delay;
 		}
 	}
 }
@@ -900,16 +917,6 @@ char sci_ack(const char data)
 		if(data == read)
 		{
 			ret = 0;
-		}
-		else
-		{
-			if(data == 0x7f)
-			{	
-				// Control Head reports error, possibly a key was pressed
-				// and command was mistaken for ACK
-				// wait a while and let the sci handler work this out
-				vTaskDelay(LCDDELAY * 4);
-			}
 		}
 	}
 
