@@ -691,14 +691,15 @@ char sci_read_m( char * data)
 //
 void sci_tx(char data)
 {
+	char dummy;
+
 	// wait until Byte was transmitted
-	while(!(tx_buf & 0x80))
-		vTaskDelay(1);
+	while(xQueuePeek(xTxQ, &dummy, portMAX_DELAY));
 
 	// disable lcd_timer
 	lcd_timer_en = 0;
 	// send data
-	tx_buf = data & 0x7f;
+	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
 	
 	while(!(UCSR0A & (1<<TXC0)))
 		vTaskDelay(1);
@@ -725,40 +726,20 @@ void sci_tx_w( char data)
 	char delay;
 
 	// wait until Byte was transmitted
-	while(lcd_timer || !(tx_buf & 0x80) || !(UCSR0A & (1 << TXC0)))
+	while(lcd_timer || !(UCSR0A & (1 << TXC0)))
 	{
 		vTaskDelay(1);
 	}
 
 	// send data
-	taskENTER_CRITICAL();
 	lcd_timer_en = 1;
 
-	tx_buf = data;
+	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
 
-	switch(data)
-	{
-		// send data related to extended chars without delay
-		case 0x4D:
-		case 0x5D:
-		case 0x4E:
-		case 0x5E:
-		case 0x4F:
-		case 0x5F:
-			delay = 0;
-			break;
-		// display clear command need 4* normal delay
-		case 0x78:
-			delay = LCDDELAY * 4;
-			break;
-		default:
-			delay = LCDDELAY;
-	}
-
-	// set lcd timer
-	lcd_timer = delay;
-
-	taskEXIT_CRITICAL();
+	// wait until char is sent
+	do{
+		vTaskDelay(1);
+	}while(!(UCSR0A & (1<<TXC0)));
 }
 
 /*
@@ -770,6 +751,8 @@ void sci_tx_w( char data)
 
 void sci_rx_handler()
 {
+	static char extended=0;
+
 	if (UCSR0A & (1 << RXC0))
 	{
 		char rx;
@@ -779,25 +762,32 @@ void sci_rx_handler()
 			// receiption ok
 
 			rx = UDR0;
-			if(rx && ((rx < 0x20) || (rx == KEYLOCK)))
+			if(!extended && rx && ((rx < 0x20) || (rx == KEYLOCK)))
 			{
 				if (rx == KEYLOCK)
 				{
-					rx_ack_buf = KEY_UNLOCK;
+					rx = KEY_UNLOCK;
+					xQueueSendToBack( xTxAckQ, &rx, 0);
 				}
 				else
 //				if(rx_key_buf==0)
 				{
-					xQueueSendToBack( xRxKeyQ, &rx, 1/portTICK_RATE_MS);
-					rx_ack_buf = rx;
+					xQueueSendToBack( xRxKeyQ, &rx, 0);
+					xQueueSendToBack( xTxAckQ, &rx, 0);
 				}
 			}
 			else
 			{
 //				if(!(rx_char_buf & 0x80))
 				{
-					xQueueSendToBack( xRxQ,&rx, 1/portTICK_RATE_MS);
+					xQueueSendToBack( xRxQ, &rx, 0);
 				}
+
+				// check if char just received was first byte of 2 byte combo
+				rx |= 0x11;
+				if((rx == 0x5d) || (rx == 0x5f))
+					extended = 1;
+				// then next char has to go into RxQ
 			}
 		}
 		else
@@ -810,7 +800,6 @@ void sci_rx_handler()
 
 void sci_tx_handler()
 {
-
 	// check if the TX Reg is currently empty
 	if(UCSR0A & (1<<TXC0))
 	{
@@ -820,22 +809,19 @@ void sci_tx_handler()
 		if(!lcd_timer_en || !lcd_timer)
 		{
 			// check if a keystroke needs to be acknowledged
-			tx = rx_ack_buf;
-			if(tx)
+			if(xQueueReceive( xTxAckQ, &tx, 0) == pdPASS)
 			{
 				UDR0 = tx;
-				rx_ack_buf = 0;		// mark ack buffer as empty
 			}
 			else
 			{
 				// check if there is something to be sent in the buffer
-				tx = tx_buf;
-				if(!(tx & 0x80))
+				if(xQueueReceive( xTxQ, &tx, 0) == pdPASS)
 				{
 					UDR0 = tx;
-					tx_buf = 0x80;
 				}
 			}
+
 			if(!(UCSR0A & (1<<TXC0)))
 			{
 				switch(tx)
@@ -907,20 +893,23 @@ char sci_ack(const char data)
 {
 	char ret = 1;
 	char read;
-/*
-	ui_timer = LCDDELAY;
 
-	while(ui_timer && (!rx_char_buf))
-	{
-		taskYIELD();
-	}
-*/
-	if(xQueueReceive( xRxQ, &read, LCDDELAY ) == pdPASS)
+	if(xQueueReceive( xRxQ, &read, LCDDELAY * 4 ) == pdPASS)
 	{
 	// check if char was received
 		if(data == read)
 		{
 			ret = 0;
+		}
+		else
+		{
+			if(data == 0x7f)
+			{	
+				// Control Head reports error, possibly a key was pressed
+				// and command was mistaken for ACK
+				// wait a while and let the sci handler work this out
+				vTaskDelay(LCDDELAY * 4);
+			}
 		}
 	}
 
@@ -1026,19 +1015,19 @@ void pputchar(char mode, char data, char * extdata)
 					out |= 0x10;
 			}
 
-			// check for 2 byte code
-			if (out & 0xff00)
-			{	// transmit hi byte
-				// TODO: Exit with error after x unsuccessful attempts
-				do
-				{
-					sci_tx_w(out>>8);
-				}while( sci_ack(out>>8) );
-			}
-
-			// TODO: Exit with error after x unsuccessful attempts
 			do
 			{
+				// check for 2 byte code
+				if (out & 0xff00)
+				{	// transmit hi byte
+					// TODO: Exit with error after x unsuccessful attempts
+					do
+					{
+						sci_tx_w(out>>8);
+					}while( sci_ack(out>>8) );
+				}
+
+				// TODO: Exit with error after x unsuccessful attempts
 				sci_tx_w(out & 0xff);
 			}while( sci_ack(out & 0xff) );
 

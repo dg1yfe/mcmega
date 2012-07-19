@@ -25,7 +25,7 @@
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
 xSemaphoreHandle SerialBusMutex;
-xQueueHandle xRxQ, xRxKeyQ;
+xQueueHandle xRxQ, xRxKeyQ, xTxQ, xTxAckQ;
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 int main(void)
@@ -34,7 +34,7 @@ int main(void)
 
 	// create Main Tasks
 	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 1, &xUiTaskHandle);
-	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 1, &xControlTaskHandle);
+	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 2, &xControlTaskHandle);
 	// TODO: check if Task was created and try to display error
 
 	init_io();
@@ -46,7 +46,8 @@ int main(void)
 	SerialBusMutex = xSemaphoreCreateMutex();
 	xRxQ = xQueueCreate( 1, sizeof( char ) );
 	xRxKeyQ = xQueueCreate( 1, sizeof( char ) );
-
+	xTxQ = xQueueCreate( 1, sizeof( char ) );
+	xTxAckQ = xQueueCreate( 1, sizeof( char ) );
 	// initialize timer interrupt stuff;
 	init_sci();
 	init_SIO();
@@ -92,8 +93,6 @@ void vControlTask( void * pvParameters)
 	//freq_init();
 	receive();
 	
-	taskYIELD();
-
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
 	SetShiftReg(SR_AUDIOPA, (uint8_t)~(SR_RXAUDIOEN));
