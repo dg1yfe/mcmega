@@ -30,7 +30,7 @@ void vUiTask( void * pvParameters)
 {
 
 	lcd_s_reset();
-	int_lcd_timer_dec = 1;
+//	int_lcd_timer_dec = 1;
 	cfg_head = 3;
 
 	printf_P(PSTR("DG1YFE"));

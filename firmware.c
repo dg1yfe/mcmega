@@ -109,7 +109,8 @@ void vControlTask( void * pvParameters)
 		sci_rx_handler();
 		sci_tx_handler();
 
-		vTaskDelay(1);
-//		taskYIELD();
+		vTaskPrioritySet( NULL, 1);
+		taskYIELD();
+		vTaskPrioritySet( NULL, 2);
     }
 }

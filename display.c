@@ -47,6 +47,7 @@ char lcd_s_reset()
 	char h;
 	char c;
 	char ret;
+	char cnt = 4;
 
 	lcd_timer = 0;
 	lcd_timer_en = 1;
@@ -54,29 +55,28 @@ char lcd_s_reset()
 	//while(sci_rx(NULL));
 
 
-	h = tick_hms + 20;
+	h = tick_hms + 30;
 	ret = -1;
 	// wait for next char from UART
 	
 	while( ret && (h != tick_hms))
 	{
-		char cnt = 4;
-
 		if(xQueueReceive( xRxQ, &c, LCDDELAY / portTICK_RATE_MS ) == pdPASS)
 		{
-			if(c == 0x7e)
+			if((c | 0x01) == 0x7f)
 			{
 				// acknowledge LCD reset
-				sci_tx_w(c);
-				// set lcd_timer to long timeout
-				lcd_timer = LCDDELAY*4;
-				// clear LCD and LEDs
-				lcd_clr(1);
-				// return success;
-				ret = 0;
+				sci_tx_w(0x7e);
+				
+				// check if nothing was received within LCDDELAY
+				if(!xQueueReceive( xRxQ, &c, LCDDELAY / portTICK_RATE_MS ))
+				{
+					// clear LCD and LEDs
+					lcd_clr(1);
+					// return success;
+					ret = 0;
+				}
 			}
-			else
-				sci_tx_w(0x7f);
 		}
 		else
 		{
