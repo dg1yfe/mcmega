@@ -30,9 +30,9 @@ void lcd_h_reset()
 {
 	//UDR0 = 0x00;// EZA9 hat keinen HW Reset Ausgang f�r das LCD
 	while(!(UCSR0A & (1<<UDRE0)));
-	UDR0 = 0;	// EZA9 hat keinen HW Reset Ausgang f�r das LCD
+	UDR0 = 0x7e;	// EZA9 hat keinen HW Reset Ausgang f�r das LCD
 	while(!(UCSR0A & (1<<UDRE0)));
-	UDR0 = 0x7f;	// LCD per Kommando zur�cksetzen
+//	UDR0 = 0x7e;	// LCD per Kommando zur�cksetzen
 }
 
 
@@ -60,18 +60,16 @@ char lcd_s_reset()
 	
 	while( ret && (h != tick_hms))
 	{
-		if(xQueueReceive( xRxQ, &c, LCDDELAY / portTICK_RATE_MS ) == pdPASS)
+		if(xQueueReceive( xRxQ, &c, (LCDDELAY * 4) / portTICK_RATE_MS ))
 		{
-			if((c | 0x01) == 0x7f)
+			if(c == 0x7e)
 			{
 				// acknowledge LCD reset
 				sci_tx_w(0x7e);
 				
 				// check if nothing was received within LCDDELAY
-				if(!xQueueReceive( xRxQ, &c, LCDDELAY / portTICK_RATE_MS ))
+				if(!xQueueReceive( xRxQ, &c, (LCDDELAY * 4) / portTICK_RATE_MS ))
 				{
-					// clear LCD and LEDs
-					lcd_clr(1);
 					// return success;
 					ret = 0;
 				}
@@ -79,14 +77,19 @@ char lcd_s_reset()
 		}
 		else
 		{
-			if(cnt--==0)
-			{
-				cnt = 4;
-				sci_tx(0x7e);
-				vTaskDelay(LCDDELAY);
-			}
+			// test if control head reacts on command;
+			sci_tx_w(0x4c);
+			if(!sci_ack(0x4c))
+				ret = 0;			
 		}
 	}
+
+	if(!ret)
+	{
+		// clear LCD and LEDs
+		lcd_clr(1);
+	}
+
 	return ret;
 }
 
@@ -414,6 +417,8 @@ void arrow_set(char pos, char state)
 		if(!(arrow_buf & mask))
 		{
 			cmd = ARROW + A_ON;
+			// enable on bit
+			arrow_buf |= mask;
 			// delete blink bit
 			arrow_buf &= ~(mask << 8);
 		}
@@ -432,7 +437,6 @@ void arrow_set(char pos, char state)
 		{
 			cmd = ARROW + A_OFF;
 			// delete on bit
-			arrow_buf &= ~mask;
 		}
 		else
 		{	// check if arrow was blinking
@@ -445,9 +449,9 @@ void arrow_set(char pos, char state)
 				cmd = ARROW + A_ON;
 
 			}
-			// re-enable on bit
-			arrow_buf |= mask;
 		}
+		// invert on-bit
+		arrow_buf ^= mask;
 		break;
 	case 0:
 	default:
@@ -460,14 +464,18 @@ void arrow_set(char pos, char state)
 		}
 		break;
 	}
-	// remember current cursor position
-	cursor_pos = cpos;
-	// set position for arrow
-	lcd_cpos(pos);
-	pputchar('p',cmd,0);
-	// restore cursor position
-	lcd_cpos(cursor_pos);
 
+	// if there is something to do
+	if(cmd)
+	{
+		// remember current cursor position
+		cursor_pos = cpos;
+		// set position for arrow
+		lcd_cpos(pos);
+			pputchar('p',cmd,0);
+		// restore cursor position
+		lcd_cpos(cursor_pos);
+	}
 	// TODO: Implement arrow setting like LED setting using set & update function
 }
 
