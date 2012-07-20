@@ -654,7 +654,7 @@ char sci_rx_m(char * data)
 	}
 	else
 	{
-		*data = key_convert[cfg_head][raw];
+		*data = pgm_read_byte( &key_convert[cfg_head][raw]);
 	}
 	return raw;
 }
@@ -713,8 +713,6 @@ void sci_tx(char data)
 	// send data & delay
 	xQueueSendToBack( xTxQ, &txchar, portMAX_DELAY);
 	
-	// wait until TX completed
-	xSemaphoreTake( TxDone, portMAX_DELAY );
 }
 
 //
@@ -761,9 +759,6 @@ void sci_tx_w( char data)
 
 	// send data & delay
 	xQueueSendToBack( xTxQ, &txchar, portMAX_DELAY);
-
-	// wait until TX completed
-	xSemaphoreTake( TxDone, portMAX_DELAY );
 }
 
 /*
@@ -810,8 +805,10 @@ void sci_rx_handler()
 
 				// check if char just received was first byte of 2 byte combo
 				rx |= 0x11;
-				if((rx == 0x5d) || (rx == 0x5f))
+				if(!extended && ((rx == 0x5d) || (rx == 0x5f)))
 					extended = 1;
+				else
+					extended = 0;
 				// then next char has to go into RxQ
 			}
 		}
@@ -830,11 +827,6 @@ void sci_tx_handler()
 	{
 		struct S_TxChar tx;
 
-		// TX complete flag set
-		// give TxDone Semaphore
-		// do not care about it been already given or not (ignore return value)
-		xSemaphoreGive( TxDone );
-
 		if(!lcd_timer)
 		{
 			// check if a keystroke needs to be acknowledged
@@ -842,7 +834,7 @@ void sci_tx_handler()
 			{
 				UDR0 = rx_ack_buf;
 				lcd_timer = LCDDELAY;
-				xSemaphoreTake( TxDone, 0 );
+				rx_ack_buf = 0;
 			}
 			else
 			{
@@ -856,7 +848,6 @@ void sci_tx_handler()
 				{
 					UDR0 = tx.data;
 					lcd_timer = tx.delay;
-					xSemaphoreTake( TxDone, 0 );
 				}
 			}
 		}

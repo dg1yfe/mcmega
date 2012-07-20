@@ -67,7 +67,7 @@
 #define SQL_HYST   10           // define squelch hysteresis in 5 ms steps
 #define SQL_INTERVAL 150		// update squelch state every 150 ms
 //
-#define LCDDELAY  100     		// 42 ms
+#define LCDDELAY  45     		// 42 ms
 
 //************************
 //Clock toggle
@@ -122,9 +122,10 @@
 		SBUS_DH
 
 // **************************************************************
-#define RED_LED       0x33
 #define YEL_LED       0x31
 #define GRN_LED       0x32
+#define RED_LED       0x33
+
 #define LED_OFF       0
 #define LED_ON        4
 #define LED_BLINK     8

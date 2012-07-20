@@ -59,8 +59,7 @@ int tick_hms;				// 100ms Increment
 char gp_timer;				// General Purpose Timer, 1ms Decrement
 char ui_timer;
 char next_hms;
-uint16_t lcd_timer;				// 1ms
-char lcd_timer_en;
+uint8_t lcd_timer;				// 1ms
 
 unsigned long frequency;	// aktuelle Frequenz
 

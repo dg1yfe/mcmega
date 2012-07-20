@@ -77,7 +77,7 @@ void pll_led(char force)
 		if(lock != pll_locked_flag)
 		{
 			if(!lock)
-				led_set(RED_LED, LED_ON);
+				led_set(RED_LED, LED_B);
 			else
 				led_set(RED_LED, LED_OFF);
 		}
@@ -339,7 +339,7 @@ void frq_update(unsigned long *freq)
 {
 	// TODO: Replace with message
 	ui_frequency = *freq;
-	taskYIELD();
+	vTaskDelay(1);
 }
 
 //********************

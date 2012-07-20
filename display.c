@@ -277,14 +277,15 @@ void led_set(char led, char status)
 	// build bitmask depending on selected LED
 	switch(led)
 	{
-	case RED_LED:
-		led_mask = 0x30;
-		break;
 	case YEL_LED:
 		led_mask = 0x03;
 		break;
 	case GRN_LED:
 		led_mask = 0x0c;
+		break;
+	case RED_LED:
+		led_mask = 0x30;
+		break;
 	default:
 		led_mask = 0;
 	}

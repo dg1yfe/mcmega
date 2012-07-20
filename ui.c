@@ -17,6 +17,7 @@
 #include "pll_freq.h"
 #include "menu.h"
 #include "int.h"
+#include "io.h"
 
 char version_str[] PROGMEM = "0.9";
 
@@ -31,8 +32,9 @@ void vUiTask( void * pvParameters)
 
 	lcd_s_reset();
 //	int_lcd_timer_dec = 1;
-	cfg_head = 3;
+	cfg_head = CONTROL_HEAD3;
 
+   	led_update();
 	printf_P(PSTR("DG1YFE"));
 	lcd_fill();
 	lcd_cpos(0);
@@ -40,7 +42,7 @@ void vUiTask( void * pvParameters)
 	lcd_fill();
 	lcd_cpos(0);
 	vTaskDelay(150);
-	printf(version_str);
+	printf_P(version_str);
 	lcd_fill();
 	lcd_cpos(0);
 	vTaskDelay(150);

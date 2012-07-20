@@ -27,6 +27,9 @@
 #define BIT_SQL (1<<PE7)
 #define PIN_SQL PINE
 
+#define CONTROL_HEAD3 0
+#define CONTROL_HEAD2 1
+
 // initialize IO ports, needs to be called before any IO operation takes place
 void init_io( void );
 

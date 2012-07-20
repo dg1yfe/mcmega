@@ -59,6 +59,7 @@ int main(void)
 void vControlTask( void * pvParameters)
 {
 	char i;
+	portTickType xLastWakeTime;
 /*
  *              jsr  sci_init              ; serielle Schnittstelle aktivieren
                 jsr  init_SIO              ; SIO Interrupt konfigurieren
@@ -90,6 +91,7 @@ void vControlTask( void * pvParameters)
 	SetShiftReg(SR_AUDIOPA, (uint8_t)~(SR_RXAUDIOEN));
 	s_timer_init();
 
+	xLastWakeTime = xTaskGetTickCount();
 	while (1)
     {
 		pwr_sw_chk(0);
@@ -108,5 +110,8 @@ void vControlTask( void * pvParameters)
 		wd_reset();
 		sci_rx_handler();
 		sci_tx_handler();
+		// if task did not block, wait here for 1 tick
+		// give UI task the opportunity to execute
+		vTaskDelayUntil( &xLastWakeTime, 1 );
     }
 }
