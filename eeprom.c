@@ -187,7 +187,6 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 	char buf;
 	char err;
 
-	bytecount = 0;
 	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 	tasksw_en++;
 
@@ -195,7 +194,7 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 		*bytesread = 0;
 
 	err = 0;
-	while(!err)
+	while(!err && bytecount)
 	{
 		// begin with random read to set address
 		if((err=eep_rand_read(address | 0x8000, (char *) dest)))
