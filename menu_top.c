@@ -88,12 +88,12 @@ void m_sql_switch()
 	if (sql_mode == SQM_CARRIER)
 	{
 		sql_mode = SQM_OFF;
-		arrow_set(1,0);
+		arrow_set(2,0);
 	}
 	else
 	{
 		sql_mode = SQM_CARRIER;
-		arrow_set(1,1);
+		arrow_set(2,1);
 	}
 }
 

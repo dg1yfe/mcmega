@@ -19,6 +19,45 @@ void set_rx_freq(unsigned long * freq);
 void set_tx_freq(unsigned long * freq);
 unsigned long frq_get_freq(void);
 
+uint8_t freq_init_eep(void);
+uint8_t freq_init_rom(void);
+
+
+/*
+;********************
+; F R E Q   I N I T
+;********************
+;
+; Frequenzeinstellungen setzen
+;
+; Versucht zunächst Frequenzeinstellungen aus EEPROM zu laden,
+; schlägt dies fehl wird aus dem ROM initialisiert
+; (in UI Task gelbe LED blinken lassen)
+;
+; Parameter    : none
+;
+; Return value : 0 = OK (Init aus EEPROM)
+*/
+uint8_t freq_init()
+{
+	uint8_t ret;
+
+// Try to read frequency settings from eeprom
+	ret=read_current(&frequency, &txshift, &offset);
+//	if(ret)
+	{
+		// default frequency
+		frequency = FDEF;
+		// default tx shift 
+		txshift = FTXOFF;
+		// tx shift currently deactivated
+		offset = FOFF0;
+	}
+	return ret;
+}
+
+
+
 //*****************
 // P L L   I N I T
 //*****************
@@ -77,7 +116,7 @@ void pll_led(char force)
 		if(lock != pll_locked_flag)
 		{
 			if(!lock)
-				led_set(RED_LED, LED_B);
+				led_set(RED_LED, LED_BLINK);
 			else
 				led_set(RED_LED, LED_OFF);
 		}
@@ -121,11 +160,12 @@ char pll_lock_chk()
 // changed Regs : none
 //
 //
-void pll_set_channel(unsigned long channel)
+void pll_set_channel(unsigned long ch)
 {
 	ldiv_t divresult;
 
-	divresult = ldiv(channel, PRESCALER);
+	channel = ch;
+	divresult = ldiv(ch, PRESCALER);
 
 	SetPLL(0, divresult.rem & 127, divresult.quot & 1023);
 	SetPLL(1, 0, PLLREF);

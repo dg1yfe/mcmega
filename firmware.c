@@ -59,6 +59,7 @@ int main(void)
 void vControlTask( void * pvParameters)
 {
 	char i;
+
 	portTickType xLastWakeTime;
 /*
  *              jsr  sci_init              ; serielle Schnittstelle aktivieren
@@ -83,7 +84,10 @@ void vControlTask( void * pvParameters)
 	
 
 	led_set(GRN_LED, LED_ON);
-	//freq_init();
+	
+	if(freq_init())
+		led_set(YEL_LED, LED_BLINK);
+
 	receive();
 	
 	pll_timer = 1;
@@ -99,17 +103,21 @@ void vControlTask( void * pvParameters)
 		i=ptt_get_status();
 		if(i & 0x80)
 		{
-			if(i & 0x7f)
-				transmit();
-			else
-				receive();
+			//if(i & 0x7f)
+			//	transmit();
+			//else
+			//	receive();
 		}
 		squelch();
 
 		frq_check();
 		wd_reset();
-		sci_rx_handler();
-		sci_tx_handler();
+		do
+		{
+			sci_rx_handler();
+			sci_tx_handler();
+		}while((UCSR0A & (1 << RXC0)));
+
 		// if task did not block, wait here for 1 tick
 		// give UI task the opportunity to execute
 		vTaskDelayUntil( &xLastWakeTime, 1 );

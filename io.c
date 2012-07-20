@@ -764,6 +764,7 @@ void sci_tx_w( char data)
 /*
  *  SCI Handler
  *
+ * inter-key-time ~158,7 ms (150 ms + 8,66 ms)
  */
 #define KEYLOCK 0x74
 #define KEY_UNLOCK 0x75
@@ -801,7 +802,7 @@ void sci_rx_handler()
 					xQueueSendToBack( xRxQ, &rx, 0);
 				}
 				else	// control head awaits ack for something, postpone own transmission for some time
-					tx_stall = LCDDELAY;
+					tx_stall = 5;
 
 				// check if char just received was first byte of 2 byte combo
 				rx |= 0x11;
@@ -833,8 +834,11 @@ void sci_tx_handler()
 			if(rx_ack_buf)
 			{
 				UDR0 = rx_ack_buf;
-				lcd_timer = LCDDELAY;
+				// clear ack buf
 				rx_ack_buf = 0;
+				// wait some time before sending next char
+				// 20 ms seems to work reasonably well
+				lcd_timer = 20;
 			}
 			else
 			{
@@ -844,10 +848,16 @@ void sci_tx_handler()
 				else
 					// check if there is something to be sent in the buffer
 					// Block here for at max 1 tick
-				if(xQueueReceive( xTxQ, &tx, 1) == pdPASS)
+				if(xQueuePeek( xTxQ, &tx, 1) == pdPASS)
 				{
-					UDR0 = tx.data;
-					lcd_timer = tx.delay;
+					// do not send if there is a byte in the input buffer
+					// could be a keystroke which has to be acknowledged first
+					if(!(UCSR0A & (1 << RXC0)))
+					{
+						xQueueReceive( xTxQ, &tx, 0);
+						UDR0 = tx.data;
+						lcd_timer = tx.delay;
+					}
 				}
 			}
 		}
@@ -898,7 +908,7 @@ char sci_ack(const char data)
 	char ret = 1;
 	char read;
 
-	if(xQueueReceive( xRxQ, &read, LCDDELAY * 4 ) == pdPASS)
+	if(xQueueReceive( xRxQ, &read, LCDDELAY*4))
 	{
 	// check if char was received
 		if(data == read)

@@ -201,22 +201,23 @@ void squelch()
 	// return if timer is non-zero or we are in TX
 	if(!sql_timer && !rxtx_state)
 	{
+		char state;
+
 		sql_timer = SQL_INTERVAL;
-		if(sql_mode)
+
+		state = (PIN_SQL & BIT_SQL) || sql_mode;
+
+		if(state != sql_flag)
 		{
-			char state = PIN_SQL & BIT_SQL;
-			if(state != sql_flag)
+			sql_flag = state;
+			if(state)
 			{
-				sql_flag = state;
-				if(state)
-				{
-					// Enable Audio, Pull Ext Alarm low
-					SetShiftReg(SR_RXAUDIOEN,SR_EXTALARM);
-				}
-				else
-				{	// disable Audio, set Ext Alarm high
-					SetShiftReg(SR_EXTALARM,(uint8_t)~SR_RXAUDIOEN);
-				}
+				// Enable Audio, Pull Ext Alarm low
+				SetShiftReg(SR_RXAUDIOEN,SR_EXTALARM);
+			}
+			else
+			{	// disable Audio, set Ext Alarm high
+				SetShiftReg(SR_EXTALARM,(uint8_t)~SR_RXAUDIOEN);
 			}
 		}
 	}
@@ -424,7 +425,8 @@ char read_current(unsigned long * freq,long * txshift, long * offset)
 	}
 
 	*txshift = fbuf;
-
+	
+	// check if offset should be activated
 	if(*((char*)buf) & 4)
 	{
 		*offset = fbuf;
