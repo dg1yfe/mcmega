@@ -108,9 +108,5 @@ void vControlTask( void * pvParameters)
 		wd_reset();
 		sci_rx_handler();
 		sci_tx_handler();
-
-		vTaskPrioritySet( NULL, 1);
-		taskYIELD();
-		vTaskPrioritySet( NULL, 2);
     }
 }

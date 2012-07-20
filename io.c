@@ -45,6 +45,11 @@ xQueueHandle xRxQ, xRxKeyQ, xTxQ;
 
 uint8_t tx_stall = 0;
 
+struct S_TxChar{
+	char data;
+	uint8_t delay;
+};
+
 static FILE mystdout = FDEV_SETUP_STREAM(putchar_wrapper, NULL,
 										 _FDEV_SETUP_WRITE);
 
@@ -305,7 +310,7 @@ void init_sci()
 	// create queues required for sci communication
 	xRxQ = xQueueCreate( 1, sizeof( char ) );
 	xRxKeyQ = xQueueCreate( 1, sizeof( char ) );
-	xTxQ = xQueueCreate( 1, sizeof( char ) );
+	xTxQ = xQueueCreate( 1, sizeof( struct S_TxChar ) );
 
 	vSemaphoreCreateBinary( TxDone );
 	xSemaphoreTake( TxDone, 0 );
@@ -700,13 +705,13 @@ char sci_read_m( char * data)
 //
 void sci_tx(char data)
 {
-	// wait until serial interface is free
-	xSemaphoreTake( TxDone, portMAX_DELAY );
+	struct S_TxChar txchar;
 
-	// disable lcd_timer
-	lcd_timer_en = 0;
-	// send data
-	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
+	txchar.data = data;
+	txchar.delay = 0;
+
+	// send data & delay
+	xQueueSendToBack( xTxQ, &txchar, portMAX_DELAY);
 	
 	// wait until TX completed
 	xSemaphoreTake( TxDone, portMAX_DELAY );
@@ -731,17 +736,9 @@ void sci_tx(char data)
 void sci_tx_w( char data)
 {
 	char delay;
+	struct S_TxChar txchar;
 
-	// wait until Byte was transmitted
-	xSemaphoreTake( TxDone, portMAX_DELAY );
-
-	xQueueSendToBack( xTxQ, &data, portMAX_DELAY);
-
-	// wait until TX completed
-	xSemaphoreTake( TxDone, portMAX_DELAY );
-
-	taskENTER_CRITICAL();
-
+	txchar.data = data;
 	switch((uint8_t)data)
 	{
 		// send data related to extended chars without delay
@@ -751,24 +748,22 @@ void sci_tx_w( char data)
 		case 0x5E:
 		case 0x4F:
 		case 0x5F:
-			delay = 0;
+			txchar.delay = 0;
 			break;
 		default:
-			delay = LCDDELAY;
+			txchar.delay = LCDDELAY;
 			break;
 	}
 
 	// display clear command need 4* normal delay
 	if(data >= 0x78)
-		delay = LCDDELAY<<2;
+		txchar.delay = LCDDELAY<<2;
 
-	// send data
-	lcd_timer_en = 1;
+	// send data & delay
+	xQueueSendToBack( xTxQ, &txchar, portMAX_DELAY);
 
-	// reset LCD Timer
-	lcd_timer = delay;
-
-	taskEXIT_CRITICAL();
+	// wait until TX completed
+	xSemaphoreTake( TxDone, portMAX_DELAY );
 }
 
 /*
@@ -833,21 +828,20 @@ void sci_tx_handler()
 	// check if the TX Reg is currently empty
 	if(UCSR0A & (1<<TXC0))
 	{
-		char tx;
-		uint8_t delay = 0;
+		struct S_TxChar tx;
 
 		// TX complete flag set
 		// give TxDone Semaphore
 		// do not care about it been already given or not (ignore return value)
-		xSemaphoreGive( TxDone);
+		xSemaphoreGive( TxDone );
 
-		if(!lcd_timer_en || !lcd_timer)
+		if(!lcd_timer)
 		{
 			// check if a keystroke needs to be acknowledged
-			if((tx=rx_ack_buf))
+			if(rx_ack_buf)
 			{
-				UDR0 = tx;
-				delay = LCDDELAY;
+				UDR0 = rx_ack_buf;
+				lcd_timer = LCDDELAY;
 				xSemaphoreTake( TxDone, 0 );
 			}
 			else
@@ -857,9 +851,11 @@ void sci_tx_handler()
 					tx_stall--;
 				else
 					// check if there is something to be sent in the buffer
-				if(xQueueReceive( xTxQ, &tx, 0) == pdPASS)
+					// Block here for at max 1 tick
+				if(xQueueReceive( xTxQ, &tx, 1) == pdPASS)
 				{
-					UDR0 = tx;
+					UDR0 = tx.data;
+					lcd_timer = tx.delay;
 					xSemaphoreTake( TxDone, 0 );
 				}
 			}

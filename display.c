@@ -50,7 +50,6 @@ char lcd_s_reset()
 	char cnt = 4;
 
 	lcd_timer = 0;
-	lcd_timer_en = 1;
 	// clear RX buffer
 	//while(sci_rx(NULL));
 

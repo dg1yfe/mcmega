@@ -67,7 +67,7 @@
 #define SQL_HYST   10           // define squelch hysteresis in 5 ms steps
 #define SQL_INTERVAL 150		// update squelch state every 150 ms
 //
-#define LCDDELAY  1000     		// 42 ms
+#define LCDDELAY  100     		// 42 ms
 
 //************************
 //Clock toggle
