@@ -51,23 +51,37 @@ char lcd_s_reset()
 
 	lcd_timer = 0;
 	// clear RX buffer
-	//while(sci_rx(NULL));
+	if(xQueuePeed( xRxQ, &c, 0))
+	{
+		xQueueReceive( xRxQ, &c, 0 );
+	}
+
+	// wait 4*LCDDELAY for next char
+	if(!xQueueReceive( xRxQ, &c, (LCDDELAY * 4) / portTICK_RATE_MS ))
+	{
+		// if nothing happens, send 0x7e (reset)
+		sci_tx(0x7e);
+		while(!(UCSR0A & (1<<TXC0)))
+		{
+			vTaskYield();
+		}
+	}
 
 
 	h = tick_hms + 30;
 	ret = -1;
-	// wait for next char from UART
 	
-	while( ret && (h != tick_hms))
+	// wait for next char from UART
+	while( ret && ((h-tick_hms)>0))
 	{
 		if(xQueueReceive( xRxQ, &c, (LCDDELAY * 4) / portTICK_RATE_MS ))
 		{
 			if(c == 0x7e)
 			{
 				// acknowledge LCD reset
-				sci_tx_w(0x7e);
+				sci_tx(0x7e);
 				
-				// check if nothing was received within LCDDELAY
+				// check if anything was received within LCDDELAY*4
 				if(!xQueueReceive( xRxQ, &c, (LCDDELAY * 4) / portTICK_RATE_MS ))
 				{
 					// return success;
