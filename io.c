@@ -44,6 +44,7 @@ xSemaphoreHandle SerialBusMutex;
 xQueueHandle xRxQ, xRxKeyQ, xTxQ;
 
 uint8_t tx_stall = 0;
+uint8_t ch_reset_detected;
 
 struct S_TxChar{
 	char data;
@@ -314,6 +315,7 @@ void init_sci()
 
 	vSemaphoreCreateBinary( TxDone );
 	xSemaphoreTake( TxDone, 0 );
+	ch_reset_detected = 50;
 }
 
 
@@ -782,6 +784,9 @@ void sci_rx_handler()
 			// reception ok
 
 			rx = UDR0;
+			if((rx == 0x7e) && ch_reset_detected)
+				ch_reset_detected--;
+
 			if(!extended && rx && ((rx < 0x20) || (rx == KEYLOCK)))
 			{
 				if (rx == KEYLOCK)

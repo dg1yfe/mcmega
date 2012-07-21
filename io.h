@@ -74,4 +74,6 @@ extern char key_convert[2][21];
 extern xSemaphoreHandle SerialBusMutex;
 extern xQueueHandle xRxKeyQ, xRxQ;
 
+extern uint8_t ch_reset_detected;
+
 #endif /* IO_H_ */

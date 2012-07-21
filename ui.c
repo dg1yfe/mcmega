@@ -27,6 +27,18 @@ void init_ui()
     ui_txshift = -1;
 }
 
+
+static reset_ui()
+{
+	freq_print(&frequency);
+	vTaskDelay(15);
+	freq_offset_print();
+	pll_led(1);
+
+	menu_init();
+}
+
+
 void vUiTask( void * pvParameters)
 {
 
@@ -47,12 +59,7 @@ void vUiTask( void * pvParameters)
 	lcd_cpos(0);
 	vTaskDelay(150);
 
-	freq_print(&frequency);
-	vTaskDelay(150);
-	freq_offset_print();
-	pll_led(1);
-
-	menu_init();
+	reset_ui();
 
     for(;;)
 	{
@@ -60,5 +67,13 @@ void vUiTask( void * pvParameters)
     	led_update();
     	menu();
     	taskYIELD();
+
+		// check if reset of control head was detected
+		// (certain amount of 0x7e reset messages was received)
+		if(!ch_reset_detected)
+		{
+			lcd_s_reset();
+			reset_ui();
+		}
 	}
 }

@@ -51,7 +51,7 @@ char lcd_s_reset()
 
 	lcd_timer = 0;
 	// clear RX buffer
-	if(xQueuePeed( xRxQ, &c, 0))
+	if(xQueuePeek( xRxQ, &c, 0))
 	{
 		xQueueReceive( xRxQ, &c, 0 );
 	}
@@ -63,7 +63,7 @@ char lcd_s_reset()
 		sci_tx(0x7e);
 		while(!(UCSR0A & (1<<TXC0)))
 		{
-			vTaskYield();
+			taskYIELD();
 		}
 	}
 
@@ -102,6 +102,7 @@ char lcd_s_reset()
 	{
 		// clear LCD and LEDs
 		lcd_clr(1);
+		ch_reset_detected = 50;
 	}
 
 	return ret;
@@ -124,6 +125,7 @@ void lcd_clr(char clear_leds)
 {
 	pputchar('p',0x78,0);
 	memset(dbuf,0,8);
+	cpos=0;
 	arrow_buf = 0;
 
 	if (clear_leds)
