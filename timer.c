@@ -92,7 +92,7 @@ void s_timer_update()
 				m_timer--;
 
 			if(pll_timer)
-				m_timer--;
+				pll_timer--;
 
 			// decrement tone timer if > 0
 			if(tone_timer)

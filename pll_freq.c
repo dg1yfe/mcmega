@@ -30,8 +30,8 @@ uint8_t freq_init_rom(void);
 ;
 ; Frequenzeinstellungen setzen
 ;
-; Versucht zunächst Frequenzeinstellungen aus EEPROM zu laden,
-; schlägt dies fehl wird aus dem ROM initialisiert
+; Versucht zunï¿½chst Frequenzeinstellungen aus EEPROM zu laden,
+; schlï¿½gt dies fehl wird aus dem ROM initialisiert
 ; (in UI Task gelbe LED blinken lassen)
 ;
 ; Parameter    : none
@@ -111,14 +111,17 @@ void pll_led(char force)
 
 		pll_timer = PLLCHKTIMEOUT;
 
-		lock = PLL_LOCKPORT & PLL_LOCKBIT;
+		lock = PIN_PLL_LOCK & BIT_PLL_LOCK;
 
-		if(lock != pll_locked_flag)
+		if((lock != pll_locked_flag) || force)
 		{
+			// show PLL status via red led
 			if(!lock)
 				led_set(RED_LED, LED_BLINK);
 			else
 				led_set(RED_LED, LED_OFF);
+			// remember current status
+			pll_locked_flag = lock;
 		}
 	}
 }
@@ -142,7 +145,7 @@ char pll_lock_chk()
 {
 	char lock;
 
-	lock = PLL_LOCKPORT & PLL_LOCKBIT ? 1 : 0;
+	lock = PIN_PLL_LOCK & BIT_PLL_LOCK ? 1 : 0;
 	return(lock);
 }
 

@@ -69,8 +69,8 @@
 #define PLL_LATCHPORT  PORTB
 #define PLL_LATCHEN    (1 << 7)
 //PLL Lock Input
-#define PLL_LOCKPORT      PINE
-#define PLL_LOCKBIT       (1 << 6)
+#define PIN_PLL_LOCK      PINE
+#define BIT_PLL_LOCK       (1 << 6)
 
 // Shift register output
 // 0 - Audio PA enable (1=enable)      (PIN 4 ) *
