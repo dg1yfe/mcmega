@@ -106,10 +106,10 @@ void vControlTask( void * pvParameters)
 		i=ptt_get_status();
 		if(i & 0x80)
 		{
-			//if(i & 0x7f)
-			//	transmit();
-			//else
-			//	receive();
+			if(i & 0x7f)
+				transmit();
+			else
+				receive();
 		}
 		squelch();
 

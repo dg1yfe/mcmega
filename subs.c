@@ -117,7 +117,7 @@ char ptt_get_status()
 {
 	char state;
 
-	state = (PTTPORT & PTTBIT)? 1:0;
+	state = (PIN_PTT & BIT_PTT)? 1:0;
 
 	state |= (ui_ptt_req & 1);
 
@@ -160,7 +160,7 @@ void receive()
 {
 	led_set(YEL_LED, LED_OFF);
 
-	PORT_DPTT |=  DPTT;			// Disable PA drive
+	PORT_DPTT |=  BIT_DPTT;			// Disable PA drive
 	SetShiftReg(0, ~SR_MICEN);	// Disable Mic Amp
 
 	vTaskDelay(TX_TO_RX_TIME);	// Wait TX to RX Time
@@ -198,7 +198,7 @@ void transmit()
 		SetShiftReg(SR_MICEN | SR_TXPWRLO,0xff);
 	}
 
-	PORT_DPTT &=  ~DPTT;		// Enable PA drive
+	PORT_DPTT &=  ~BIT_DPTT;	// Enable PA drive
 
 	rxtx_state = 1;
 }

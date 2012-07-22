@@ -36,8 +36,9 @@
 //
 // Port Function Macros
 //
-#define PTTPORT       PORTD
-#define PTTBIT        (1<< 7)
+#define PORT_PTT	PORTD
+#define PIN_PTT		PIND
+#define BIT_PTT		(1 << 1)
 
 
 //Squelch Modes

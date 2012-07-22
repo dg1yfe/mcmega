@@ -247,6 +247,7 @@ void set_tx_freq(unsigned long * freq)
 
 	f = *freq - offset;
 	divresult = ldiv(f, FSTEP);
+	f = divresult.quot;
 
 	if(divresult.rem > (FSTEP>>1))
 	{

@@ -21,11 +21,11 @@
 	 * Bit 6	: Data out
 	 * Bit 7	: #DPTT
 	 */
-#define DPTT (1<<PD7)
 #define PORT_DPTT PORTD
+#define BIT_DPTT (1<<PD7)
 
-#define BIT_SQL (1<<PE7)
 #define PIN_SQL PINE
+#define BIT_SQL (1<<PE7)
 
 #define CONTROL_HEAD3 0
 #define CONTROL_HEAD2 1
