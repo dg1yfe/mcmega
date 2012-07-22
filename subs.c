@@ -58,7 +58,8 @@ void pwr_sw_chk(char cSaveSettings)
 {
 	// check state of power switch (SWB+)
 	// Port bit is 0 if it is enabled
-	if( SWBPORT & SWBDISABLED )
+	// and 1 if disabled/switched off
+	if( PIN_SWB & BIT_SWB )
 	{
 		//TODO: Add 9,6V Power Fail check to EZA9 HW
 		if (cSaveSettings)

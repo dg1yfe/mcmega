@@ -46,8 +46,9 @@
 #define SQM_CARRIER   1
 
 // Power Switch (0 = Power On)
-#define SWBPORT		PORTD
-#define SWBDISABLED	(1 << 0)
+#define PORT_SWB	PORTD
+#define PIN_SWB		PIND
+#define BIT_SWB		(1 << 0)
 
 // Interface to shift register
 #define PORT_SBUS_CLK  PORTD
