@@ -40,42 +40,39 @@
 #define PTTBIT        (1<< 7)
 
 
-//Squelch Input
-#define SQPORT        PORTE
-#define SQBIT         (1 << 7)
-
+//Squelch Modes
 //
 #define SQM_OFF       0
-#define SQM_CARRIER   SQBIT
+#define SQM_CARRIER   1
 
 // Power Switch (0 = Power On)
 #define SWBPORT		PORTD
 #define SWBDISABLED	(1 << 0)
 
 // Interface to shift register
-#define SR_CLKPORT     PORTD
-#define SR_CLKDDR      DDRD
-#define SR_CLKBIT      (1 << 5)
-#define SR_DATAPORT    PORTD
-#define SR_DATADDR     DDRD
-#define SR_DATABIT     (1 << 6)
+#define PORT_SBUS_CLK  PORTD
+#define DDR_SBUS_CLK   DDRD
+#define BIT_SBUS_CLK   (1 << 5)
 
-#define SR_LATCHPORT   PORTG
-#define SR_LATCHEN     (1 << 3)
 
-#define SBUS_DINPORT	PINE
-#define SBUS_DINBIT		(1 << 2)
+#define PORT_SR_LATCH   PORTG
+#define BIT_SR_LATCH    (1 << 3)
 
-#define PLL_LATCHPORT  PORTB
-#define PLL_LATCHEN    (1 << 7)
+#define DDR_SBUS_DATA	DDRE
+#define PORT_SBUS_DATA	PORTE
+#define PIN_SBUS_DATA	PINE
+#define BIT_SBUS_DATA	(1 << 2)
+
+#define PORT_PLL_LATCH PORTB
+#define BIT_PLL_LATCH  (1 << 7)
 //PLL Lock Input
-#define PIN_PLL_LOCK      PINE
-#define BIT_PLL_LOCK       (1 << 6)
+#define PIN_PLL_LOCK   PINE
+#define BIT_PLL_LOCK   (1 << 6)
 
 // Shift register output
 // 0 - Audio PA enable (1=enable)      (PIN 4 ) *
 // 1 - STBY&9,6V (1=enable)            (PIN 5 )
-// 2 - T/R Shift (0=TX, 1=TX)          (PIN 6 ) *
+// 2 - T/R Shift (0=RX, 1=TX)          (PIN 6 ) *
 // 3 - Hi/Lo Power (1=Lo Power)        (PIN 7 ) *
 // 4 - Ext. Alarm                      (PIN 14) *
 // 5 - Sel.5 ATT   (1=Attenuated Tones)(PIN 13) *
@@ -85,7 +82,7 @@
 
 #define SR_AUDIOPA    UINT8_C(1 << 0)
 #define SR_9V6        UINT8_C(1 << 1)
-#define SR_RXVCOSEL   UINT8_C(1 << 2)
+#define SR_TXVCOSEL   UINT8_C(1 << 2)
 #define SR_TXPWRLO    UINT8_C(1 << 3)
 #define SR_nCLKSHIFT  UINT8_C(1 << 3)
 #define SR_EXTALARM   UINT8_C(1 << 4)

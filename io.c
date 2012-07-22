@@ -10,6 +10,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <util/delay_basic.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -225,8 +226,10 @@ void init_io()
 	 */
 
 	// let SR clock pin be input, ext. pull-up sets it to high
-	DDRD  = ( 0 << 5) | ( 1 << 6 ) | ( 1 << 7 );
-	PORTD = ( 1 << 5);
+	// leave Bit 6 low & input
+	// only use PORTE2 as data i/o
+	DDRD  = ( 1 << 5) | ( 0 << 6 ) | ( 1 << 7 );
+	PORTD = ( 1 << 5) | ( 0 << 6);
 
 	/*
 	 * Port E:
@@ -274,8 +277,8 @@ void init_io()
 	SerialBusMutex = xSemaphoreCreateRecursiveMutex();
 
     // Select RX VCO
-    // Enable 9,6V regulator, disable Clockshift, set EXTALARM to high (open)
-    SetShiftReg(~(SR_RXVCOSEL), SR_9V6 | SR_nCLKSHIFT | SR_EXTALARM);
+    // Enable 9,6V regulator, set EXTALARM to high (open)
+    SetShiftReg(SR_EXTALARM | SR_9V6, 0);
 
     stdout = &mystdout;
 
@@ -337,7 +340,6 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 	// get exclusive Bus access
 	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
 		xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
-	bus_busy++;
 
 	//
 	SR_data_buf &= and_value;
@@ -345,30 +347,38 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 	d = SR_data_buf;
 
 	taskENTER_CRITICAL();
+	DDR_SBUS_DATA |= BIT_SBUS_DATA;
+
 	for (i=0;i<8;i++)
 	{
 		if(d & 0x80)
 		{
-			// Data output is inverted
-			SR_DATAPORT &= ~SR_DATABIT;
+			//PORT_SBUS_DATA |= BIT_SBUS_DATA;
+			PORT_SBUS_DATA |= BIT_SBUS_DATA;
+			DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 		}
 		else
 		{
-			SR_DATAPORT |= SR_DATABIT;
+			PORT_SBUS_DATA &= ~BIT_SBUS_DATA;
+			DDR_SBUS_DATA |= BIT_SBUS_DATA;
 		}
 
-		// set Clock DDR to output
-		SR_CLKDDR |= SR_CLKBIT;
-		// set Port Bit to 0
-		SR_CLKPORT&= ~SR_CLKBIT;
+		d <<= 1;
 
-		// set Clock DDR to input (ext. Pull up)
-		SR_CLKDDR &= SR_CLKBIT;
+		// set Port Bit to 0
+		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
+		_delay_loop_1(3);
 		// set Port Bit to 1
-		SR_CLKPORT|= SR_CLKBIT;
+		PORT_SBUS_CLK |= BIT_SBUS_CLK;
+		_delay_loop_1(3);
 	}
-	SR_LATCHPORT |= SR_LATCHEN;
-	SR_LATCHPORT &= ~SR_LATCHEN;
+	PORT_SR_LATCH |= BIT_SR_LATCH;
+	_delay_loop_1(3);
+	PORT_SR_LATCH &= ~BIT_SR_LATCH;
+
+	// set Data to input (ext. Pull up)
+	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
+	PORT_SBUS_DATA |= BIT_SBUS_DATA;
 
 	// Bus access finished
 	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
@@ -378,11 +388,16 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 }
 
 
+
 void SetPLL(const char RegSelect, char divA, int divNR)
 {
-/*			 gültige Werte für N: 3-1023
-                               A: 0-127
-                               R: 3-16383
+/* 
+ valid divider values for
+
+ N: 3-1023
+ A: 0-127
+ R: 3-16383
+
  */
 	char i, bits;
 	long data;
@@ -392,7 +407,7 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	if(RegSelect)
 	{
 		// set R (14 Bit) + Control (1 Bit, 1)
-		data = (divNR << 2) | 2;	// include Control Bit
+		data = ((long)divNR << 2) | 2;	// include Control Bit
 		// shift first data bit to MSB position
 		data <<= 16;
 		bits = 15;
@@ -400,38 +415,42 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	else
 	{
 		// set N (10 Bit) & A (7 Bit) & Control ( 1 Bit, 0)
-		data = ( divNR << 8 ) | (divA << 1);
+		data = ( (long) divNR << 8 ) | ((long)divA << 1);
 		// shift first data bit to MSB position
 		data <<= 14;
 		bits = 18;
 	}
+
+	DDR_SBUS_DATA |= BIT_SBUS_DATA;
 
 	taskENTER_CRITICAL();
 	for(i=bits;i>0;i--)
 	{
 		if(data & 0x80000000)
 		{
-			// Data output is inverted
-			SR_DATAPORT &= ~SR_DATABIT;
+			PORT_SBUS_DATA |= BIT_SBUS_DATA;
 		}
 		else
 		{
-			SR_DATAPORT |= SR_DATABIT;
+			PORT_SBUS_DATA &= ~BIT_SBUS_DATA;
 		}
-
-		// set Clock DDR to output
-		SR_CLKDDR |= SR_CLKBIT;
 		// set Port Bit to 0
-		SR_CLKPORT&= ~SR_CLKBIT;
+		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
+		_delay_loop_1(3);
 
-		// set Clock DDR to input (ext. Pull up)
-		SR_CLKDDR &= SR_CLKBIT;
+		data <<= 1;
+
 		// set Port Bit to 1
-		SR_CLKPORT|= SR_CLKBIT;
+		PORT_SBUS_CLK |= BIT_SBUS_CLK;
+		_delay_loop_1(3);
 	}
 	// toggle PLL latch
-	PLL_LATCHPORT |= PLL_LATCHEN;
-	PLL_LATCHPORT &= ~PLL_LATCHEN;
+	PORT_PLL_LATCH |= BIT_PLL_LATCH;
+	_delay_loop_1(3);
+	PORT_PLL_LATCH &= ~BIT_PLL_LATCH;
+
+	// set Data to input (ext. Pull up)
+	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 
 	// Bus access finished
 	xSemaphoreGiveRecursive(SerialBusMutex);
@@ -454,10 +473,24 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 //
 void i2c_start()
 {
-	SBUS_DH;
-	SBUS_CH;
-	SBUS_DL;
-	SBUS_CL;
+	// Data Hi / Input
+	DDR_SBUS_DATA  &=  ~(BIT_SBUS_DATA);
+
+	// I2C Clock Hi
+	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
+	_delay_loop_1(3);
+
+	// Data low
+	PORT_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	DDR_SBUS_DATA  |=  (BIT_SBUS_DATA);
+	_delay_loop_1(3);
+
+	// I2C Clock Lo
+	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
+	_delay_loop_1(7);
+
+	// Data Hi / Input
+	DDR_SBUS_DATA  &=  ~(BIT_SBUS_DATA);
 }
 //******************
 // I 2 C   S T O P
@@ -469,10 +502,21 @@ void i2c_start()
 //
 void i2c_stop()
 {
-	SBUS_DL;	// Datenleitung auf low
-	SBUS_CH;	// Clock Leitung auf Hi
-	SBUS_DH;	// Data Leitung auf Hi / CPU auf Eingang
-	SBUS_CL;	// Clock Leitung auf Lo
+	// Data low
+	PORT_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	DDR_SBUS_DATA  |=  (BIT_SBUS_DATA);
+
+	// I2C Clock Hi
+	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
+	_delay_loop_1(3);
+
+	// Data Leitung auf Hi / Eingang
+	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	_delay_loop_1(3);
+
+	// I2C Clock Lo
+	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
+	_delay_loop_1(7);
 }
 
 //***************
@@ -486,10 +530,20 @@ void i2c_stop()
 //
 void i2c_ack()
 {
-	SBUS_DL;                // Data low
-	SBUS_CH;                // Clock Hi
-	SBUS_CL;                // Clock Lo
-	SBUS_DI;                // Data wieder auf Eingang
+	// Data low
+	PORT_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	DDR_SBUS_DATA  |=  (BIT_SBUS_DATA);
+
+	// I2C Clock Hi
+	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
+	_delay_loop_1(7);	
+
+	// I2C Clock Lo
+	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
+	_delay_loop_1(7);
+
+	// Data wieder auf Eingang
+	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
 }
 
 //***********************
@@ -508,10 +562,18 @@ char i2c_tstack()
 {
 	char ack;
 
-	SBUS_DI;                  // Data Input
-	SBUS_CH;                  // I2C Clock Hi
-	ack = SBUS_DINPORT & SBUS_DINBIT;
-	SBUS_CL;                  // I2C Clock Lo
+	// Data Input
+	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	
+	// I2C Clock Hi
+	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
+	_delay_loop_1(7);	
+	
+	ack = PIN_SBUS_DATA & BIT_SBUS_DATA;
+
+	// I2C Clock Lo
+	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
+	_delay_loop_1(7);
 
 	ack = ack ? 0 : 1;
 
@@ -530,21 +592,31 @@ char i2c_tstack()
 void i2c_tx(char data)
 {
 	char i;
-
+	
+	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	DDR_SBUS_CLK |= (1 << BIT_SBUS_CLK);
 	for(i=0;i<8;i++)
 	{
 		if(data & 0x80)
 		{
-			SBUS_DH;
+			DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
 		}
 		else
 		{
-			SBUS_DL;
+			PORT_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
+			DDR_SBUS_DATA |= (1 << BIT_SBUS_DATA);
 		}
-		SBUS_CH;
-		SBUS_CL;
+
+		PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+		_delay_loop_1(7);
+		data <<= 1;
+
+		PORT_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
+		_delay_loop_1(7);
 	}
-	SBUS_DI;
+	DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
+	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	DDR_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
 }
 
 //*************
@@ -562,17 +634,28 @@ char i2c_rx()
 	char i,data;
 
 	data = 0;
-	SBUS_DI;
+
+	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	DDR_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
+
 	for(i=0;i<8;i++)
 	{
-		SBUS_CH;
+		PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK); 
+		_delay_loop_1(7);
+
 		data<<=1;
-		if (SBUS_DINPORT & SBUS_DINBIT)
+		if (PIN_SBUS_DATA & BIT_SBUS_DATA)
 		{
 			data |= 1;
 		}
-		SBUS_CL;
+		PORT_SBUS_CLK &= ~(1 << BIT_SBUS_CLK); 
+		_delay_loop_1(7);
 	}
+
+	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	DDR_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
+
 	return data;
 }
 

@@ -67,11 +67,12 @@ void pwr_sw_chk(char cSaveSettings)
 		}
 
 		// disable RX Audio
-		SetShiftReg((uint8_t)~SR_RXAUDIOEN, 0);
+		SetShiftReg(0,~SR_RXAUDIOEN);
 
 		// shut-down Radio
 		// TODO: Check if further bits need to be set/reset e.g. Audio PA
-		SetShiftReg(~SR_9V6, 0);
+		taskENTER_CRITICAL();
+		SetShiftReg(0,~SR_9V6);
 		while(1);
 
 	}
@@ -82,14 +83,14 @@ void pwr_sw_chk(char cSaveSettings)
 
 void watchdog_toggle()
 {
-	PORTD ^= (1<<PORTD6);
+	PORT_SBUS_DATA ^= (1<<BIT_SBUS_DATA);
 }
 
 
 void watchdog_toggle_ms()
 {
-	DDRD = (DDRD & ~(1<<PORTD6)) | ((tick_ms & 2)<< 5);
-	PORTD &= ~(1<<PORTD6);
+	PORT_SBUS_DATA &= ~(1<<BIT_SBUS_DATA);
+	DDR_SBUS_DATA = (DDR_SBUS_DATA & ~(1<<BIT_SBUS_DATA)) | ((tick_ms & 2)<< (BIT_SBUS_DATA-1));
 }
 
 
@@ -143,11 +144,11 @@ static inline void vco_switch(char vco)
 {
 	if(vco)
 	{
-		SetShiftReg(0,~SR_RXVCOSEL);
+		SetShiftReg(SR_TXVCOSEL,0xff);
 	}
 	else
 	{
-		SetShiftReg(SR_RXVCOSEL,0xff);
+		SetShiftReg(0,(uint8_t) ~SR_TXVCOSEL);
 	}
 }
 
@@ -166,7 +167,7 @@ void receive()
 
 	rxtx_state = 0;
 
-	SetShiftReg(SR_AUDIOPA, 0xff);
+	//SetShiftReg(SR_RXAUDIOEN, 0xff);
 
 	// check squelch state immediately
 	sql_flag ^= 0xff;
@@ -181,17 +182,20 @@ void transmit()
 	led_set(YEL_LED, LED_ON);
 	vco_switch(1);
 	set_tx_freq(&frequency);
-	SetShiftReg(SR_RXVCOSEL, (uint8_t) ~SR_RXAUDIOEN);
+	SetShiftReg(0, ~SR_RXAUDIOEN);
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
 	if(pwr_mode)
 	{
-		SetShiftReg(SR_MICEN,SR_TXPWRLO);
+		SetShiftReg(SR_MICEN, ~SR_TXPWRLO);
 	}
 	else
 	{
 		SetShiftReg(SR_MICEN | SR_TXPWRLO,0xff);
 	}
+
+	PORT_DPTT &=  ~DPTT;		// Enable PA drive
+
 	rxtx_state = 1;
 }
 
@@ -205,7 +209,9 @@ void squelch()
 
 		sql_timer = SQL_INTERVAL;
 
-		state = (PIN_SQL & BIT_SQL) || sql_mode;
+		// squelch open if carrier detected (bit_sql = 1)
+		// or squelch deactivated (sql_mode == SQM_OFF)
+		state = (PIN_SQL & BIT_SQL) || (sql_mode == SQM_OFF);
 
 		if(state != sql_flag)
 		{
@@ -213,11 +219,11 @@ void squelch()
 			if(state)
 			{
 				// Enable Audio, Pull Ext Alarm low
-				SetShiftReg(SR_RXAUDIOEN,SR_EXTALARM);
+				SetShiftReg(SR_RXAUDIOEN, ~SR_EXTALARM);
 			}
 			else
 			{	// disable Audio, set Ext Alarm high
-				SetShiftReg(SR_EXTALARM,(uint8_t)~SR_RXAUDIOEN);
+				SetShiftReg(SR_EXTALARM, ~SR_RXAUDIOEN);
 			}
 		}
 	}

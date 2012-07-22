@@ -74,55 +74,7 @@
 
 //************************
 //Clock toggle
-#define SBUS_CT \
-	    SR_CLKDDR |= SR_CLKBIT;  \
-	    SR_CLKPORT&= ~SR_CLKBIT; \
-		SR_CLKDDR &= SR_CLKBIT;  \
-		SR_CLKPORT|= SR_CLKBIT;
 
-// Clock Pin auf Ausgang schalten
-#define SBUS_CO \
-		SR_CLKDDR |= SR_CLKBIT;
-// Clock Pin auf Eingang schalten
-#define SBUS_CI \
-		SR_CLKDDR &= SR_CLKBIT;
-
-// Clock Pin auf Eingang schalten, Pull-Up Widerstand zieht Leitung auf Hi
-#define SBUS_CH SBUS_CI
-
-// Clock Pin auf Ausgang schalten und auf 0 setzen
-#define SBUS_CL \
-	    SR_CLKDDR |= SR_CLKBIT;  \
-	    SR_CLKPORT&= ~SR_CLKBIT;
-;
-#define SBUS_CTGL SB_CH \
-		nop(); nop(); \
-		SB_CL
-
-// Data Pin auf Eingang setzen, ( High durch PullUp )
-#define SBUS_DI \
-		SR_DATADDR &= SR_DATABIT;
-
-// Data Pin auf Ausgang setzen
-#define SBUS_DO \
-		SR_DATADDR |= SR_CLKBIT;
-// Data Hi
-#define SBUS_DH SBUS_DI
-
-// Data Lo
-#define SBUS_DL \
-		SR_DATADDR  |= SR_DATABIT;  \
-		SR_DATAPORT &= ~SR_DATABIT;
-
-// Data & Clock Lo
-#define SBUS_CDL \
-		SBUS_CL\
-		SBUS_DL
-
-// Data & Clock Hi
-#define SBUS_CDH \
-		SBUS_CH \
-		SBUS_DH
 
 // **************************************************************
 #define YEL_LED       0x31

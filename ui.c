@@ -25,6 +25,7 @@ void init_ui()
 {
     ui_frequency = 0;
     ui_txshift = -1;
+	sql_mode = SQM_CARRIER;
 }
 
 
