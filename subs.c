@@ -186,7 +186,7 @@ void transmit()
 	led_set(YEL_LED, LED_ON);
 	vco_switch(1);
 	set_tx_freq(&frequency);
-	SetShiftReg(0, ~SR_RXAUDIOEN);
+	SetShiftReg(0, ~(SR_RXAUDIOEN));
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
 	if(pwr_mode)
@@ -502,4 +502,23 @@ void audio_pa(uint8_t enable, uint8_t withrxaudio)
 
 
 
+void rfpwr_set(uint8_t enable_hi_power)
+{
+	if(enable_hi_power)
+	{
+		pwr_mode &= 8;
+	}
+	else
+	{
+		pwr_mode |= 8;
+	}
+}
 
+
+void rfpwr_print()
+{
+	if(pwr_mode)
+		arrow_set(3, 0);
+	else
+		arrow_set(3, 1);
+}

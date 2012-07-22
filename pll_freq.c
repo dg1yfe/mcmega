@@ -14,6 +14,7 @@
 #include "regmem.h"
 #include "io.h"
 #include "display.h"
+#include "subs.h"
 
 void set_rx_freq(unsigned long * freq);
 void set_tx_freq(unsigned long * freq);

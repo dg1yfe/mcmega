@@ -25,6 +25,7 @@
 #define TX_TO_RX_TIME 5		// 5 ms TX -> RX Umschaltung
 #define RX_TO_TX_TIME 5  	// 5 ms RX -> TX Umschaltung
 
+#define DEFAULT_RF_PWR 0	// Hi Power (1) / Lo Power (0), only EVA9/EZA9
 //************************
 // Frequenzkram
 //
@@ -270,49 +271,6 @@
 #DEFINE PPLAIN(cmd) psha \ ldaa #'p' \ ldab #cmd \ jsr putchar \ pula
 
 #DEFINE PRINTF(cmd) pshx \ ldx #cmd \ jsr printf \ pulx
-; *******
-; I 2 C
-; *******
-; Clock Toggle
-#DEFINE I2C_CT oim #%100, Port2_Data \ aim #%11111011, Port2_Data
-;
-; Clock Pin auf Ausgang schalten
-#DEFINE I2C_CO oim #%100, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR \
-;
-; Clock In
-; Clock Pin auf Eingang schalten
-#DEFINE I2C_CI aim #%11111011, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
-;
-#DEFINE I2C_CIb aim #%11111011, Port2_DDR_buf \ ldab Port2_DDR_buf \ stab Port2_DDR
-;
-; Clock Pin auf Eingang schalten, Pull-Up Widerstand zieht Leitung auf Hi
-#DEFINE I2C_CH I2C_CI
-;
-#DEFINE I2C_CHb I2C_CIb
-;
-; Clock Lo
-; Clock Pin auf Ausgang schalten und auf 0 setzen
-#DEFINE I2C_CL  aim #%11111011, Port2_Data \ oim #%100, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
-;
-#DEFINE I2C_CLb aim #%11111011, Port2_Data \ oim #%100, Port2_DDR_buf \ ldab Port2_DDR_buf \ stab Port2_DDR
-;
-#DEFINE I2C_CTGL psha \ I2C_CH \ nop \ nop \ I2C_CL \ pula
-; Data in
-; Data Pin auf Eingang setzen, ( High durch PullUp )
-#DEFINE I2C_DI aim #%11111101, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
-; Data out
-; Data Pin auf Ausgang setzen
-#DEFINE I2C_DO oim #%10, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
-; Data Hi
-#DEFINE I2C_DH I2C_DI
-; Data Lo
-#DEFINE I2C_DL  aim #%11111101, Port2_Data \ oim #%10, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
-;
-#DEFINE I2C_DLb aim #%11111101, Port2_Data \ oim #%10, Port2_DDR_buf \ ldab Port2_DDR_buf \ stab Port2_DDR
-; Data & Clock Lo
-#DEFINE I2C_CDL oim #%110, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR \ aim #%11111001, Port2_Data
-; Data & Clock Hi
-#DEFINE I2C_CDH aim #%11111001, Port2_DDR_buf \ ldaa Port2_DDR_buf \ staa Port2_DDR
 ;***********************
 ;
 ; Character Stuff

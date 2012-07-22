@@ -592,30 +592,28 @@ void i2c_tx(char data)
 {
 	char i;
 	
-	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
-	DDR_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+	PORT_SBUS_CLK |= BIT_SBUS_CLK;
 	for(i=0;i<8;i++)
 	{
 		if(data & 0x80)
 		{
-			DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
+			DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 		}
 		else
 		{
-			PORT_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
-			DDR_SBUS_DATA |= (1 << BIT_SBUS_DATA);
+			PORT_SBUS_DATA &= ~BIT_SBUS_DATA;
+			DDR_SBUS_DATA |= BIT_SBUS_DATA;
 		}
 
-		PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
+		PORT_SBUS_CLK |= BIT_SBUS_CLK;
 		_delay_loop_1(7);
 		data <<= 1;
 
-		PORT_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
+		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
 		_delay_loop_1(7);
 	}
-	DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
-	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
-	DDR_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
+	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
+	PORT_SBUS_CLK |= BIT_SBUS_CLK;
 }
 
 //*************
@@ -634,13 +632,12 @@ char i2c_rx()
 
 	data = 0;
 
-	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
-	DDR_SBUS_CLK |= (1 << BIT_SBUS_CLK);
-	DDR_SBUS_DATA &= ~(1 << BIT_SBUS_DATA);
+	PORT_SBUS_CLK |= BIT_SBUS_CLK;
+	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 
 	for(i=0;i<8;i++)
 	{
-		PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK); 
+		PORT_SBUS_CLK |= BIT_SBUS_CLK; 
 		_delay_loop_1(7);
 
 		data<<=1;
@@ -648,12 +645,11 @@ char i2c_rx()
 		{
 			data |= 1;
 		}
-		PORT_SBUS_CLK &= ~(1 << BIT_SBUS_CLK); 
+		PORT_SBUS_CLK &= ~BIT_SBUS_CLK; 
 		_delay_loop_1(7);
 	}
 
-	PORT_SBUS_CLK |= (1 << BIT_SBUS_CLK);
-	DDR_SBUS_CLK &= ~(1 << BIT_SBUS_CLK);
+	PORT_SBUS_CLK |= BIT_SBUS_CLK;
 
 	return data;
 }
@@ -817,7 +813,6 @@ void sci_tx(char data)
 //
 void sci_tx_w( char data)
 {
-	char delay;
 	struct S_TxChar txchar;
 
 	txchar.data = data;
@@ -892,8 +887,9 @@ void sci_rx_handler()
 					tx_stall = 5;
 
 				// check if char just received was first byte of 2 byte combo
-				rx |= 0x11;
-				if(!extended && ((rx == 0x5d) || (rx == 0x5f)))
+				
+				rx |= 0x10;
+				if(!extended && ((rx == 0x5d) || (rx == 0x5e) || (rx == 0x5f)))
 					extended = 1;
 				else
 					extended = 0;

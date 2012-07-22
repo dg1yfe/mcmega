@@ -8,6 +8,9 @@
 #ifndef PLL_FREQ_H_
 #define PLL_FREQ_H_
 
+#include <stdint.h>
+
+uint8_t freq_init(void);
 char init_pll(unsigned int spacing);
 void pll_led(char force);
 char pll_lock_chk(void);

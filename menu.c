@@ -32,7 +32,6 @@ char m_delete[] PROGMEM =  "deleting";
 char m_offset[] PROGMEM =  "TXSHIFT";
 char m_sq_on_str[] PROGMEM =  "SQ ON";
 char m_sq_off_str[] PROGMEM =  "SQ OFF";
-char m_menu_str[] PROGMEM = "MENU";
 
 
 //*****************************

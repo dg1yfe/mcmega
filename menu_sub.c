@@ -43,16 +43,17 @@ void m_power()
 	if(pwr_mode)
 	{
 		// pwr is low, set to high
-		pwr_mode &= 8;
-		arrow_set(3, 1);
+		rfpwr_set(1);
 	}
 	else
 	{
 		// pwr is high, set to low
-		pwr_mode |= 8;
-		arrow_set(3, 0);
+		rfpwr_set(0);
 	}
+	rfpwr_print();
 }
+
+
 
 void m_power_submenu(char key)
 {
@@ -89,12 +90,12 @@ void m_power_submenu(char key)
 		lcd_cpos(0);
 		if(pwr_mode)
 		{
-			printf_P(PSTR("LO PWR"));
+			printf_P(PSTR("pwr lo"));
 			arrow_set(3, 0);
 		}
 		else
 		{
-			printf_P(PSTR("HI PWR"));
+			printf_P(PSTR("pwr hi"));
 			arrow_set(3, 1);
 		}
 

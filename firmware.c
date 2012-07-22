@@ -89,10 +89,11 @@ void vControlTask( void * pvParameters)
 		led_set(YEL_LED, LED_BLINK);
 
 	receive();
+	rfpwr_set(DEFAULT_RF_PWR);
 	
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
-	SetShiftReg(0, ~SR_RXAUDIOEN);
+	SetShiftReg(0, (uint8_t)~SR_RXAUDIOEN);
 //	SetShiftReg(SR_RXAUDIOEN,0xff);
 	audio_pa(1,1);
 

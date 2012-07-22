@@ -36,6 +36,13 @@ typedef struct
 void m_set_shift(void);
 void mts_switch(char key);
 void mts_print(void);
+static inline void m_frq_up(void);
+static inline void m_frq_down(void);
+static inline void m_sql_switch(void);
+void m_tone(void);
+void m_txshift(char key);
+void m_submenu(char key);
+
 
 T_MENUITEM m_submenu_list[] PROGMEM =
 {
@@ -49,6 +56,81 @@ T_MENUITEM m_submenu_list[] PROGMEM =
 };
 
 #define M_MENU_ENTRIES sizeof(m_submenu_list) / sizeof(T_MENUITEM)
+
+
+
+//*****************************
+// M E N U   I D L E
+//*****************************
+//
+// Menu / IDLE Subroutines
+//
+// Main Menu / Top Level
+//
+//*******************************
+// M   T O P
+//
+void m_top(uint8_t key)
+{
+//	void (*fptr)(uint8_t key);
+
+	switch(key)
+	{
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+			m_start_input(key);
+			break;
+		case KC_EXIT:
+			break;
+		case KC_D1:
+			m_frq_up();
+			break;
+		case KC_D2:
+			m_frq_down();
+			break;
+		case KC_D3:
+			m_sql_switch();
+			break;
+		case KC_D4:
+			m_power();
+			//m_none();
+			//m_prnt_tc();
+			break;
+		case KC_D5:
+			m_tone();
+			break;
+		case KC_D6:
+			if(cfg_head == CHD2)
+			{
+				if(!m_timer_en)
+					save_dbuf();
+				// initialize digit editor
+				m_digit_editor(0, 0, 0, -1);
+				m_state = FREQ_DIGIT;
+			}
+			break;
+		case KC_D7:
+			m_txshift(key);
+			break;
+		case KC_D8:
+			m_recall_submenu(key);
+			break;
+		case KC_ENTER:
+			m_submenu(key);
+		default:
+			break;
+	}
+
+}
+
 
 
 //*******************************
@@ -83,7 +165,7 @@ static inline void m_frq_down()
 // RSSI-Level auf der RSSI Platine
 // Carriersquelch l�sst niedrigere Schwelle zu als RSSI Squelch
 //
-void m_sql_switch()
+static inline void m_sql_switch()
 {
 	if (sql_mode == SQM_CARRIER)
 	{
@@ -331,7 +413,7 @@ void m_submenu(char key)
 			lcd_cpos(0);
 			m_state = MENU_SELECT;
 			m_index = 0;
-			printf_P(m_menu_str);
+			printf_P(m_submenu_list[0].label);
 			break;
 		}
 		case MENU_SELECT:
@@ -340,27 +422,30 @@ void m_submenu(char key)
 			{
 				case KC_D1:
 				{
+					m_index++;
 					if(m_index == M_MENU_ENTRIES)
 						m_index = 1;
-					else
-						m_index++;
 					lcd_cpos(0);
 					printf_P(m_submenu_list[m_index].label);
 					break;
 				}
 				case KC_D2:
 				{
-					if(m_index == 0)
+					if((m_index | 1) == 1)
 						m_index = M_MENU_ENTRIES;
-					else
-						m_index--;
+
+					m_index--;
 					lcd_cpos(0);
 					printf_P(m_submenu_list[m_index].label);
 					break;
 				}
 				case KC_ENTER:
-				{
-					m_submenu_list[m_index].fptr(key);
+				{	
+					void (* fptr)(char key);
+					// get function pointer
+					fptr = (void *) pgm_read_word(&m_submenu_list[m_index].fptr);
+					// call menu function for current entry
+					fptr(key);
 					break;
 				}
 				case KC_EXIT:
@@ -407,77 +492,5 @@ char m_freq_digit(char key)
 	return res;
 }
 
-
-//*****************************
-// M E N U   I D L E
-//*****************************
-//
-// Menu / IDLE Subroutines
-//
-// Main Menu / Top Level
-//
-//*******************************
-// M   T O P
-//
-void m_top(uint8_t key)
-{
-//	void (*fptr)(uint8_t key);
-
-	switch(key)
-	{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-			m_start_input(key);
-			break;
-		case KC_EXIT:
-			break;
-		case KC_D1:
-			m_frq_up();
-			break;
-		case KC_D2:
-			m_frq_down();
-			break;
-		case KC_D3:
-			m_sql_switch();
-			break;
-		case KC_D4:
-			m_test();
-			//m_none();
-			//m_prnt_tc();
-			break;
-		case KC_D5:
-			m_tone();
-			break;
-		case KC_D6:
-			if(cfg_head == CHD2)
-			{
-				if(!m_timer_en)
-					save_dbuf();
-				// initialize digit editor
-				m_digit_editor(0, 0, 0, -1);
-				m_state = FREQ_DIGIT;
-			}
-			break;
-		case KC_D7:
-			m_txshift(key);
-			break;
-		case KC_D8:
-			m_recall_submenu(key);
-			break;
-		case KC_ENTER:
-			m_submenu(key);
-		default:
-			break;
-	}
-
-}
 
 

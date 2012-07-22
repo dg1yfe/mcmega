@@ -47,7 +47,6 @@ char lcd_s_reset()
 	char h;
 	char c;
 	char ret;
-	char cnt = 4;
 
 	lcd_timer = 0;
 	// clear RX buffer

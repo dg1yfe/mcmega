@@ -27,5 +27,7 @@ char store_current(void);
 char read_current(unsigned long * freq,long * txshift, long * offset);
 void audio_pa(uint8_t enable, uint8_t withrxaudio);
 
+void rfpwr_set(uint8_t enable_hi_power);
+void rfpwr_print(void);
 
 #endif /* SUBS_H_ */

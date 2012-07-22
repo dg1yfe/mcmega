@@ -18,6 +18,7 @@
 #include "menu.h"
 #include "int.h"
 #include "io.h"
+#include "subs.h"
 
 char version_str[] PROGMEM = "0.9";
 
@@ -29,11 +30,12 @@ void init_ui()
 }
 
 
-static reset_ui()
+static void reset_ui(void)
 {
 	freq_print(&frequency);
 	vTaskDelay(15);
 	freq_offset_print();
+	rfpwr_print();
 	pll_led(1);
 
 	menu_init();
@@ -62,6 +64,8 @@ void vUiTask( void * pvParameters)
 	vTaskDelay(150);
 */
 	reset_ui();
+
+	lcd_cpos(0);
 
     for(;;)
 	{
