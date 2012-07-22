@@ -370,15 +370,16 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 		_delay_loop_1(3);
 		// set Port Bit to 1
 		PORT_SBUS_CLK |= BIT_SBUS_CLK;
-		_delay_loop_1(3);
 	}
+	// Latch hi
 	PORT_SR_LATCH |= BIT_SR_LATCH;
-	_delay_loop_1(3);
-	PORT_SR_LATCH &= ~BIT_SR_LATCH;
 
 	// set Data to input (ext. Pull up)
 	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 	PORT_SBUS_DATA |= BIT_SBUS_DATA;
+
+	// Latch low
+	PORT_SR_LATCH &= ~BIT_SR_LATCH;
 
 	// Bus access finished
 	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
@@ -436,21 +437,19 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 		}
 		// set Port Bit to 0
 		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
-		_delay_loop_1(3);
 
 		data <<= 1;
 
 		// set Port Bit to 1
 		PORT_SBUS_CLK |= BIT_SBUS_CLK;
-		_delay_loop_1(3);
 	}
 	// toggle PLL latch
 	PORT_PLL_LATCH |= BIT_PLL_LATCH;
-	_delay_loop_1(3);
-	PORT_PLL_LATCH &= ~BIT_PLL_LATCH;
 
 	// set Data to input (ext. Pull up)
 	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
+
+	PORT_PLL_LATCH &= ~BIT_PLL_LATCH;
 
 	// Bus access finished
 	xSemaphoreGiveRecursive(SerialBusMutex);

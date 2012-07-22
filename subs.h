@@ -7,6 +7,7 @@
 
 #ifndef SUBS_H_
 #define SUBS_H_
+#include <stdint.h>
 
 void pwr_sw_chk( char cSaveSettings);
 
@@ -14,7 +15,7 @@ void receive(void);
 void transmit(void);
 
 char ptt_get_status(void);
-void vco_switch(char vco);
+//void vco_switch(char vco);
 unsigned int crc16(unsigned int bytecount, void * data, unsigned int init);
 char read_eep_ch(uint16_t slot, long * freq);
 char store_eep_ch(uint16_t slot);
@@ -24,6 +25,7 @@ void squelch(void);
 void wd_reset(void);
 char store_current(void);
 char read_current(unsigned long * freq,long * txshift, long * offset);
+void audio_pa(uint8_t enable, uint8_t withrxaudio);
 
 
 #endif /* SUBS_H_ */

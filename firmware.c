@@ -92,7 +92,10 @@ void vControlTask( void * pvParameters)
 	
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio
-	SetShiftReg(SR_AUDIOPA, ~SR_RXAUDIOEN);
+	SetShiftReg(0, ~SR_RXAUDIOEN);
+//	SetShiftReg(SR_RXAUDIOEN,0xff);
+	audio_pa(1,1);
+
 	s_timer_init();
 
 	xLastWakeTime = xTaskGetTickCount();

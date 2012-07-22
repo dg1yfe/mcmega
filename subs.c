@@ -38,6 +38,7 @@
 #include <avr/io.h>
 #include <util/crc16.h>
 #include <alloca.h>
+#include <util/delay_basic.h>
 
 #include "regmem.h"
 
@@ -52,6 +53,7 @@
 #include "firmware.h"
 #include "pll_freq.h"
 #include "eeprom.h"
+#include "subs.h"
 
 
 void pwr_sw_chk(char cSaveSettings)
@@ -68,8 +70,9 @@ void pwr_sw_chk(char cSaveSettings)
 		}
 
 		// disable RX Audio
-		SetShiftReg(0,~SR_RXAUDIOEN);
+		audio_pa(0,1);
 
+		vTaskDelay(10);
 		// shut-down Radio
 		// TODO: Check if further bits need to be set/reset e.g. Audio PA
 		taskENTER_CRITICAL();
@@ -444,6 +447,57 @@ char read_current(unsigned long * freq,long * txshift, long * offset)
 	}
 
 	return 0;
+}
+
+
+void audio_pa(uint8_t enable, uint8_t withrxaudio)
+{
+#define pwmmax 50
+#define pwmmaxoff 400
+	uint16_t i;
+	uint16_t j;
+	uint8_t rxaudio;
+
+	// save rxaudio state
+	rxaudio = SR_data_buf & SR_RXAUDIOEN;
+	
+	// enable or disable rxaudio for switching
+	if (withrxaudio)
+		SetShiftReg(SR_RXAUDIOEN, 0xff);
+	else		
+		SetShiftReg(0, ~SR_RXAUDIOEN);
+
+
+	if(enable)
+	{
+		for(i=0;i<pwmmax;i+=2)
+		{
+			SetShiftReg(0, ~SR_AUDIOPA);
+			for(j=i;j<pwmmax;j++){
+				_delay_loop_1(2);
+			}
+			SetShiftReg(SR_AUDIOPA, 0xff);
+		}
+		_delay_loop_1(255);
+	}
+	else
+	{
+		for(i=1;i<pwmmaxoff;i+=10)
+		{
+			SetShiftReg(SR_AUDIOPA, 0xff);
+//			for(j=i;j<pwmmaxoff;j++){
+//				_delay_loop_1(2);
+//			}
+			SetShiftReg(0, ~SR_AUDIOPA);
+			for(j=pwmmaxoff-i;j<pwmmaxoff;j++){
+				_delay_loop_1(3);
+			}
+		}
+	
+	}
+
+	// restore rx audio state
+	SetShiftReg(rxaudio, ~SR_RXAUDIOEN);
 }
 
 
