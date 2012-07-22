@@ -128,7 +128,7 @@ void m_txshift(char key)
 		m_state = TXSHIFT_SW;
 		m_reset_timer();
 		lcd_cpos(0);
-		printf(m_offset);
+		printf_P(m_offset);
 		lcd_fill();
 		vTaskDelay(100);
 		mts_print();
@@ -141,7 +141,9 @@ void m_txshift(char key)
 inline void mts_print()
 {
 	lcd_cpos(0);
+	offset*=-1;
 	decout(PRINTSIGN | 5, 3, (char *)&offset);
+	offset*=-1;
 	//TODO: Replace with printf ?
 	lcd_fill();
 	freq_offset_print();
@@ -162,22 +164,20 @@ void mts_switch(char key)
 			offset = -offset;
 			txshift = offset;
 			ui_txshift = offset;
-			taskYIELD();
+			vTaskDelay(1);
 			mts_print();
 			break;
 		case KC_D7:
 			// toggle shift state on/off
-			m_reset_timer();
 			if(offset)
 			{
 				ui_txshift = 0;
-				taskYIELD();
 			}
 			else
 			{
 				ui_txshift = txshift;
-				taskYIELD();
 			}
+			vTaskDelay(1);
 			mts_print();
 			break;
 		case KC_D6:
@@ -236,13 +236,26 @@ void mts_digit(char key)
 void m_set_shift()
 {
 	long f;
+	uint8_t i;
+		
+	if(cpos<3)
+	{
+		for(i=cpos;i<4;i++)
+		{
+			f_in_buf[i]='0';
+		}
+	}
+
 	f = atol(f_in_buf);
 	f *= 1000;
+
 	txshift = f;
+	// shift is negative by default
 	ui_txshift = f;
-	taskYIELD();
+	vTaskDelay(1);
 	m_state = IDLE;
 	m_timer = 8;	// wait 800 ms before reverting to frequency
+	mts_print();
 }
 
 
@@ -318,7 +331,7 @@ void m_submenu(char key)
 			lcd_cpos(0);
 			m_state = MENU_SELECT;
 			m_index = 0;
-			printf(m_menu_str);
+			printf_P(m_menu_str);
 			break;
 		}
 		case MENU_SELECT:
@@ -332,7 +345,7 @@ void m_submenu(char key)
 					else
 						m_index++;
 					lcd_cpos(0);
-					printf(m_submenu_list[m_index].label);
+					printf_P(m_submenu_list[m_index].label);
 					break;
 				}
 				case KC_D2:
@@ -342,7 +355,7 @@ void m_submenu(char key)
 					else
 						m_index--;
 					lcd_cpos(0);
-					printf(m_submenu_list[m_index].label);
+					printf_P(m_submenu_list[m_index].label);
 					break;
 				}
 				case KC_ENTER:
@@ -365,8 +378,6 @@ void m_submenu(char key)
 // M   D I G I T
 //
 // select frequency digit to alter using up/down
-//
-// Stack depth on entry: 2
 //
 char m_freq_digit(char key)
 {
@@ -404,16 +415,6 @@ char m_freq_digit(char key)
 // Menu / IDLE Subroutines
 //
 // Main Menu / Top Level
-//
-// Parameter : none
-//
-// Ergebnis : none
-//
-// changed Regs : A,B,X
-//
-//
-//************************
-// Stack depth on entry: 1
 //
 //*******************************
 // M   T O P

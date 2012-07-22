@@ -43,20 +43,23 @@ void m_set_freq_x(void);
 void m_frq_prnt(void);
 
 
+static inline void m_non_numeric(char key);
+
+
 inline void m_start_input(char key)
 {
 	save_dbuf();
 	lcd_clr(0);
 	m_print(key);
+	m_state = F_IN;
 }
 
 
 inline void m_print(char key)
 {
 	m_reset_timer();
-	m_state = F_IN;
-	pputchar('c', key + 0x30, 0);
 	f_in_buf[cpos] = key + 0x30;
+	pputchar('c', key + 0x30, 0);
 
 }
 
@@ -76,7 +79,7 @@ void m_f_in(char key)
 	}
 	else
 	{
-
+		m_non_numeric(key);
 	}
 }
 
@@ -86,22 +89,22 @@ static inline void m_non_numeric(char key)
 {
 	switch(key)
 	{
-	case 0:
+	case KC_EXIT:
 	{
 		m_backspace();
 		break;
 	}
-	case 4:
+	case KC_D4:
 	{
 		m_clr_displ();
 		break;
 	}
-	case 7:
+	case KC_D7:
 	{
 		m_set_shift();
 		break;
 	}
-	case 9:
+	case KC_ENTER:
 	{
 		m_set_freq();
 		break;
@@ -124,7 +127,6 @@ void m_backspace ()
 	m_reset_timer();
 	lcd_backspace();
 	f_in_buf[cpos]=0;
-	m_state=F_IN;
 }
 
 //**********************************
@@ -147,7 +149,13 @@ void m_clr_displ ()
 //
 void m_set_freq ()
 {
-	f_in_buf[cpos] = 0;
+	uint8_t i;
+	// append zeros
+	for(i=cpos;i<6;i++)
+	{
+		f_in_buf[i] = '0';
+	}
+	f_in_buf[i] = 0;
 	m_set_freq_x();
 }
 
@@ -156,6 +164,8 @@ inline void m_set_freq_x()
 {
 	unsigned long f;
 	f = atol(f_in_buf);
+	// convert frequency input in kHz to Hz
+	f *= 1000;
 	frq_update(&f);
 	lcd_clr(0);
 	m_state = IDLE;

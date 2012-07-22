@@ -56,9 +56,9 @@ int f_step;					// Schrittweite in Hz
 int tick_ms;				// 1ms Increment
 int s_tick_ms;				// Software timer
 int tick_hms;				// 100ms Increment
+int8_t next_hms;
 char gp_timer;				// General Purpose Timer, 1ms Decrement
 char ui_timer;
-char next_hms;
 uint8_t lcd_timer;				// 1ms
 
 unsigned long frequency;	// aktuelle Frequenz

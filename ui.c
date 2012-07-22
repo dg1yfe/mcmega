@@ -48,6 +48,7 @@ void vUiTask( void * pvParameters)
 	cfg_head = CONTROL_HEAD3;
 
    	led_update();
+/*
 	printf_P(PSTR("DG1YFE"));
 	lcd_fill();
 	lcd_cpos(0);
@@ -59,7 +60,7 @@ void vUiTask( void * pvParameters)
 	lcd_fill();
 	lcd_cpos(0);
 	vTaskDelay(150);
-
+*/
 	reset_ui();
 
     for(;;)

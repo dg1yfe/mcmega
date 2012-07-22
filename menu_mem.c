@@ -167,11 +167,11 @@ void m_mem_select(char key)
 						lcd_cpos(0);
 						if(store_eep_ch(mem_bank))
 						{
-							printf(m_failed_str);
+							printf_P(m_failed_str);
 						}
 						else
 						{
-							printf(m_stored_str);
+							printf_P(m_stored_str);
 						}
 						lcd_fill();
 						vTaskDelay(200);

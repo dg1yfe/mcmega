@@ -82,8 +82,9 @@ void s_timer_update()
 			sql_timer = (sql_timer > tickdiff) ? sql_timer - tickdiff : 0;
 		}
 
+		next_hms -= (int8_t) tickdiff;
 		// decrement 100 ms timer
-		if(next_hms <= tickdiff)
+		if(next_hms<=0)
 		{
 			next_hms += 100;
 			tick_hms++;

@@ -29,12 +29,13 @@
 // Frequenzkram
 //
 //
-#define RXZF   21400000L        // 21,4 MHz IF (RX VCO has to be 21,4MHz below RX frequency)
-#define FREF   14400000L        // 14,4 MHz reference frequency
-#define FOFF0         0L        // Offset0
-#define FOFF06  0600000L        // Offset1
-#define FOFF76  7600000L        // Offset2
-#define FSTEP     12500         // Schrittweite !> 3,5 kHz f�r f<458,3MHz ( mu� gr��er sein als Frequenz/(Vorteiler*1023) )
+#define RXZF   UINT32_C(21400000)// 21,4 MHz IF (RX VCO has to be 21,4MHz below RX frequency)
+#define FREF   UINT32_C(14400000)// 14,4 MHz reference frequency
+#define FOFF0  UINT32_C(       0)// Offset0
+#define FOFF06 UINT32_C(  600000)// Offset1
+#define FOFF76 UINT32_C( 7600000)// Offset2
+#define FSTEP  UINT32_C(   12500)// Schrittweite !> 3,5 kHz fuer f<458,3MHz 
+								 //( muss groesser sein als Frequenz/(Vorteiler*1023) )
 //
 #define PLLREF FREF/FSTEP
 #define PLLLOCKWAIT 200         // Maximale Wartezeit in ms f�r PLL um einzurasten
@@ -44,19 +45,19 @@
 //#define PLLREF     2304
 
 #ifdef BAND_70CM
-#define FBASE 430000000L        // lowest frequency (for eeprom storage) = 140MHz (430 MHz with 70 cm)
-#define FBASE_MEM_RECALL 400000000L
-#define FDEF  433500000L        // Default Frequency
+#define FBASE UINT32_C(430000000)// lowest frequency (for eeprom storage) = 140MHz (430 MHz with 70 cm)
+#define FBASE_MEM_RECALL UINT32_C(400000000)
+#define FDEF  UINT32_C(433500000)// Default Frequency
 #define FTXOFF FOFF76			// Default Offset = 7.6 MHz
 #define PRESCALER   127         // PLL Prescaler (40 for 2m, 127 for 70cm)
 #endif
 
 #ifdef BAND_2M
-#define FBASE 140000000L         // lowest frequency (for eeprom storage) = 140MHz (430 MHz with 70 cm)
-#define FBASE_MEM_RECALL 140000000L
-#define FDEF  145500000L         // Default Frequency
-#define FTXOFF FOFF06			// Default Offset = 0.6 MHz
-#define PRESCALER    40         // PLL Prescaler (40 for 2m, 127 for 70cm)
+#define FBASE UINT32_C(140000000)// lowest frequency (for eeprom storage) = 140MHz (430 MHz with 70 cm)
+#define FBASE_MEM_RECALL UINT32_C(140000000)
+#define FDEF  UINT32_C(145500000)// Default Frequency
+#define FTXOFF FOFF06			 // Default Offset = 0.6 MHz
+#define PRESCALER    40          // PLL Prescaler (40 for 2m, 127 for 70cm)
 #endif
 
 #if !defined BAND_2M && !defined BAND_70CM

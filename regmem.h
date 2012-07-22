@@ -143,9 +143,9 @@ extern int f_step;			// Schrittweite in Hz
 extern int tick_ms;			// 1ms Increment
 extern int s_tick_ms;		// Software timer
 extern int tick_hms;		// 100ms Increment
+extern int8_t next_hms;
 extern char gp_timer;		// General Purpose Timer, 1ms Decrement
 extern char ui_timer;
-extern char next_hms;
 extern uint8_t lcd_timer;		// 1ms
 extern char lcd_timer_en;
 

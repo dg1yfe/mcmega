@@ -1404,9 +1404,7 @@ void decout(uint8_t modif, uint8_t truncate, char * data)
 				{
 					pputchar('c',' ',0);
 				}
-				if(modif & NEGSIGN)
-					pputchar('c','-',0);
-				else
+				if(!(modif & NEGSIGN))
 					pputchar('c','+',0);
 			}
 		}
@@ -1415,9 +1413,7 @@ void decout(uint8_t modif, uint8_t truncate, char * data)
 	{
 		if(modif & PRINTSIGN)
 		{
-			if(modif & NEGSIGN)
-				pputchar('c','-',0);
-			else
+			if(!(modif & NEGSIGN))
 				pputchar('c','+',0);
 		}
 	}

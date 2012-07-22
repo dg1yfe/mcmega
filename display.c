@@ -124,9 +124,9 @@ char lcd_s_reset()
 void lcd_clr(char clear_leds)
 {
 	pputchar('p',0x78,0);
-	memset(dbuf,0,8);
+	memset(dbuf,' ',8);
 	cpos=0;
-	arrow_buf = 0;
+//	arrow_buf = 0;
 
 	if (clear_leds)
 	{
@@ -141,11 +141,11 @@ void lcd_clr(char clear_leds)
 void lcd_backspace()
 {
 	// decrease cursor position
-	lcd_cpos(--cpos);
+	lcd_cpos(cpos-1);
 	// overwrite char with space
 	pputchar('c',' ',0);
 	// decrease cursor position again
-	lcd_cpos(--cpos);
+	lcd_cpos(cpos-1);
 }
 
 
@@ -239,11 +239,13 @@ void lcd_fill()
 	uint8_t pos;
 
 	pos = cpos;
-	for(;cpos < 8;cpos++)
+	while(cpos < 8)
 	{
 		pputchar('c',' ',0);
 	}
-	lcd_cpos(pos);
+	// only restore cpos if something was printed
+	if(pos != cpos)
+		lcd_cpos(pos);
 }
 //****************
 // L E D   S E T
@@ -430,7 +432,8 @@ void arrow_set(char pos, char state)
 	switch(state)
 	{
 	case 1:
-		if(!(arrow_buf & mask))
+		// if off or blink, switch to on
+		if(!((arrow_buf) & mask) || (arrow_buf & (mask<<8)) )
 		{
 			cmd = ARROW + A_ON;
 			// enable on bit
@@ -442,8 +445,8 @@ void arrow_set(char pos, char state)
 	case 2:
 		// if blink or on bit are 0
 		if(!((arrow_buf & (mask<<8)) && (arrow_buf & mask)) )
-		{	// set arrow to on
-			cmd = ARROW + A_ON;
+		{	// set arrow to blink
+			cmd = ARROW + A_BLINK;
 			// enable blink bit and on bit
 			arrow_buf |= (mask << 8) | mask;
 		}
