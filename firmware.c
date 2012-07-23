@@ -85,6 +85,8 @@ void vControlTask( void * pvParameters)
 
 	led_set(GRN_LED, LED_ON);
 	
+	eep_enable(1);
+
 	if(freq_init())
 		led_set(YEL_LED, LED_BLINK);
 

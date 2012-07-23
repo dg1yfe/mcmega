@@ -20,5 +20,6 @@ unsigned int eep_get_size();
 char eep_chk_crc();
 char eep_write_crc();
 char eep_rd_ch_freq(uint8_t slot, unsigned long * f);
+void eep_enable(uint8_t enable);
 
 #endif /* EEPROM_H_ */

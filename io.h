@@ -27,6 +27,9 @@
 #define PIN_SQL PINE
 #define BIT_SQL (1<<PE7)
 
+#define PORT_EEP_DISABLE PORTG
+#define BIT_EEP_DISABLE  (1 << 4);
+
 #define CONTROL_HEAD3 0
 #define CONTROL_HEAD2 1
 

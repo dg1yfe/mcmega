@@ -68,7 +68,7 @@ void m_recall_submenu(char key)
 		printf_P(m_recall_str);
 		lcd_fill();
 		vTaskDelay(100);
-		m_state = MEM_SELECT_RECALL;
+		m_state = MEM_SELECT;
 	}
 
 	m_show_slot();
@@ -107,10 +107,13 @@ void m_show_slot()
 		f -= FBASE_MEM_RECALL;
 		// print frequency, truncate last 3 digits
 		decout(0, 3, (char *)&f);
-		pputchar('c',' ',0);
+		while(cpos<6)
+			pputchar('c',' ',0);
+
 		lcd_cpos(6);
 		// print bank & slot
 		pputchar('d',mem_bank,0);
+		lcd_fill();
 	}
 }
 
@@ -157,10 +160,11 @@ void m_mem_select(char key)
 			case KC_ENTER:
 			{
 				char err = 0;
+				// are we in recall or store mode?
 				if(m_state == MEM_SELECT_STORE)
 				{
 					lcd_cpos(0);
-					if(mem_bank > MEM_SLOT_MAX)
+					if(mem_bank >= MEM_SLOT_MAX)
 						err = 1;
 					else
 					{	// TODO: So richtig?
@@ -210,14 +214,16 @@ void m_mem_select(char key)
 				m_timer = 0;
 				break;
 			case KC_D1:
-				if(++mem_bank>MEM_SLOT_MAX)
+				if(++mem_bank>=MEM_SLOT_MAX)
 					mem_bank=0;
+				m_show_slot();
 				break;
 			case KC_D2:
 				if(!mem_bank)
 					mem_bank=MEM_SLOT_MAX;
-				else
-					mem_bank--;
+
+				mem_bank--;
+				m_show_slot();
 				break;
 		}
 	}

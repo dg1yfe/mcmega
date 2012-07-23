@@ -79,6 +79,7 @@ void menu()
 		case F_IN:
 			m_f_in(c);
 			break;
+		case MEM_SELECT_STORE:
 		case MEM_SELECT:
 			m_mem_select(c);
 			break;

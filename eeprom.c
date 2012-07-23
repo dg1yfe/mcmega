@@ -266,7 +266,7 @@ char eep_write(unsigned int address, char * data)
 	if((err=i2c_tstack()))
 		return 1;
 
-	buf = (char) address;
+	buf = (uint8_t) address;
 	i2c_tx(buf);
 
 	if((err=i2c_tstack()))
@@ -333,7 +333,7 @@ char eep_write_seq(unsigned int address, char bytecount, void * data)
 
 	err=0;
 
-	while(bytecount-- & !(err))
+	while(bytecount-- && !(err))
 	{
 		err = eep_write(address++, data++);
 	}
@@ -378,15 +378,16 @@ char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 	void * buf;
 	char err;
 	long fbuf;
+	uint16_t eep_address;
 
 	buf = alloca((size_t)10);
 
 	if(slot > 24)
 		return -1;
 
-	slot = slot * 10;
-	slot += 0x100;
-	err = eep_seq_read(10, slot, buf, NULL);
+	eep_address = (uint16_t) slot * 10;
+	eep_address += 0x100;
+	err = eep_seq_read(eep_address, 10, buf, NULL);
 
 	if(err)
 		return(err);
@@ -400,6 +401,19 @@ char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 
 	return 0;
 
+}
+
+
+void eep_enable(uint8_t enable)
+{
+	if(enable)
+	{
+		PORT_EEP_DISABLE &= ~BIT_EEP_DISABLE;
+	}
+	else
+	{
+		PORT_EEP_DISABLE |= BIT_EEP_DISABLE;
+	}
 }
 
 /*

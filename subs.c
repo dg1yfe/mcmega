@@ -69,6 +69,8 @@ void pwr_sw_chk(char cSaveSettings)
 			//TODO: storeCurrent();
 		}
 
+		xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
+		eep_enable(0);
 		// disable RX Audio
 		audio_pa(0,1);
 
@@ -83,6 +85,7 @@ void pwr_sw_chk(char cSaveSettings)
 
 	return;
 }
+
 
 
 void watchdog_toggle()
@@ -337,7 +340,7 @@ char store_eep_ch(uint16_t slot)
 
 	slot *= 10;
 	slot += 0x100;				// calculate EEPROM address from slot no.
-	return eep_write_seq(10, slot, buf);	// write data to EEPROM
+	return eep_write_seq(slot, 10, buf);	// write data to EEPROM
 
 }
 

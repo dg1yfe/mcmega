@@ -472,24 +472,27 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 //
 void i2c_start()
 {
-	// Data Hi / Input
-	DDR_SBUS_DATA  &=  ~(BIT_SBUS_DATA);
+	// Data Hi & Input
+	DDR_SBUS_DATA  &=  ~BIT_SBUS_DATA;
+	PORT_SBUS_DATA  |=  BIT_SBUS_DATA;
+	_delay_loop_1(7);
 
 	// I2C Clock Hi
 	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
-	_delay_loop_1(3);
+	_delay_loop_1(7);
 
 	// Data low
 	PORT_SBUS_DATA &= ~(BIT_SBUS_DATA);
 	DDR_SBUS_DATA  |=  (BIT_SBUS_DATA);
-	_delay_loop_1(3);
+	_delay_loop_1(7);
 
 	// I2C Clock Lo
 	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
-	_delay_loop_1(7);
+	_delay_loop_1(14);
 
 	// Data Hi / Input
 	DDR_SBUS_DATA  &=  ~(BIT_SBUS_DATA);
+	PORT_SBUS_DATA |=  (BIT_SBUS_DATA);
 }
 //******************
 // I 2 C   S T O P
@@ -507,15 +510,19 @@ void i2c_stop()
 
 	// I2C Clock Hi
 	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
-	_delay_loop_1(3);
+	_delay_loop_1(7);
 
 	// Data Leitung auf Hi / Eingang
-	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
-	_delay_loop_1(3);
+	DDR_SBUS_DATA &=  ~BIT_SBUS_DATA;
+	PORT_SBUS_DATA |=  BIT_SBUS_DATA;
+	_delay_loop_1(7);
 
 	// I2C Clock Lo
 	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
-	_delay_loop_1(7);
+
+	// Data Leitung auf Eingang
+	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	_delay_loop_1(14);
 }
 
 //***************
@@ -535,14 +542,15 @@ void i2c_ack()
 
 	// I2C Clock Hi
 	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
-	_delay_loop_1(7);	
+	_delay_loop_1(14);	
 
 	// I2C Clock Lo
 	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
-	_delay_loop_1(7);
+	_delay_loop_1(14);
 
 	// Data wieder auf Eingang
 	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	PORT_SBUS_DATA  |=  (BIT_SBUS_DATA);
 }
 
 //***********************
@@ -566,15 +574,15 @@ char i2c_tstack()
 	
 	// I2C Clock Hi
 	PORT_SBUS_CLK |= (BIT_SBUS_CLK);
-	_delay_loop_1(7);	
+	_delay_loop_1(14);	
 	
 	ack = PIN_SBUS_DATA & BIT_SBUS_DATA;
 
 	// I2C Clock Lo
 	PORT_SBUS_CLK &= ~(BIT_SBUS_CLK);
-	_delay_loop_1(7);
+	_delay_loop_1(14);
 
-	ack = ack ? 0 : 1;
+	ack = ack ? 1 : 0;
 
 	return ack;
 }
@@ -592,28 +600,31 @@ void i2c_tx(char data)
 {
 	char i;
 	
-	PORT_SBUS_CLK |= BIT_SBUS_CLK;
+	PORT_SBUS_DATA |= BIT_SBUS_DATA;
+	DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
 	for(i=0;i<8;i++)
 	{
 		if(data & 0x80)
 		{
-			DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
+			DDR_SBUS_DATA &= ~(BIT_SBUS_DATA);
+			PORT_SBUS_DATA |= BIT_SBUS_DATA;
 		}
 		else
 		{
 			PORT_SBUS_DATA &= ~BIT_SBUS_DATA;
 			DDR_SBUS_DATA |= BIT_SBUS_DATA;
 		}
+		_delay_loop_1(7);
 
 		PORT_SBUS_CLK |= BIT_SBUS_CLK;
-		_delay_loop_1(7);
+		_delay_loop_1(14);
 		data <<= 1;
 
 		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
 		_delay_loop_1(7);
 	}
 	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
-	PORT_SBUS_CLK |= BIT_SBUS_CLK;
+	PORT_SBUS_DATA |= BIT_SBUS_DATA;
 }
 
 //*************
@@ -632,13 +643,12 @@ char i2c_rx()
 
 	data = 0;
 
-	PORT_SBUS_CLK |= BIT_SBUS_CLK;
 	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 
 	for(i=0;i<8;i++)
 	{
 		PORT_SBUS_CLK |= BIT_SBUS_CLK; 
-		_delay_loop_1(7);
+		_delay_loop_1(14);
 
 		data<<=1;
 		if (PIN_SBUS_DATA & BIT_SBUS_DATA)
@@ -646,10 +656,8 @@ char i2c_rx()
 			data |= 1;
 		}
 		PORT_SBUS_CLK &= ~BIT_SBUS_CLK; 
-		_delay_loop_1(7);
+		_delay_loop_1(14);
 	}
-
-	PORT_SBUS_CLK |= BIT_SBUS_CLK;
 
 	return data;
 }

@@ -121,7 +121,7 @@ void m_top(uint8_t key)
 			m_txshift(key);
 			break;
 		case KC_D8:
-			m_recall_submenu(key);
+			m_recall_submenu(KC_NONE);
 			break;
 		case KC_ENTER:
 			m_submenu(key);
@@ -129,6 +129,72 @@ void m_top(uint8_t key)
 			break;
 	}
 
+}
+
+//*************
+// M   M E N U
+//
+// Call Submenu
+//
+void m_submenu(char key)
+{
+	static uint8_t m_index;
+
+	if(!m_timer_en)
+	{
+		save_dbuf();
+	}
+	m_reset_timer();
+	switch(m_state)
+	{
+		default:
+		{
+			lcd_cpos(0);
+			m_state = MENU_SELECT;
+			m_index = 0;
+			printf_P(m_submenu_list[0].label);
+			break;
+		}
+		case MENU_SELECT:
+		{
+			switch(key)
+			{
+				case KC_D1:
+				{
+					m_index++;
+					if(m_index == M_MENU_ENTRIES)
+						m_index = 1;
+					lcd_cpos(0);
+					printf_P(m_submenu_list[m_index].label);
+					break;
+				}
+				case KC_D2:
+				{
+					if((m_index | 1) == 1)
+						m_index = M_MENU_ENTRIES;
+
+					m_index--;
+					lcd_cpos(0);
+					printf_P(m_submenu_list[m_index].label);
+					break;
+				}
+				case KC_ENTER:
+				{	
+					void (* fptr)(char key);
+					// get function pointer
+					fptr = (void *) pgm_read_word(&m_submenu_list[m_index].fptr);
+					// call menu function for current entry
+					fptr(KC_NONE);
+					break;
+				}
+				case KC_EXIT:
+				{
+					m_timer = 0;
+					break;
+				}
+			}
+		}
+	}
 }
 
 
@@ -392,71 +458,7 @@ void m_prnt_tc()
 }
 
 
-//*************
-// M   M E N U
-//
-// Call Submenu
-//
-void m_submenu(char key)
-{
-	static uint8_t m_index;
 
-	if(!m_timer_en)
-	{
-		save_dbuf();
-	}
-	m_reset_timer();
-	switch(m_state)
-	{
-		default:
-		{
-			lcd_cpos(0);
-			m_state = MENU_SELECT;
-			m_index = 0;
-			printf_P(m_submenu_list[0].label);
-			break;
-		}
-		case MENU_SELECT:
-		{
-			switch(key)
-			{
-				case KC_D1:
-				{
-					m_index++;
-					if(m_index == M_MENU_ENTRIES)
-						m_index = 1;
-					lcd_cpos(0);
-					printf_P(m_submenu_list[m_index].label);
-					break;
-				}
-				case KC_D2:
-				{
-					if((m_index | 1) == 1)
-						m_index = M_MENU_ENTRIES;
-
-					m_index--;
-					lcd_cpos(0);
-					printf_P(m_submenu_list[m_index].label);
-					break;
-				}
-				case KC_ENTER:
-				{	
-					void (* fptr)(char key);
-					// get function pointer
-					fptr = (void *) pgm_read_word(&m_submenu_list[m_index].fptr);
-					// call menu function for current entry
-					fptr(key);
-					break;
-				}
-				case KC_EXIT:
-				{
-					m_timer = 0;
-					break;
-				}
-			}
-		}
-	}
-}
 
 
 //***************************
