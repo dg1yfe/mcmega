@@ -17,14 +17,22 @@ void transmit(void);
 char ptt_get_status(void);
 //void vco_switch(char vco);
 unsigned int crc16(unsigned int bytecount, void * data, unsigned int init);
-char read_eep_ch(uint16_t slot, long * freq);
-char store_eep_ch(uint16_t slot);
-void tone_start(void);
-void tone_stop(void);
-void squelch(void);
-void wd_reset(void);
+
+char read_eeep_ch(uint16_t slot, long * freq);
+char read_ieep_ch(uint16_t slot, long * freq);
+char store_eeep_ch(uint16_t slot);
+char store_ieep_ch(uint16_t slot);
 char store_current(void);
 char read_current(unsigned long * freq,long * txshift, long * offset);
+
+
+void tone_start(void);
+void tone_stop(void);
+
+void squelch(void);
+
+void wd_reset(void);
+
 void audio_pa(uint8_t enable, uint8_t withrxaudio);
 
 void rfpwr_set(uint8_t enable_hi_power);

@@ -21,6 +21,7 @@
 #include "pll_freq.h"
 #include "display.h"
 #include "timer.h"
+#include "eeprom.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
@@ -100,6 +101,7 @@ void vControlTask( void * pvParameters)
 	audio_pa(1,1);
 
 	s_timer_init();
+
 
 	xLastWakeTime = xTaskGetTickCount();
 	while (1)

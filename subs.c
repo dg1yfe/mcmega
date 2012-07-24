@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <avr/io.h>
+#include <avr/eeprom.h>
 #include <util/crc16.h>
 #include <alloca.h>
 #include <util/delay_basic.h>
@@ -265,11 +266,51 @@ void tone_stop()
 }
 
 /*
- *  Read frequency and settings from EEPROM
+ *  Read frequency and settings from internal EEPROM
  *  slot = slot number
  *  dest = address of destination
  */
-char read_eep_ch(uint16_t slot, long * freq)
+char read_iep_ch(uint16_t slot, long * freq)
+{
+	void * buf;
+	char err;
+	long fbuf;
+
+	buf = alloca((size_t)10);
+
+	if(slot > 24)
+		return -1;
+
+	slot = slot * 10;
+	slot += 0x100;
+	
+	eeprom_read_block(buf, (void *) slot, 10);
+
+	// get channel
+	fbuf = *((uint16_t *) buf);
+	fbuf >>=3;		// 13 significant Bits
+	fbuf *= 1250;	// multiply by 1250 to obtain frequency
+	fbuf += FBASE; // add Base frequency
+	*freq = fbuf;
+
+	buf++;
+	// get TX shift, stored in 12.5 kHz Steps
+	fbuf = *((uint16_t *) buf);
+	fbuf &= 0x1ff;	// use 9 bit, max 12,775 MHz Shift
+	fbuf *= 25000;	// multiply by 25 kHz
+	ui_txshift = fbuf;
+
+	return 0;
+}
+
+
+
+/*
+ *  Read frequency and settings from external EEPROM
+ *  slot = slot number
+ *  dest = address of destination
+ */
+char read_eeep_ch(uint16_t slot, long * freq)
 {
 	void * buf;
 	char err;
@@ -305,7 +346,49 @@ char read_eep_ch(uint16_t slot, long * freq)
 }
 
 
-char store_eep_ch(uint16_t slot)
+
+char store_ieep_ch(uint16_t slot)
+{
+	void * buf;
+	long fbuf;
+	ldiv_t fdiv;
+
+	buf = alloca((size_t)10);
+
+	if(slot > 24)
+		return -1;
+
+	fbuf = frequency;
+	fbuf -= FBASE;				// subtract Base Frequency
+
+	fdiv = ldiv(fbuf, 1250);	// divide by 1250 Hz
+	fbuf = fdiv.quot;
+	fbuf <<= 3;
+	*((long *) buf) = fbuf;		// store 13 Bit in Buffer
+
+	fbuf = offset;				// get stored TX shift (if used or not)
+	fdiv = ldiv(fbuf, 25000);	// divide by 25 kHz
+	fbuf = fdiv.quot;
+	fbuf &= 0x1ff;				// reduce to 9 active bits
+
+	buf++;						// combine with frequency data
+	*((uint16_t *) buf) |= (uint16_t) fbuf;	// and store in temporal buffer
+	buf+=2;
+
+	*((char *)buf) = 0;			// do not store any designation yet
+
+	buf -=3;					// set pointer to original address
+
+
+	slot *= 10;
+	slot += 0x100;				// calculate EEPROM address from slot no.
+	eeprom_update_block(buf,(void *) slot, 10);	// write data to EEPROM
+	return 0;
+}
+
+
+
+char store_eeep_ch(uint16_t slot)
 {
 	void * buf;
 	long fbuf;
@@ -343,6 +426,7 @@ char store_eep_ch(uint16_t slot)
 	return eep_write_seq(slot, 10, buf);	// write data to EEPROM
 
 }
+
 
 
 char store_current(void)
@@ -398,7 +482,8 @@ char store_current(void)
 
 	buf-=3;						// set buf ptr to pos 0;
 
-	return eep_write_seq(0x1fa, 3 , buf);	// write data to EEPROM
+ 	eeprom_update_block(buf,(void *) 0x1fa, 3);	// write data to EEPROM
+	return 0;
 
 }
 
@@ -407,17 +492,13 @@ char store_current(void)
 char read_current(unsigned long * freq,long * txshift, long * offset)
 {
 	void * buf;
-	char err;
 	long fbuf;
 
 	buf = alloca((size_t)3);
 	if(buf == NULL)
 		return -1;
 
-	err = eep_seq_read(0x1fa, 3, buf, NULL);
-
-	if(err)
-		return(err);
+	eeprom_read_block(buf,(void *) 0x1fa, 3);
 
 	// get channel
 	fbuf = *((uint16_t *) buf);

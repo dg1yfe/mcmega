@@ -21,8 +21,6 @@
 #include "subs.h"
 
 char version_str[] PROGMEM = "0.9";
-uint8_t eepbuf[512];
-unsigned int bc;
 
 void init_ui()
 {

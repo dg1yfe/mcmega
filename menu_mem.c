@@ -169,7 +169,7 @@ void m_mem_select(char key)
 					else
 					{	// TODO: So richtig?
 						lcd_cpos(0);
-						if(store_eep_ch(mem_bank))
+						if(store_ieep_ch(mem_bank))
 						{
 							printf_P(m_failed_str);
 						}

@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <avr/io.h>
+#include <avr/eeprom.h>
 #include <util/crc16.h>
 #include <alloca.h>
 
@@ -92,7 +93,7 @@ char eep_rand_read(unsigned int address, char * data)
 	if(err)
 		return err;
 
-	if(!(address && 0x8000))
+	if(!(address & 0x8000))
 		i2c_stop();
 
 	err = 0;
@@ -208,9 +209,8 @@ char eep_seq_read(unsigned int address, unsigned int bytecount,
 		while(bytecount)
 		{
 			// check if address reached a page or device boundary
-			if(!(++address && 0xff))
+			if(!(++address & 0xff))
 			{	// send I2C stop on page boundary, continue with random read
-				i2c_stop();
 				break;
 			}
 			else
@@ -279,8 +279,8 @@ char eep_write(unsigned int address, char * data)
 
 	i2c_stop();
 
-	// wait at max 11 ms for write to finish
-	ui_timer=11;
+	// wait at max 21 ms for write to finish (PCD8572 specifies 20 ms for 1 Byte write)
+	ui_timer=21;
 	err=1;
 	while(ui_timer && err)
 	{
@@ -380,17 +380,14 @@ char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 	long fbuf;
 	uint16_t eep_address;
 
-	buf = alloca((size_t)10);
+	buf = alloca((size_t)3);
 
 	if(slot > 24)
 		return -1;
 
 	eep_address = (uint16_t) slot * 10;
 	eep_address += 0x100;
-	err = eep_seq_read(eep_address, 10, buf, NULL);
-
-	if(err)
-		return(err);
+	eeprom_read_block(buf,(void *) eep_address, 3);
 
 	// get channel
 	fbuf = *((uint16_t *) buf);
