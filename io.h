@@ -33,6 +33,12 @@
 #define CONTROL_HEAD3 0
 #define CONTROL_HEAD2 1
 
+#define PORT_SEL_DAC PORTC
+#define MASK_SEL_DAC  (0x0f)
+
+#define PORT_PL_DAC PORTA
+#define MASK_PL_DAC (0x07)
+
 // initialize IO ports, needs to be called before any IO operation takes place
 void init_io( void );
 

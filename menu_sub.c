@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 #include <stdio.h>
 
 #include "FreeRTOS.h"
@@ -110,7 +111,7 @@ void m_power_submenu(char key)
 void m_defch_submenu(char key)
 {
 	static char index;
-	char print = 0;
+	char print = 1;
 
 	m_reset_timer();
 
@@ -118,7 +119,6 @@ void m_defch_submenu(char key)
 	{
 		index = cfg_defch_save & 2;
 		m_state = DEFCH_SELECT;
-		print = 1;
 	}
 	else
 	{
@@ -136,6 +136,7 @@ void m_defch_submenu(char key)
 			}
 			case KC_ENTER:
 			{
+				print = 0;
 				if(index)
 				{
 					char buf;
@@ -146,26 +147,12 @@ void m_defch_submenu(char key)
 					buf |= (index & 2);
 					cfg_defch_save = buf;
 					taskEXIT_CRITICAL();
-					if((buf = eep_write(0x1fd, &buf)))
-					{
-						lcd_cpos(0);
-						printf_P(m_failed_str);
-						lcd_fill();
-						vTaskDelay(500);
-						lcd_cpos(0);
-						pputchar('x', buf, 0);
-						lcd_fill();
-						vTaskDelay(1000);
-						m_timer = 0;
-					}
-					else
-					{
-						lcd_cpos(0);
-						printf_P(m_ok_str);
-						lcd_fill();
-						vTaskDelay(500);
-						m_timer = 0;
-					}
+					eeprom_update_byte(0x1fd, &buf);
+					lcd_cpos(0);
+					printf_P(m_ok_str);
+					lcd_fill();
+					vTaskDelay(500);
+					m_timer = 0;
 				}
 				else
 				{
@@ -179,9 +166,6 @@ void m_defch_submenu(char key)
 						vTaskDelay(500);
 						lcd_cpos(0);
 						printf_P(m_stored_str);
-						lcd_fill();
-						vTaskDelay(1000);
-						m_timer = 0;
 					}
 					else
 					{
@@ -191,15 +175,16 @@ void m_defch_submenu(char key)
 						vTaskDelay(500);
 						lcd_cpos(0);
 						pputchar('x', err, 0);
-						lcd_fill();
-						vTaskDelay(1000);
-						m_timer = 0;
 					}
+					lcd_fill();
+					vTaskDelay(1000);
+					m_timer = 0;
 				}
 				break;
 			}
 			case KC_EXIT:
 			{
+				print = 0;
 				m_timer = 0;
 				break;
 			}
@@ -231,10 +216,13 @@ void m_defch_submenu(char key)
 //
 void m_version_submenu(char key)
 {
+	m_state=SHOW_VERSION;
 	m_reset_timer();
 	lcd_cpos(0);
 	printf_P(PSTR("12.001"));
 	lcd_fill();
+	if(key == KC_EXIT)
+		m_timer=0;
 }
 
 

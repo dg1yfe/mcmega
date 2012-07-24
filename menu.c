@@ -104,6 +104,9 @@ void menu()
 		case POWER_SELECT:
 			m_power_submenu(c);
 			break;
+		case DEFCH_SELECT:
+			m_defch_submenu(c);
+			break;
 		default:
 		case IDLE:
 			m_top(c);
