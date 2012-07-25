@@ -37,6 +37,8 @@ extern char m_menu_str[] PROGMEM;
 #define MEM_SELECT_RECALL 11
 #define MEM_SELECT_STORE 12
 #define SHOW_VERSION 13
+#define CTCSS_SEL_RX 14
+#define CTCSS_SEL_TX 15
 //#define MEM_SEL_DIGIT 5
 
 

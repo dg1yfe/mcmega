@@ -107,6 +107,10 @@ void menu()
 		case DEFCH_SELECT:
 			m_defch_submenu(c);
 			break;
+		case CTCSS_SEL_RX:
+		case CTCSS_SEL_TX:
+			m_ctcss_submenu(c);
+			break;
 		default:
 		case IDLE:
 			m_top(c);

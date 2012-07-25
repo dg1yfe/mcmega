@@ -25,10 +25,6 @@ char store_ieep_ch(uint16_t slot);
 char store_current(void);
 char read_current(unsigned long * freq,long * txshift, long * offset);
 
-
-void tone_start(void);
-void tone_stop(void);
-
 void squelch(void);
 
 void wd_reset(void);

@@ -79,6 +79,8 @@ void vControlTask( void * pvParameters)
  *
  */
 	init_sci();
+	init_Timer2();
+
 	init_pll(FSTEP);
 
 	lcd_h_reset();

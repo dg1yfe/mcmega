@@ -5,6 +5,7 @@
  *      Author: eligs
  */
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>
 
 #include "FreeRTOS.h"
@@ -19,6 +20,9 @@ volatile uint8_t int_lcd_timer_dec;
 volatile uint16_t PL_phase_delta;
 volatile uint16_t SEL_phase_delta;
 volatile uint16_t SEL_phase_delta2;
+volatile unsigned int PL_phase;
+volatile unsigned int SEL_phase;
+volatile unsigned int SEL_phase2;
 
 
 void vApplicationTickHook()
@@ -46,18 +50,15 @@ void vApplicationTickHook()
 }
 
 
-void ISR(TIMER2_COMP_vect)
+ISR(TIMER2_OVF_vect)
 {
-	static unsigned int PL_phase;
-	static unsigned int SEL_phase;
-	static unsigned int SEL_phase2;
 	uint8_t index;
 
 	if(PL_phase_delta)
 	{
 		PL_phase += PL_phase_delta;
 		index = PL_phase >> 8;
-		index = pgm_read_byte(&SIN_TAB[index]);
+		index = pgm_read_byte(&sin_tab[index]);
 		index >>=1;
 		index |= PORT_PL_DAC & (~MASK_PL_DAC);
 		PORT_PL_DAC = index;
@@ -68,11 +69,11 @@ void ISR(TIMER2_COMP_vect)
 		uint8_t index2;
 		SEL_phase  += SEL_phase_delta;
 		index = SEL_phase >> 8;
-		index = pgm_read_byte(&SIN_TAB[index]);
+		index = pgm_read_byte(&sin_tab[index]);
 
 		SEL_phase2 += SEL_phase_delta2;
 		index2 = SEL_phase2 >> 8;
-		index2 = pgm_read_byte(&SIN_TAB[index2]);
+		index2 = pgm_read_byte(&sin_tab[index2]);
 
 		index+= index2;
 		index >>= 1;
@@ -84,7 +85,7 @@ void ISR(TIMER2_COMP_vect)
 	{
 		SEL_phase += SEL_phase_delta;
 		index = SEL_phase >> 8;
-		index = pgm_read_byte(&SIN_TAB[index]);
+		index = pgm_read_byte(&sin_tab[index]);
 		index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
 		PORT_SEL_DAC = index;
 	}
@@ -105,4 +106,29 @@ void init_OCI()
 	tick_ms = 0;
 	tick_hms = 0;
 	int_lcd_timer_dec = 0;
+}
+
+/*
+ * Timer for DDS oscillator
+ */
+void init_Timer2()
+{
+#if (F_CPU / FS / 8) > 255
+#warning "OCR2 value exceeds 255"
+#endif
+	OCR2 = (uint8_t) (F_CPU/FS / 8) - 1;
+	TCCR2 = (1 << WGM21) | (1 << WGM20) | (0 << CS21);
+	TIMSK |= (1 << TOIE2);
+}
+
+
+void start_Timer2()
+{
+	TCCR2 |= ((0 << CS22) | (1 << CS21) | (0 << CS20));
+}
+
+
+void stop_Timer2()
+{
+	TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
 }

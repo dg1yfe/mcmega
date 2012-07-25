@@ -7,7 +7,9 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -15,6 +17,38 @@
 #include "regmem.h"
 #include "io.h"
 #include "int.h"
+#include "audio.h"
+
+uint8_t sin_tab[] PROGMEM = {
+	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
+	   10, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13,
+	   13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13,
+	   13, 13, 13, 12, 12, 12, 12, 12, 12, 11, 11, 11, 11, 11, 11, 10,
+	   10, 10, 10, 10, 10,  9,  9,  9,  9,  9,  9,  8,  8,  8,  8,  8,
+	    7,  7,  7,  7,  7,  6,  6,  6,  6,  6,  6,  5,  5,  5,  5,  5,
+	    5,  4,  4,  4,  4,  4,  4,  3,  3,  3,  3,  3,  3,  2,  2,  2,
+	    2,  2,  2,  2,  2,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,
+	    2,  2,  2,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  5,
+	    5,  5,  5,  5,  5,  6,  6,  6,  6,  6,  6,  7,  7,  7,  7,  7
+};
+
+
+uint16_t ctcss_tab[] PROGMEM =
+{
+	 670,  694,  719,  744,  770,  797,  825,  854,
+	 885,  915,  948,  974,	1000, 1035, 1072, 1109,
+	1148, 1188, 1230, 1273,	1318, 1365, 1413, 1462,
+	1514, 1567, 1598, 1622, 1655, 1679, 1713, 1738,
+	1773, 1799, 1835, 1862, 1899, 1928, 1966, 1995,
+	2035, 2065, 2107, 2138, 2181, 2213, 2257, 2291,
+	2336, 2371, 2418, 2455, 2503, 2541
+};
 
 /*
 ;**********************
@@ -37,63 +71,92 @@
 ; = 0,488 Hz
 ;
 */
-#define FS 8000
 
+/*
+ * frequency in 1/10 Hz
+ */
 void tone_start_pl(unsigned int frequency)
 {
 	unsigned long p;
 	ldiv_t divresult;
 
-	p = frequency << 16;
+	p = (unsigned long) frequency << 16;
 
-	divresult = ldiv(p, FS*4);
+	divresult = ldiv(p, FS*40);
 
 	PL_phase_delta = divresult.quot>>16;
+
+	start_Timer2();
 }
 
 
 void tone_stop_pl()
 {
 	PL_phase_delta = 0;
+
+	if(SEL_phase_delta==0)
+	{
+		stop_Timer2();
+	}
 }
 
-
+/*
+ * frequency in Hz
+ */
 void tone_start_sel(unsigned int frequency)
 {
 	unsigned long p;
 	ldiv_t divresult;
 
-	p = frequency << 16;
+	p = (unsigned long)frequency << 16;
 
 	divresult = ldiv(p, FS*4);
 
 	SEL_phase_delta = divresult.quot>>16;
+	SEL_phase_delta2 = 0;
+
+	start_Timer2();
 }
 
 
-void tone_stop_sell()
+void tone_stop_sel()
 {
-	PL_phase_delta = 0;
+	taskENTER_CRITICAL();
+	SEL_phase_delta2 = 0;
+	SEL_phase_delta  = 0;
+	taskEXIT_CRITICAL();
+	SEL_phase=0;
+	SEL_phase2=0;
+
+	if(PL_phase_delta==0)
+	{
+		stop_Timer2();
+	}
 }
 
 
-void dtone_start(unsigned int frequency)
+/*
+ * frequency in Hz
+ */
+void dtone_start(unsigned int freq1, unsigned int freq2)
 {
-	unsigned long p;
+	unsigned long p1,p2;
 	ldiv_t divresult;
 
-	p = frequency << 16;
+	p1 = (unsigned long)freq1 << 16;
+	divresult = ldiv(p1, FS);
+	p1 = divresult.quot>>16;
 
-	divresult = ldiv(p, FS);
+	p2 = (unsigned long)freq2 << 16;
+	divresult = ldiv(p2, FS);
 
-	PL_phase_delta = divresult.quot>>16;
+	SEL_phase_delta = p1;
+	SEL_phase_delta2 = divresult.quot>>16;
+
+	start_Timer2();
 }
 
 
-void tone_stop_pl()
-{
-	PL_phase_delta = 0;
-}
 
 
 /*

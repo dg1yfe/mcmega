@@ -102,7 +102,7 @@ void s_timer_update()
 				// stop tone output if 0 was reached
 				if(!tone_timer)
 				{
-					tone_stop();
+					tone_stop_sel();
 				}
 			}
 

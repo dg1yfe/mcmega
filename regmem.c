@@ -45,10 +45,7 @@ uint8_t cpos2;
 
 char f_in_buf[9];			// 9 byte buffer
 
-int  osc1_phase;			// dual use: frequency input
-int  osc1_pd;				// & oscialltor 1 & 2 (1750 Hz & DTMF)
-int  osc2_phase;
-int  osc2_pd;
+uint8_t ctcss_index;
 int  oci_int_ctr;
 
 int f_step;					// Schrittweite in Hz
@@ -99,14 +96,6 @@ char oci_ctr;
 
 int ts_count;
 
-int osc1_dither;
-int osc3_phase;				// dual use: frequency input
-char osc_buf;
-int osc3_pd;				// & oscialltor 1 & 2 (1750 Hz & DTMF)
-char o2_en_;
-char o2_en1;
-char o2_en2;
-char o2_dither;
 
 //*****************************
 // I O   R I N G B U F F E R

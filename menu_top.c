@@ -49,8 +49,8 @@ T_MENUITEM m_submenu_list[] PROGMEM =
 		{ "MENU    ", m_recall_submenu},
 		{ "RECALL  ", m_recall_submenu},
 		{ "STORE   ", m_store_submenu},
-		{ "TX CTCSS", m_none},
-		{ "RX CTCSS", m_none},
+		{ "TX CTCSS", m_ctcss_tx},
+		{ "RX CTCSS", m_ctcss_rx},
 		{ "DTMF    ", m_none},
 		{ "POWER   ", m_power_submenu},
 		{ "VERSION ", m_version_submenu},
@@ -257,7 +257,7 @@ void m_tone()
 	ui_ptt_req = 1;
 	if(tone_timer==0)
 	{
-		tone_start();
+		tone_start_sel(1750);
 	}
 	tone_timer = 6;	// 600 ms
 }
@@ -433,12 +433,12 @@ void m_prnt_rc()
 //
 void m_test()
 {
-	tone_start();
+	tone_start_sel(1750);
 }
 
 void m_tone_stop()
 {
-	tone_stop();
+	tone_stop_sel();
 }
 
 

@@ -133,10 +133,7 @@ extern uint8_t cpos2;
 
 extern char f_in_buf[9];	// 9 byte buffer
 
-extern int  osc1_phase;		// dual use: frequency input
-extern int  osc1_pd;		// & oscialltor 1 & 2 (1750 Hz & DTMF)
-extern int  osc2_phase;
-extern int  osc2_pd;
+extern uint8_t ctcss_index;
 extern int  oci_int_ctr;
 
 extern int f_step;			// Schrittweite in Hz

@@ -9,6 +9,7 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -20,6 +21,10 @@
 #include "display.h"
 #include "eeprom.h"
 #include "subs.h"
+#include "audio.h"
+
+
+void m_ctcss_submenu(char key);
 
 // Small Submenus
 //
@@ -139,7 +144,7 @@ void m_defch_submenu(char key)
 				print = 0;
 				if(index)
 				{
-					char buf;
+					uint8_t buf;
 
 					taskENTER_CRITICAL();
 					buf = cfg_defch_save;
@@ -147,7 +152,7 @@ void m_defch_submenu(char key)
 					buf |= (index & 2);
 					cfg_defch_save = buf;
 					taskEXIT_CRITICAL();
-					eeprom_update_byte(0x1fd, &buf);
+					eeprom_update_byte((uint8_t *) 0x1fd, buf);
 					lcd_cpos(0);
 					printf_P(m_ok_str);
 					lcd_fill();
@@ -225,4 +230,93 @@ void m_version_submenu(char key)
 		m_timer=0;
 }
 
+
+
+//**************************************
+//
+//
+void m_ctcss_tx(char key)
+{
+	m_state = CTCSS_SEL_TX;
+	m_ctcss_submenu(0);
+}
+
+
+void m_ctcss_rx(char key)
+{
+	m_state = CTCSS_SEL_RX;
+	m_ctcss_submenu(0);
+}
+
+
+void m_ctcss_submenu(char key)
+{
+	char print = 1;
+
+	m_reset_timer();
+
+	if (key != 0)
+	{
+		switch(key)
+		{
+			case KC_D1:
+			{
+				ctcss_index = ctcss_index < CTCSS_TABMAX ? ctcss_index+1 : 0;
+				break;
+			}
+			case KC_D2:
+			{
+				ctcss_index = ctcss_index ? ctcss_index-1 : CTCSS_TABMAX-1;
+				break;
+			}
+			case KC_ENTER:
+			{
+				uint16_t freq;
+
+				print = 0;
+				freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+
+				if(m_state == CTCSS_SEL_TX)
+					tone_start_pl(freq);
+				break;
+			}
+			case 0:
+			{
+				tone_stop_pl();
+				printf_P(PSTR("OFF"));
+				vTaskDelay(200);
+			}
+			case KC_EXIT:
+			{
+				print = 0;
+				m_timer = 0;
+				break;
+			}
+		}
+	}
+
+	if(print)
+	{
+		uint16_t freq;
+		char c[6];
+
+		memset(c,0,sizeof c);
+		freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+		itoa(freq,c,10);
+		if (freq<1000)
+		{
+			c[4] = c[3];
+			c[3] = '_';
+		}
+		else
+		{
+			c[5] = c[4];
+			c[4] = '_';
+		}
+		lcd_cpos(0);
+		printf("%s",c);
+		lcd_fill();
+	}
+
+}
 

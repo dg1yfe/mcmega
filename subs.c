@@ -254,17 +254,6 @@ unsigned int crc16(unsigned int bytecount, void * data, unsigned int init)
 }
 
 
-void tone_start()
-{
-	// TODO : Tonausgabe
-}
-
-
-void tone_stop()
-{
-	// TODO: Beendet Tonausgabe
-}
-
 /*
  *  Read frequency and settings from internal EEPROM
  *  slot = slot number
