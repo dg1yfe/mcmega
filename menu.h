@@ -39,6 +39,7 @@ extern char m_menu_str[] PROGMEM;
 #define SHOW_VERSION 13
 #define CTCSS_SEL_RX 14
 #define CTCSS_SEL_TX 15
+#define CAL 16
 //#define MEM_SEL_DIGIT 5
 
 

@@ -19,6 +19,7 @@
 #include "int.h"
 #include "io.h"
 #include "subs.h"
+#include "audio.h"
 
 char version_str[] PROGMEM = "0.9";
 
@@ -66,7 +67,6 @@ void vUiTask( void * pvParameters)
 	reset_ui();
 
 	lcd_cpos(0);
-
     for(;;)
 	{
     	pll_led(0);

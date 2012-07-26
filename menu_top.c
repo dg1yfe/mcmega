@@ -53,10 +53,10 @@ T_MENUITEM m_submenu_list[] PROGMEM =
 		{ "RX CTCSS", m_ctcss_rx},
 		{ "DTMF    ", m_none},
 		{ "POWER   ", m_power_submenu},
+		{ "DEF CHAN", m_defch_submenu},
 		{ "VERSION ", m_version_submenu},
-		{ "DEF CHAN", m_defch_submenu}
+		{ "CALIBRAT", m_cal_submenu}
 };
-
 #define M_MENU_ENTRIES sizeof(m_submenu_list) / sizeof(T_MENUITEM)
 
 

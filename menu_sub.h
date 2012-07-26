@@ -16,5 +16,6 @@ void m_version_submenu(char key);
 void m_ctcss_tx(char key);
 void m_ctcss_rx(char key);
 void m_ctcss_submenu(char key);
+void m_cal_submenu(char key);
 
 #endif /* MENU_SUB_H_ */

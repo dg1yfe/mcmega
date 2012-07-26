@@ -211,6 +211,7 @@ void m_defch_submenu(char key)
 			printf_P(PSTR("AUTO"));
 			break;
 		}
+		lcd_fill();
 	}
 
 }
@@ -238,14 +239,14 @@ void m_version_submenu(char key)
 void m_ctcss_tx(char key)
 {
 	m_state = CTCSS_SEL_TX;
-	m_ctcss_submenu(0);
+	m_ctcss_submenu(-1);
 }
 
 
 void m_ctcss_rx(char key)
 {
 	m_state = CTCSS_SEL_RX;
-	m_ctcss_submenu(0);
+	m_ctcss_submenu(-1);
 }
 
 
@@ -255,13 +256,13 @@ void m_ctcss_submenu(char key)
 
 	m_reset_timer();
 
-	if (key != 0)
+	if (key != -1)
 	{
 		switch(key)
 		{
 			case KC_D1:
 			{
-				ctcss_index = ctcss_index < CTCSS_TABMAX ? ctcss_index+1 : 0;
+				ctcss_index = ctcss_index < CTCSS_TABMAX-1 ? ctcss_index+1 : 0;
 				break;
 			}
 			case KC_D2:
@@ -278,12 +279,19 @@ void m_ctcss_submenu(char key)
 
 				if(m_state == CTCSS_SEL_TX)
 					tone_start_pl(freq);
+
+				lcd_cpos(0);
+				printf_P(m_ok_str);
+				lcd_fill();
+				m_timer=0;
 				break;
 			}
 			case 0:
 			{
 				tone_stop_pl();
-				printf_P(PSTR("OFF"));
+				lcd_cpos(0);
+				printf_P(PSTR("TONE OFF"));
+				lcd_fill();
 				vTaskDelay(200);
 			}
 			case KC_EXIT:
@@ -305,18 +313,53 @@ void m_ctcss_submenu(char key)
 		itoa(freq,c,10);
 		if (freq<1000)
 		{
-			c[4] = c[3];
-			c[3] = '_';
+			c[3] = c[2];
+			c[2] = '_';
 		}
 		else
 		{
-			c[5] = c[4];
-			c[4] = '_';
+			c[4] = c[3];
+			c[3] = '_';
 		}
 		lcd_cpos(0);
-		printf("%s",c);
+		printf("%s Hz",c);
 		lcd_fill();
 	}
 
 }
 
+
+
+
+void m_cal_submenu(char key)
+{
+	uint8_t cal;
+
+	m_reset_timer();
+	m_state=CAL;
+	cal = OSCCAL;
+
+	switch(key)
+	{
+		case KC_D1:
+		{
+			cal++;
+			break;
+		}
+		case KC_D2:
+		{
+			cal--;
+			break;
+		}
+		case KC_EXIT:
+		{
+			m_timer=0;
+			break;
+		}
+	}
+	OSCCAL = cal;
+	lcd_cpos(0);
+	pputchar('x',cal,0);
+	lcd_fill();
+
+}

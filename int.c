@@ -50,7 +50,7 @@ void vApplicationTickHook()
 }
 
 
-ISR(TIMER2_OVF_vect)
+ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
 
@@ -92,6 +92,7 @@ ISR(TIMER2_OVF_vect)
 }
 
 
+
 void init_SIO()
 {
 	//TODO : Bitrate
@@ -117,8 +118,8 @@ void init_Timer2()
 #warning "OCR2 value exceeds 255"
 #endif
 	OCR2 = (uint8_t) (F_CPU/FS / 8) - 1;
-	TCCR2 = (1 << WGM21) | (1 << WGM20) | (0 << CS21);
-	TIMSK |= (1 << TOIE2);
+	TCCR2 |= (1 << WGM21) | (0 << WGM20) ;
+	TIMSK |= (1 << OCIE2);
 }
 
 

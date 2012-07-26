@@ -579,7 +579,7 @@ void rfpwr_set(uint8_t enable_hi_power)
 {
 	if(enable_hi_power)
 	{
-		pwr_mode &= 8;
+		pwr_mode &= ~((uint8_t)8);
 	}
 	else
 	{

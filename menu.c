@@ -111,6 +111,9 @@ void menu()
 		case CTCSS_SEL_TX:
 			m_ctcss_submenu(c);
 			break;
+		case CAL:
+			m_cal_submenu(c);
+			break;
 		default:
 		case IDLE:
 			m_top(c);

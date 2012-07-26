@@ -60,15 +60,16 @@ uint16_t ctcss_tab[] PROGMEM =
 ; Parameter : D - Tonfrequenz in 1/10 Hz
 ;
 ;
-; delta phase = f / 8000 * 64 * 256
+; delta phase = f / 8000 * 256 * 256
 ; wegen Integer rechnung:
-; dp = f*256*64 / 8000
+; dp = f*256*256 / 8000
 ; einfacher (da *65536 einem Shift um 2 ganze Bytes entspricht)
-; dp = f*256*64*4 / (8000*4)
-; dp = f*  65536  /  32000
+; fz = f*10 wegen 1/10 Hz, Kompensation durch Faktor 10 in Nenner
+; dp = f*10 * 65536 / (8000 * 10)
+; dp = fz  * 65536  /  80000
 ;
-; Frequenzabweichung maximal 8000 / (64 (Schritte in Sinus Tabelle) * 256 (8 Bit 'hinterm Komma')
-; = 0,488 Hz
+; Frequenzabweichung maximal 8000 / (256 (Schritte in Sinus Tabelle) * 256 (8 Bit 'hinterm Komma')
+; = 0,122 Hz
 ;
 */
 
@@ -81,10 +82,12 @@ void tone_start_pl(unsigned int frequency)
 	ldiv_t divresult;
 
 	p = (unsigned long) frequency << 16;
+	
+	p+=40000;	// add 1/2 LSB to round instead of truncate
 
-	divresult = ldiv(p, FS*40);
+	divresult = ldiv(p, FS*10);
 
-	PL_phase_delta = divresult.quot>>16;
+	PL_phase_delta = divresult.quot;
 
 	start_Timer2();
 }
@@ -110,9 +113,9 @@ void tone_start_sel(unsigned int frequency)
 
 	p = (unsigned long)frequency << 16;
 
-	divresult = ldiv(p, FS*4);
+	divresult = ldiv(p, FS);
 
-	SEL_phase_delta = divresult.quot>>16;
+	SEL_phase_delta = divresult.quot;
 	SEL_phase_delta2 = 0;
 
 	start_Timer2();
@@ -151,7 +154,7 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 	divresult = ldiv(p2, FS);
 
 	SEL_phase_delta = p1;
-	SEL_phase_delta2 = divresult.quot>>16;
+	SEL_phase_delta2 = divresult.quot;
 
 	start_Timer2();
 }

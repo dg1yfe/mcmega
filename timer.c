@@ -42,7 +42,7 @@
 #include "menu.h"
 #include "subs.h"
 #include "int.h"
-
+#include "audio.h"
 /*
  * Initialisiert Software Timer
  */
@@ -103,6 +103,7 @@ void s_timer_update()
 				if(!tone_timer)
 				{
 					tone_stop_sel();
+					ui_ptt_req = 0;
 				}
 			}
 

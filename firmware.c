@@ -103,7 +103,7 @@ void vControlTask( void * pvParameters)
 	audio_pa(1,1);
 
 	s_timer_init();
-
+	OSCCAL = 0xbd;
 
 	xLastWakeTime = xTaskGetTickCount();
 	while (1)
