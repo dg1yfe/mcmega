@@ -25,6 +25,7 @@
 #include "menu_sub.h"
 #include "menu_mem.h"
 #include "subs.h"
+#include "audio.h"
 
 typedef struct
 {
@@ -91,6 +92,7 @@ void m_top(uint8_t key)
 			m_start_input(key);
 			break;
 		case KC_EXIT:
+			m_test(key);
 			break;
 		case KC_D1:
 			m_frq_up();
@@ -431,9 +433,25 @@ void m_prnt_rc()
 // M   T E S T
 //
 //
-void m_test()
+void m_test(char c)
 {
-	tone_start_sel(1750);
+	//tone_start_sel(1750);
+	if(!m_timer_en)
+	{
+		m_state = TEST;
+		save_dbuf();
+	}
+	m_reset_timer();
+
+	if(c == KC_D1)
+		m_timer = 0;
+	else
+	{	
+		lcd_cpos(0);
+		printf_P(PSTR("%04x"), ge>>16);
+		lcd_fill();	
+	}
+
 }
 
 void m_tone_stop()

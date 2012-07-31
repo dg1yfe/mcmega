@@ -347,6 +347,7 @@ void m_ctcss_submenu(char key)
 		memset(c,0,sizeof c);
 		freq = pgm_read_word(&ctcss_tab[ctcss_index]);
 		itoa(freq,c,10);
+		lcd_cpos(0);
 		if(freq==0)
 		{
 			printf_P(PSTR("OFF"));
@@ -363,7 +364,6 @@ void m_ctcss_submenu(char key)
 				c[4] = c[3];
 				c[3] = '_';
 			}
-			lcd_cpos(0);
 			printf_P(PSTR("%s Hz"),c);
 		}
 		lcd_fill();

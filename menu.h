@@ -40,6 +40,7 @@ extern char m_menu_str[] PROGMEM;
 #define CTCSS_SEL_RX 14
 #define CTCSS_SEL_TX 15
 #define CAL 16
+#define TEST 17
 //#define MEM_SEL_DIGIT 5
 
 

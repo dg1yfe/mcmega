@@ -45,6 +45,7 @@
 //
 #define SQM_OFF       0
 #define SQM_CARRIER   1
+#define SQM_CTCSS     2
 
 // Power Switch (0 = Power On)
 #define PORT_SWB	PORTD

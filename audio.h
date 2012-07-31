@@ -19,6 +19,9 @@ extern uint8_t sin_tab[] PROGMEM;
 extern uint16_t ctcss_tab[] PROGMEM;
 extern volatile uint32_t samp_buf;
 extern volatile uint8_t samp_count;
+extern uint16_t c;
+extern volatile long ge;
+extern volatile uint8_t tone_detect;
 
 void tone_start_pl(unsigned int frequency);
 

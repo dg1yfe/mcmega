@@ -18,7 +18,7 @@ extern void mts_switch(char key);
 void mts_digit(char key);
 void m_set_shift(void);
 void m_prnt_rc(void);
-void m_test(void);
+void m_test(char key);
 void m_tone_stop(void);
 void m_prnt_tc(void);
 void m_submenu(char key);

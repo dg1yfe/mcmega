@@ -114,12 +114,15 @@ void menu()
 		case CAL:
 			m_cal_submenu(c);
 			break;
+		case TEST:
+			m_test(c);
 		default:
 		case IDLE:
 			m_top(c);
 			break;
 		}
 	}
+
 
 	// M_END
 

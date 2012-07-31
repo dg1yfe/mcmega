@@ -21,13 +21,14 @@
 
 
 static int16_t q[3];
-static uint16_t c;
+uint16_t c;
 static uint16_t N;
 
-uint8_t tone_detect;
+volatile uint8_t tone_detect;
 
 volatile uint32_t samp_buf;
 volatile uint8_t samp_count=0;
+volatile long ge;
 
 uint8_t sin_tab[] PROGMEM = {
 	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
@@ -120,10 +121,7 @@ void tone_stop_pl()
 {
 	PL_phase_delta = 0;
 
-	if(SEL_phase_delta==0)
-	{
-		stop_Timer2();
-	}
+	stop_Timer2();
 }
 
 /*
@@ -154,10 +152,7 @@ void tone_stop_sel()
 	SEL_phase=0;
 	SEL_phase2=0;
 
-	if(PL_phase_delta==0)
-	{
-		stop_Timer2();
-	}
+	stop_Timer2();
 }
 
 
@@ -221,13 +216,14 @@ void goertzel_init(uint8_t ctcss_index)
 	c = pgm_read_word(&ctcss_coeff_tab[ctcss_index]);
 	goertzel_reset();
 	tone_detect = 0;
+	start_Timer2();
 }
 
 
 static inline void goertzel_process(int8_t xn)
 {
 
-	q[0] = ((c * q[1]) >> 14) - q[2] + xn;
+	q[0] = (( (long) c * (long) q[1]) >> 14) - q[2] + xn;
 	q[2] = q[1];
 	q[1] = q[0];
 	N--;
@@ -236,12 +232,14 @@ static inline void goertzel_process(int8_t xn)
 
 static inline long goertzel_eval()
 {
-	long y;
+	signed long y;
 
 	y = ((long)q[0] * (long)q[0]);
 	y -= (c * (long) q[0] * (long) q[2])>>14;
 	y += (long)q[1] * (long)q[1];
 
+	if(y<0)
+		y=0;
 	return y;
 }
 
@@ -249,6 +247,7 @@ static inline long goertzel_eval()
 void tone_decode_stop()
 {
 	c = 0;
+	stop_Timer2();
 }
 
 
@@ -257,6 +256,7 @@ uint8_t tone_decode()
 	uint8_t i,j;
 	uint32_t buf;
 
+	i=0;
 	while(samp_count && (i++ < 20))
 	{
 		taskENTER_CRITICAL();
@@ -272,12 +272,19 @@ uint8_t tone_decode()
 
 		if(!N)
 		{
-			if(goertzel_eval() > 500000)
-				tone_detect=10;
+			ge = goertzel_eval();
+			if( ((char) (ge >> 24)) > 10 )
+			{
+				tone_detect=5;
+			}
 			else
 			{
-				if(tone_detect)
-					tone_detect--;
+				j=tone_detect;
+				if(j)
+				{
+					j--;
+					tone_detect=j;
+				}
 			}
 			goertzel_reset();
 		}

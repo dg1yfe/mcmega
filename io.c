@@ -198,11 +198,11 @@ void init_io()
 	 * Bit 1-3  : SPI (SCK,MOSI,MISO)
 	 * Bit 4	: Alert Tone (OC0)
 	 * Bit 5	: Data Inhibit (clamp Signal Decode Input to GND)
-	 * Bit 6	: Tx/Busy (Control Panel Reset)
+	 * Bit 6	: Tx/Busy (Control Head Reset)
 	 * Bit 7	: Syn_Latch
 	 */
 
-	DDRB  = (1 << 4) | ( 1 << 5 ) | ( 1 << 6) | ( 1 << 7 );
+	DDRB  = (1 << 4) | ( 1 << 5 ) | ( 0 << 6) | ( 1 << 7 );
 	PORTB = (1 << 4);
 
 	/*

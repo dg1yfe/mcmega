@@ -55,7 +55,7 @@
 #include "pll_freq.h"
 #include "eeprom.h"
 #include "subs.h"
-
+#include "audio.h"
 
 void pwr_sw_chk(char cSaveSettings)
 {
@@ -219,7 +219,10 @@ void squelch()
 
 		// squelch open if carrier detected (bit_sql = 1)
 		// or squelch deactivated (sql_mode == SQM_OFF)
+		// or carrier detected & tone detected
 		state = (PIN_SQL & BIT_SQL) || (sql_mode == SQM_OFF);
+		if((sql_mode != SQM_OFF) && c)
+			state = (PIN_SQL & BIT_SQL) && tone_detect;
 
 		if(state != sql_flag)
 		{

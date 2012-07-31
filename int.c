@@ -54,24 +54,27 @@ ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
 
-	if(rxtx_state)	// process sample input in RX
+	if(!rxtx_state)	// process sample input in RX
 	{
-		uint32_t sb;
-		uint8_t sc;
-
-		sb=samp_buf;
-		sb <<= 1;
-		if(PIN_SIGIN & BIT_SIGIN)
+		if(c)
 		{
-			sb |= 1;
+			uint32_t sb;
+			uint8_t sc;
+
+			sb=samp_buf;
+			sb <<= 1;
+			if(PIN_SIGIN & BIT_SIGIN)
+			{
+				sb |= 1;
+			}
+			samp_buf = sb;
+			sc = samp_count;
+			sc++;
+			sc &= 31;
+			if(!sc)
+				sc=31;
+			samp_count = sc;
 		}
-		samp_buf = sb;
-		sc = samp_count;
-		sc++;
-		sc &= 31;
-		if(!sc)
-			sc--;
-		samp_count = sc;
 	}
 	else	// Tone oscillators are not used in TX
 	{
@@ -153,5 +156,8 @@ void start_Timer2()
 
 void stop_Timer2()
 {
-	TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
+	if(!(SEL_phase_delta || PL_phase_delta || c))
+	{
+		TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
+	}
 }
