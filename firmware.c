@@ -108,6 +108,7 @@ void vControlTask( void * pvParameters)
 	xLastWakeTime = xTaskGetTickCount();
 	while (1)
     {
+		tone_decode();
 		pwr_sw_chk(0);
 		s_timer_update();
 		i=ptt_get_status();

@@ -272,13 +272,48 @@ void m_ctcss_submenu(char key)
 			}
 			case KC_ENTER:
 			{
-				uint16_t freq;
-
 				print = 0;
-				freq = pgm_read_word(&ctcss_tab[ctcss_index]);
 
 				if(m_state == CTCSS_SEL_TX)
-					tone_start_pl(freq);
+				{
+					uint16_t freq;
+
+					freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+					if(freq)
+					{
+						tone_start_pl(freq);
+					}
+					else
+					{
+						tone_stop_pl();
+						tone_decode_stop();
+						lcd_cpos(0);
+						printf_P(PSTR("TX CTCSS"));
+						lcd_fill();
+						lcd_cpos(0);
+						vTaskDelay(100);
+						printf_P(PSTR("OFF"));
+						lcd_fill();
+					}
+				}
+				else
+				{
+					if(ctcss_index)
+					{
+						goertzel_init(ctcss_index);
+					}
+					else
+					{
+						tone_decode_stop();
+						lcd_cpos(0);
+						printf_P(PSTR("RX CTCSS"));
+						lcd_fill();
+						lcd_cpos(0);
+						vTaskDelay(100);
+						printf_P(PSTR("OFF"));
+						lcd_fill();
+					}
+				}
 
 				lcd_cpos(0);
 				printf_P(m_ok_str);
@@ -289,6 +324,7 @@ void m_ctcss_submenu(char key)
 			case 0:
 			{
 				tone_stop_pl();
+				tone_decode_stop();
 				lcd_cpos(0);
 				printf_P(PSTR("TONE OFF"));
 				lcd_fill();
@@ -311,18 +347,25 @@ void m_ctcss_submenu(char key)
 		memset(c,0,sizeof c);
 		freq = pgm_read_word(&ctcss_tab[ctcss_index]);
 		itoa(freq,c,10);
-		if (freq<1000)
+		if(freq==0)
 		{
-			c[3] = c[2];
-			c[2] = '_';
+			printf_P(PSTR("OFF"));
 		}
 		else
 		{
-			c[4] = c[3];
-			c[3] = '_';
+			if (freq<1000)
+			{
+				c[3] = c[2];
+				c[2] = '_';
+			}
+			else
+			{
+				c[4] = c[3];
+				c[3] = '_';
+			}
+			lcd_cpos(0);
+			printf_P(PSTR("%s Hz"),c);
 		}
-		lcd_cpos(0);
-		printf("%s Hz",c);
 		lcd_fill();
 	}
 

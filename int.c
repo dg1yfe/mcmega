@@ -54,40 +54,62 @@ ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
 
-	if(PL_phase_delta)
+	if(rxtx_state)	// process sample input in RX
 	{
-		PL_phase += PL_phase_delta;
-		index = PL_phase >> 8;
-		index = pgm_read_byte(&sin_tab[index]);
-		index >>=1;
-		index |= PORT_PL_DAC & (~MASK_PL_DAC);
-		PORT_PL_DAC = index;
+		uint32_t sb;
+		uint8_t sc;
+
+		sb=samp_buf;
+		sb <<= 1;
+		if(PIN_SIGIN & BIT_SIGIN)
+		{
+			sb |= 1;
+		}
+		samp_buf = sb;
+		sc = samp_count;
+		sc++;
+		sc &= 31;
+		if(!sc)
+			sc--;
+		samp_count = sc;
 	}
-
-	if(SEL_phase_delta2)
+	else	// Tone oscillators are not used in TX
 	{
-		uint8_t index2;
-		SEL_phase  += SEL_phase_delta;
-		index = SEL_phase >> 8;
-		index = pgm_read_byte(&sin_tab[index]);
+		if(PL_phase_delta)
+		{
+			PL_phase += PL_phase_delta;
+			index = PL_phase >> 8;
+			index = pgm_read_byte(&sin_tab[index]);
+			index >>=1;
+			index |= PORT_PL_DAC & (~MASK_PL_DAC);
+			PORT_PL_DAC = index;
+		}
 
-		SEL_phase2 += SEL_phase_delta2;
-		index2 = SEL_phase2 >> 8;
-		index2 = pgm_read_byte(&sin_tab[index2]);
+		if(SEL_phase_delta2)
+		{
+			uint8_t index2;
+			SEL_phase  += SEL_phase_delta;
+			index = SEL_phase >> 8;
+			index = pgm_read_byte(&sin_tab[index]);
 
-		index+= index2;
-		index >>= 1;
-		index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
-		PORT_SEL_DAC = index;
-	}
-	else
-	if(SEL_phase_delta)
-	{
-		SEL_phase += SEL_phase_delta;
-		index = SEL_phase >> 8;
-		index = pgm_read_byte(&sin_tab[index]);
-		index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
-		PORT_SEL_DAC = index;
+			SEL_phase2 += SEL_phase_delta2;
+			index2 = SEL_phase2 >> 8;
+			index2 = pgm_read_byte(&sin_tab[index2]);
+
+			index+= index2;
+			index >>= 1;
+			index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
+			PORT_SEL_DAC = index;
+		}
+		else
+		if(SEL_phase_delta)
+		{
+			SEL_phase += SEL_phase_delta;
+			index = SEL_phase >> 8;
+			index = pgm_read_byte(&sin_tab[index]);
+			index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
+			PORT_SEL_DAC = index;
+		}
 	}
 }
 

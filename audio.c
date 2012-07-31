@@ -19,6 +19,16 @@
 #include "int.h"
 #include "audio.h"
 
+
+static int16_t q[3];
+static uint16_t c;
+static uint16_t N;
+
+uint8_t tone_detect;
+
+volatile uint32_t samp_buf;
+volatile uint8_t samp_count=0;
+
 uint8_t sin_tab[] PROGMEM = {
 	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
 	   10, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13,
@@ -41,13 +51,26 @@ uint8_t sin_tab[] PROGMEM = {
 
 uint16_t ctcss_tab[] PROGMEM =
 {
-	 670,  694,  719,  744,  770,  797,  825,  854,
+	 0, 670,  694,  719,  744,  770,  797,  825,  854,
 	 885,  915,  948,  974,	1000, 1035, 1072, 1109,
 	1148, 1188, 1230, 1273,	1318, 1365, 1413, 1462,
 	1514, 1567, 1598, 1622, 1655, 1679, 1713, 1738,
 	1773, 1799, 1835, 1862, 1899, 1928, 1966, 1995,
 	2035, 2065, 2107, 2138, 2181, 2213, 2257, 2291,
 	2336, 2371, 2418, 2455, 2503, 2541
+};
+
+
+
+// c = (2 - coeff) * 65536
+uint16_t ctcss_coeff_tab[] PROGMEM =
+{
+		0, 32723, 32719, 32716, 32712, 32708, 32704, 32699, 32694, 32689,
+		32683, 32677, 32672, 32667, 32660, 32652, 32644, 32635, 32625,
+		32615, 32604, 32593, 32580, 32566, 32552, 32537, 32520, 32510,
+		32502, 32492, 32484, 32472, 32463, 32451, 32441, 32428, 32418,
+		32404, 32393, 32378, 32367, 32350, 32338, 32320, 32307, 32288,
+		32274, 32255, 32239, 32218, 32201, 32179, 32161, 32137, 32118
 };
 
 /*
@@ -138,6 +161,19 @@ void tone_stop_sel()
 }
 
 
+
+void attenuate_sel(char att)
+{
+	if(att)
+	{
+		SetShiftReg(SR_SELATT, 0xff);
+	}
+	else
+	{
+		SetShiftReg(0,~SR_SELATT);
+	}
+}
+
 /*
  * frequency in Hz
  */
@@ -159,60 +195,93 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 	start_Timer2();
 }
 
-
-
-
-/*
-
-               ldd  #32000            ; Divisor  = Samplefrequenz * 4
-;               ldd  #48000            ; Divisor  = Samplefrequenz * 4
-               jsr  divide32          ; equivalent (Frequenz*256) / 16
-               pulx
-               pulx                   ; 'kleiner' (16 Bit) Quotient reicht aus
-
-               std  osc1_pd           ; Quotient = delta f�r phase
-
-               ldab Port6_DDR_buf
-               andb #%10011111
-               stab Port6_DDR_buf
-               stab Port6_DDR
-
-               ldab #0
-               stab tasksw_en         ; disable preemptive task switching
-               sei
-               ldab tick_ms+1
-tos_intloop
-               cli
-               nop                    ; don't remove these NOPs
-               nop                    ; HD6303 needs at least 2 clock cycles between cli & sei
-               sei                    ; otherwise interrupts aren't processed
-               cmpb tick_ms+1
-               beq  tos_intloop
-               ldab #1
-               stab oci_int_ctr       ; Interrupt counter auf 1
-                                      ; (Bit is left shifted during Audio OCI, on zero 1ms OCI will be executed)
-               ldab TCSR2
-               ldd  OCR1
-               std  OCR2
-               subd #SYSCLK/1000
-               addd #249*5            ; add 5 sample periods to ensure there is enough time
-                                      ; before next interrupt occurs even on EVA9
-               std  OCR1
-
-               clra
-               staa o2_en1
-               staa o2_en2
-               ldx  #OCI_OSC1
-               stx  oci_vec           ; OCI Interrupt Vektor 'verbiegen'
-                                      ; Ausgabe startet automatisch beim n�chsten OCI
-                                      ; 1/8000 s Zeitintervall wird automatisch gesetzt
-;               clr  tasksw_en         ; re-enable preemptive task switching
-               ldd  #$1
-               std  osc1_dither
-               cli
-               pulx
-               pula
-               pulb
-               rts
+/* fsr = 8000
+ * fi = CTCSS Ton
  *
+ * coeffi = 2 * cosine (2 * π * fi / fsr)
+ *
+ * 	Q0i = coeffi * Q1i - Q2i + x (n)
+	Q2i = Q1i
+	Q1i = Q0i (3)
  */
+
+static inline void goertzel_reset(void)
+{
+	uint8_t i;
+
+	for(i=0;i<3;i++)
+	{
+		q[i]=0;
+	}
+	N=4000;
+}
+
+void goertzel_init(uint8_t ctcss_index)
+{
+	c = pgm_read_word(&ctcss_coeff_tab[ctcss_index]);
+	goertzel_reset();
+	tone_detect = 0;
+}
+
+
+static inline void goertzel_process(int8_t xn)
+{
+
+	q[0] = ((c * q[1]) >> 14) - q[2] + xn;
+	q[2] = q[1];
+	q[1] = q[0];
+	N--;
+}
+
+
+static inline long goertzel_eval()
+{
+	long y;
+
+	y = ((long)q[0] * (long)q[0]);
+	y -= (c * (long) q[0] * (long) q[2])>>14;
+	y += (long)q[1] * (long)q[1];
+
+	return y;
+}
+
+
+void tone_decode_stop()
+{
+	c = 0;
+}
+
+
+uint8_t tone_decode()
+{
+	uint8_t i,j;
+	uint32_t buf;
+
+	while(samp_count && (i++ < 20))
+	{
+		taskENTER_CRITICAL();
+		samp_count--;
+		j=samp_count;
+		buf = samp_buf;
+		taskEXIT_CRITICAL();
+		buf >>= j;
+
+		j = (uint8_t) buf & 1;
+
+		goertzel_process(j);
+
+		if(!N)
+		{
+			if(goertzel_eval() > 500000)
+				tone_detect=10;
+			else
+			{
+				if(tone_detect)
+					tone_detect--;
+			}
+			goertzel_reset();
+		}
+	}
+	return tone_detect;
+}
+

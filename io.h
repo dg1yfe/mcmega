@@ -39,6 +39,22 @@
 #define PORT_PL_DAC PORTA
 #define MASK_PL_DAC (0x07)
 
+	/*
+	 * Port B:
+	 * Bit 0	: CSQ/UNSQ (Input from Control Panel)
+	 * Bit 1-3  : SPI (SCK,MOSI,MISO)
+	 * Bit 4	: Alert Tone (OC0)
+	 * Bit 5	: Data Inhibit (clamp Signal Decode Input to GND)
+	 * Bit 6	: Tx/Busy (Control Panel Reset)
+	 * Bit 7	: Syn_Latch
+	 */
+#define PORT_CPRESET PORTB
+#define BIT_CPRESET (1 << 6)
+
+#define PORT_SIGIN PORTD
+#define PIN_SIGIN PIND
+#define BIT_SIGIN (1 << 4)
+
 // initialize IO ports, needs to be called before any IO operation takes place
 void init_io( void );
 
