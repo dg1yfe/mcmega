@@ -21,6 +21,7 @@
 #include "math.h"
 
 static int16_t q[3];
+static int16_t z[2];
 uint16_t c;
 static uint16_t N;
 
@@ -220,6 +221,40 @@ void goertzel_init(uint8_t ctcss_index)
 }
 
 
+static inline int8_t iir_tp270(int8_t xn) __attribute__ ((always_inline));
+static inline int8_t iir_tp270(int8_t xn)
+{
+/*b0=1;
+ b1=int32(-376);
+ b2=1;
+
+ a0=1;
+ a1=int32(-464);
+ a2=int32(217);
+ *
+ *
+y(i)= x(i) + z0;
+z0  = int32((x(i) * b1)/256) - int32(y(i)*a1/256) + z1;
+z1  = x(i) - int32(y(i)*a2/256);
+ *
+ */
+	int16_t y,t;
+
+	y= xn + z[0];
+	t = -376;		// b1
+	MultiSU16X8toH16(z[0], t, xn);
+	z[0] += z[1];
+	t = -464;		// a1
+	MultiS16X16toH16(t,y,t);
+	z[0] += t;
+	t = 217;
+	MultiS16X16toH16(t,y,t);
+	z[1] = xn - t;
+
+	return (int8_t) (y>>8);
+}
+
+
 static inline void goertzel_process(int8_t xn) __attribute__ ((always_inline));
 static inline void goertzel_process(int8_t xn)
 {
@@ -276,6 +311,7 @@ uint8_t tone_decode()
 		buf >>= j;
 
 		j = (uint8_t) buf & 1;
+		j = iir_tp270(j);
 
 		goertzel_process(j);
 
