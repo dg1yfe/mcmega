@@ -193,7 +193,7 @@ void transmit()
 	SetShiftReg(0, ~(SR_RXAUDIOEN));
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
-	if(pwr_mode)
+	if(cfg_pwr_mode)
 	{
 		SetShiftReg(SR_MICEN, ~SR_TXPWRLO);
 	}
@@ -582,18 +582,18 @@ void rfpwr_set(uint8_t enable_hi_power)
 {
 	if(enable_hi_power)
 	{
-		pwr_mode &= ~((uint8_t)8);
+		cfg_pwr_mode &= ~((uint8_t)8);
 	}
 	else
 	{
-		pwr_mode |= 8;
+		cfg_pwr_mode |= 8;
 	}
 }
 
 
 void rfpwr_print()
 {
-	if(pwr_mode)
+	if(cfg_pwr_mode)
 		arrow_set(3, 0);
 	else
 		arrow_set(3, 1);

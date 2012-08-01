@@ -66,7 +66,7 @@ long exp10tab[] = { 100000000,
 // Ergebnis:  B - Potenz (Bereich 1 - 128, 2^0 - 2^7 )
 //
 //
-inline uint8_t raise(uint8_t power)
+uint8_t raise(uint8_t power)
 {
 	uint8_t buf = 1;
 

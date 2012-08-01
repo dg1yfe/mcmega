@@ -68,7 +68,7 @@ long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 char rxtx_state;			// 0=RX
 
-char pwr_mode;				// Lo / Hi Power
+char cfg_pwr_mode;				// Lo / Hi Power
 
 char ptt_debounce;
 

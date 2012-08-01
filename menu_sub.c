@@ -46,7 +46,7 @@ void m_ctcss_submenu(char key);
 //
 void m_power()
 {
-	if(pwr_mode)
+	if(cfg_pwr_mode)
 	{
 		// pwr is low, set to high
 		rfpwr_set(1);
@@ -78,7 +78,7 @@ void m_power_submenu(char key)
 		{
 			case KC_D1:
 			case KC_D2:
-				pwr_mode ^= 8;
+				cfg_pwr_mode ^= 8;
 				print = 1;
 				break;
 			case KC_ENTER:
@@ -94,7 +94,7 @@ void m_power_submenu(char key)
 	if(print)
 	{
 		lcd_cpos(0);
-		if(pwr_mode)
+		if(cfg_pwr_mode)
 		{
 			printf_P(PSTR("pwr lo"));
 			arrow_set(3, 0);

@@ -18,7 +18,7 @@
 #include "io.h"
 #include "int.h"
 #include "audio.h"
-
+#include "math.h"
 
 static int16_t q[3];
 uint16_t c;
@@ -220,23 +220,32 @@ void goertzel_init(uint8_t ctcss_index)
 }
 
 
+static inline void goertzel_process(int8_t xn) __attribute__ ((always_inline));
 static inline void goertzel_process(int8_t xn)
 {
 
-	q[0] = (( (long) c * (long) q[1]) >> 14) - q[2] + xn;
+	//q[0] = (( (long) c * (long) q[1]) >> 14) - q[2] + xn;
+	MultiSU16X16toH16(q[0], q[1]<<2, c);
+	q[0] = q[0] - q[2] + xn;
 	q[2] = q[1];
 	q[1] = q[0];
 	N--;
 }
 
 
+static inline long goertzel_eval(void) __attribute__ ((always_inline));
 static inline long goertzel_eval()
 {
-	signed long y;
+	signed long y, y2;
 
-	y = ((long)q[0] * (long)q[0]);
-	y -= (c * (long) q[0] * (long) q[2])>>14;
-	y += (long)q[1] * (long)q[1];
+	//y = ((long)q[0] * (long)q[0]);
+	SquareS16to32(y, q[0]);
+//	y -=  (c * (long) q[0] * (long) q[2])>>14;
+	MultiSU16X16toH16(y2, q[0]<<2, c);
+	y -= y2;
+	//y += (long)q[1] * (long)q[1];
+	SquareS16to32(y2, q[1]);
+	y += y2;
 
 	if(y<0)
 		y=0;
