@@ -13,6 +13,26 @@ uint8_t raise(uint8_t power);
 extern long exp10_9;
 extern long exp10tab[];
 
+// intRes = intIn1 + intIn2
+#define SaturatedAdd16(intIn1, intIn2) \
+asm volatile ( \
+"add %A0, %A1 \n\t" \
+"adc %B0, %B1 \n\t" \
+"brvc 0f \n\t" \
+"ldi %B0, 0x7f \n\t" \
+"ldi %A0, 0xff \n\t" \
+"sbrc %B1, 7 \n\t" \
+"adiw %0, 1 \n\t" \
+"0: \n\t" \
+: \
+"=&w" (intIn1) \
+: \
+"a" (intIn1), \
+"a" (intIn2) \
+: \
+)
+
+
 
 // signed16 * signed16
 // 21 cycles
