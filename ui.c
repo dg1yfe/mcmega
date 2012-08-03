@@ -65,21 +65,33 @@ void vUiTask( void * pvParameters)
 	vTaskDelay(150);
 */
 	reset_ui();
+	goertzel_init(5);
 
 	lcd_cpos(0);
     for(;;)
 	{
+		long g;
+
     	pll_led(0);
     	led_update();
     	menu();
     	taskYIELD();
-
+		
 		// check if reset of control head was detected
 		// (certain amount of 0x7e reset messages was received)
 		if(!ch_reset_detected)
 		{
 			lcd_s_reset();
 			reset_ui();
+		}
+
+		if(g!=ge)
+		{
+			g=ge;
+			lcd_cpos(4);
+			printf_P(PSTR("%04x"), ge>>16);
+			lcd_fill();	
+
 		}
 	}
 }
