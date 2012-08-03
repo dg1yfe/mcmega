@@ -20,7 +20,7 @@
 #include "audio.h"
 #include "math.h"
 
-static int16_t q[3];
+static int16_t q1,q2;
 static int16_t z[2];
 uint16_t c;
 static uint16_t N;
@@ -203,12 +203,8 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 
 static inline void goertzel_reset(void)
 {
-	uint8_t i;
-
-	for(i=0;i<3;i++)
-	{
-		q[i]=0;
-	}
+	q1=0;
+	q2=0;
 	N=4000;
 }
 
@@ -258,12 +254,24 @@ z1  = x(i) - int32(y(i)*a2/256);
 static inline void goertzel_process(int8_t xn) __attribute__ ((always_inline));
 static inline void goertzel_process(int8_t xn)
 {
+	int16_t q;
 
-	//q[0] = (( (long) c * (long) q[1]) >> 14) - q[2] + xn;
-	MultiSU16X16toH16(q[0], q[1]<<2, c);
-	q[0] = q[0] - q[2] + xn;
-	q[2] = q[1];
-	q[1] = q[0];
+	//q0 = (( (long) c * (long) q1) >> 14) - q2 + xn;
+	MultiSU16X16toH16(q, q1, c);
+	if(( (int8_t) (q>>8) > 31) || ((int8_t) (q>>8) <= -32))
+	{
+		if(q>0)
+			q = 32767;
+		else
+			q = -32768;
+	}
+	else
+		q <<= 2;
+
+	SaturatedAdd16(q, q2);
+	SaturatedAdd16(q, xn);
+	q2 = q1;
+	q1 = q;
 	N--;
 }
 
@@ -271,16 +279,23 @@ static inline void goertzel_process(int8_t xn)
 static inline long goertzel_eval(void) __attribute__ ((always_inline));
 static inline long goertzel_eval()
 {
-	signed long y, y2;
-
-	//y = ((long)q[0] * (long)q[0]);
-	SquareS16to32(y, q[0]);
-//	y -=  (c * (long) q[0] * (long) q[2])>>14;
-	MultiSU16X16toH16(y2, q[0]<<2, c);
-	y -= y2;
-	//y += (long)q[1] * (long)q[1];
-	SquareS16to32(y2, q[1]);
+	int32_t y, y2;
+/*
+ * magnitude^2 = q1^2 + q2^2 - q1 * q2 * c
+ */
+//	y -=  (c * (long) q1 * (long) q2)>>14;
+	//y = ((long)q1 * (long)q1);
+	SquareS16to32(y, q1);
+	//y += (long)q2 * (long)q2;
+	SquareS16to32(y2, q2);
 	y += y2;
+
+	MultiSU16X16toH16(y2, q1, c);
+	MultiS16X16toH16(y2, y2, q2);
+	// c is 2.14 , result was right shifted 16 bits
+	// adjust by left shift twice
+	y2 <<=2;
+	y -= y2;
 
 	if(y<0)
 		y=0;
@@ -311,7 +326,7 @@ uint8_t tone_decode()
 		buf >>= j;
 
 		j = (uint8_t) buf & 1;
-		j = iir_tp270(j);
+		//j = iir_tp270(j);
 
 		goertzel_process(j);
 
