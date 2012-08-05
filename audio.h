@@ -36,4 +36,8 @@ uint8_t tone_decode();
 void tone_decode_stop();
 void goertzel_init(uint8_t ctcss_index);
 
+extern uint16_t c;
+extern int32_t q1,q2;
+
+
 #endif /* AUDIO_H_ */

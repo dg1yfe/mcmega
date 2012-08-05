@@ -87,9 +87,9 @@ void vUiTask( void * pvParameters)
 
 		if(g!=ge)
 		{
-			g=ge;
-			lcd_cpos(4);
-			printf_P(PSTR("%04x"), ge>>16);
+			g=q1;
+			lcd_cpos(0);
+			printf_P(PSTR("%08x"), ge);
 			lcd_fill();	
 
 		}

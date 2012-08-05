@@ -21,7 +21,7 @@
 #include "math.h"
 
 
-static int32_t q1,q2;
+int32_t q1,q2;
 static int16_t z[2];
 uint16_t c;
 static uint16_t N;
@@ -278,12 +278,12 @@ static inline void goertzel_process(int8_t xn)
  *   8       8       8       8       8
  * 	9..2 |1.0..7 | 8..15 |16..23 |24..31
  *     	 |       |       |       |
- *  						q1_0 *  c_0  ignored
- * 					q1_0 *  c_1
- *					q1_1 *  c_0
- *			q1_1 *  c_1
- *          q1_2 *  c_0
- *	q1_2 *  c_1
+ *  						q1_B *  c_A  ignored
+ * 					q1_B *  c_B
+ *					q1_C *  c_A
+ *			q1_C *  c_B
+ *          q1_D *  c_A
+ *	q1_D *  c_B
  *
  *
  */
@@ -291,9 +291,9 @@ asm volatile ( \
 	"clr     r2      \n\t" \
 	"fmulsu %D2, %B1 \n\t" \
 	"movw   %C0,  r0 \n\t" \
-	"fmul   %A2, %B1 \n\t" \
+	"fmul   %B2, %B1 \n\t" \
 	"movw   %A0,  r0 \n\t" \
-	"fmul   %B2, %A1 \n\t" \
+	"fmul   %C2, %A1 \n\t" \
 	"add    %A0,  r0 \n\t" \
 	"adc    %B0,  r1 \n\t" \
 	"fmulsu %D2, %A1 \n\t" \
@@ -301,7 +301,7 @@ asm volatile ( \
 	"add    %B0,  r0 \n\t" \
 	"adc    %C0,  r1 \n\t" \
 	"adc    %D0,  r2 \n\t" \
-	"fmul   %B2, %B1 \n\t" \
+	"fmul   %C2, %B1 \n\t" \
 	"add    %B0,  r0 \n\t" \
 	"adc    %C0,  r1 \n\t" \
 	"adc    %D0,  r2 \n\t" \
@@ -325,10 +325,11 @@ asm volatile ( \
 	"+w" (q) \
 	: \
 	"a" (xn) \
-	: \
+	\
 );
 
 	q2 = q1;
+	q1 = q;
 
 	N--;
 }
@@ -343,12 +344,13 @@ static inline long goertzel_eval()
  * magnitude^2 = q1^2 + q2^2 - q1 * q2 * c
  */
 //	y -=  (c * (long) q1 * (long) q2)>>14;
-	y = ((long)q1 * (long)q1);
+//	y = ((long)q1 * (long)q1);
 
 /*
  *  9.23 * 9.23 = 18.46
  *  9.7  * 9.7  = 18.14
  */
+
 asm volatile ( \
 	"clr   r2 		\n\t" \
 	"clr   r3		\n\t" \
@@ -357,15 +359,16 @@ asm volatile ( \
 	"muls  %B1, %B1 \n\t" \
 	"movw  %C0, r0  \n\t" \
 	"mulsu %B1, %A1 \n\t" \
-	"sbc   r3 , r2  \n\t" \
-	"lsl   r0 		\n\t" \
-	"rol   r1 		\n\t" \
 	"rol   r3 		\n\t" \
-	"sub %D0, r3 	\n\t" \
-	"add %B0, r0 	\n\t" \
-	"adc %C0, r1 	\n\t" \
-	"adc %D0, r2 	\n\t" \
-	"clr r1 \n\t" \
+	"sub   %D0, r3  \n\t" \
+	"sub   %D0, r3  \n\t" \
+	"add   %B0, r0 	\n\t" \
+	"adc   %C0, r1 	\n\t" \
+	"adc   %D0, r2 	\n\t" \
+	"add   %B0, r0 	\n\t" \
+	"adc   %C0, r1 	\n\t" \
+	"adc   %D0, r2 	\n\t" \
+	"clr   r1		\n\t" \
 	: \
 	"=&r" (y) \
 	: \
@@ -383,14 +386,15 @@ asm volatile ( \
 	"muls  %B1, %B1 \n\t" \
 	"movw  %C0, r0  \n\t" \
 	"mulsu %B1, %A1 \n\t" \
-	"sbc   r3 , r2  \n\t" \
-	"lsl   r0 		\n\t" \
-	"rol   r1 		\n\t" \
 	"rol   r3 		\n\t" \
-	"sub %D0, r3 	\n\t" \
-	"add %B0, r0 	\n\t" \
-	"adc %C0, r1 	\n\t" \
-	"adc %D0, r2 	\n\t" \
+	"sub   %D0, r3  \n\t" \
+	"sub   %D0, r3  \n\t" \
+	"add   %B0, r0 	\n\t" \
+	"adc   %C0, r1 	\n\t" \
+	"adc   %D0, r2 	\n\t" \
+	"add   %B0, r0 	\n\t" \
+	"adc   %C0, r1 	\n\t" \
+	"adc   %D0, r2 	\n\t" \
 	"clr r1 \n\t" \
 	: \
 	"=&r" (y2) \
@@ -443,7 +447,7 @@ uint8_t tone_decode()
 		taskEXIT_CRITICAL();
 		buf >>= j;
 
-		j = (uint8_t) buf & 1;
+		j = ((uint8_t) buf) & 1;
 		//j = iir_tp270(j);
 
 		goertzel_process(j);
