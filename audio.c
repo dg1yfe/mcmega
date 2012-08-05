@@ -20,7 +20,8 @@
 #include "audio.h"
 #include "math.h"
 
-static int16_t q1,q2;
+
+static int32_t q1,q2;
 static int16_t z[2];
 uint16_t c;
 static uint16_t N;
@@ -67,12 +68,12 @@ uint16_t ctcss_tab[] PROGMEM =
 // c = (2 - coeff) * 65536
 uint16_t ctcss_coeff_tab[] PROGMEM =
 {
-		0, 32723, 32719, 32716, 32712, 32708, 32704, 32699, 32694, 32689,
-		32683, 32677, 32672, 32667, 32660, 32652, 32644, 32635, 32625,
-		32615, 32604, 32593, 32580, 32566, 32552, 32537, 32520, 32510,
-		32502, 32492, 32484, 32472, 32463, 32451, 32441, 32428, 32418,
-		32404, 32393, 32378, 32367, 32350, 32338, 32320, 32307, 32288,
-		32274, 32255, 32239, 32218, 32201, 32179, 32161, 32137, 32118
+		0, 65445, 65439, 65432, 65424, 65416, 65408, 65398, 65389, 65378,
+		65367, 65354, 65344, 65334, 65320, 65304, 65288, 65270, 65251,
+		65230, 65209, 65185, 65160, 65133, 65104, 65073, 65040, 65021,
+		65005, 64983, 64967, 64944, 64926, 64902, 64883, 64857, 64836,
+		64808, 64786, 64756, 64733, 64701, 64676, 64641, 64614, 64577,
+		64549, 64509, 64478, 64436, 64403, 64358, 64322, 64274, 64235
 };
 
 /*
@@ -254,24 +255,81 @@ z1  = x(i) - int32(y(i)*a2/256);
 static inline void goertzel_process(int8_t xn) __attribute__ ((always_inline));
 static inline void goertzel_process(int8_t xn)
 {
-	int16_t q;
+	int32_t q;
+/*
+ * q1 - 32 Bit 8 1.7 8 8
+ *              9  23
+ */
 
-	//q0 = (( (long) c * (long) q1) >> 14) - q2 + xn;
-	MultiSU16X16toH16(q, q1, c);
-	if(( (int8_t) (q>>8) > 31) || ((int8_t) (q>>8) <= -32))
-	{
-		if(q>0)
-			q = 32767;
-		else
-			q = -32768;
-	}
-	else
-		q <<= 2;
+	// q =  c   *  q1   -   q2   +  xn;
+	//q2 = q1;
+	//q1 = q;
+// multiply 1.15 * 9.15
+// =       10.30 - 5 Byte
+//          9.31 - 5 Byte
+//
+/*
+ *  0 = q  (signed 9.23)     | 8   1.7   8 | 8
+ *  1 = c  (unsigned 1.15)   |     1.7   8
+ *  2 = q1 (signed 9.23)     | 8   1.7   8 | 8
+ *
+ *
+ *q	 D		 C		 B		 A
+ *   8       8       8       8       8
+ * 	9..2 |1.0..7 | 8..15 |16..23 |24..31
+ *     	 |       |       |       |
+ *  						q1_0 *  c_0  ignored
+ * 					q1_0 *  c_1
+ *					q1_1 *  c_0
+ *			q1_1 *  c_1
+ *          q1_2 *  c_0
+ *	q1_2 *  c_1
+ *
+ *
+ */
+asm volatile ( \
+	"clr     r2      \n\t" \
+	"fmulsu %D2, %B1 \n\t" \
+	"movw   %C0,  r0 \n\t" \
+	"fmul   %A2, %B1 \n\t" \
+	"movw   %A0,  r0 \n\t" \
+	"fmul   %B2, %A1 \n\t" \
+	"add    %A0,  r0 \n\t" \
+	"adc    %B0,  r1 \n\t" \
+	"fmulsu %D2, %A1 \n\t" \
+	"sbc    %D0,  r2 \n\t" \
+	"add    %B0,  r0 \n\t" \
+	"adc    %C0,  r1 \n\t" \
+	"adc    %D0,  r2 \n\t" \
+	"fmul   %B2, %B1 \n\t" \
+	"add    %B0,  r0 \n\t" \
+	"adc    %C0,  r1 \n\t" \
+	"adc    %D0,  r2 \n\t" \
+	"clr     r1      \n\t"
+	: \
+	"=&w" (q) \
+	: \
+	"a" (c), \
+	"a" (q1) \
+	: \
+	  "r2" \
+);
 
-	SaturatedAdd16(q, q2);
-	SaturatedAdd16(q, xn);
+	q -= q2;
+// q += xn<<8;
+asm volatile ( \
+	"add    %B0, %A1 \n\t" \
+	"adc    %C0, __zero_reg__ \n\t" \
+	"adc    %D0, __zero_reg__ \n\t" \
+	: \
+	"+w" (q) \
+	: \
+	"a" (xn) \
+	: \
+);
+
 	q2 = q1;
-	q1 = q;
+
 	N--;
 }
 
@@ -279,23 +337,83 @@ static inline void goertzel_process(int8_t xn)
 static inline long goertzel_eval(void) __attribute__ ((always_inline));
 static inline long goertzel_eval()
 {
-	int32_t y, y2;
+	int32_t y;
+	int32_t y2;
 /*
  * magnitude^2 = q1^2 + q2^2 - q1 * q2 * c
  */
 //	y -=  (c * (long) q1 * (long) q2)>>14;
-	//y = ((long)q1 * (long)q1);
-	SquareS16to32(y, q1);
+	y = ((long)q1 * (long)q1);
+
+/*
+ *  9.23 * 9.23 = 18.46
+ *  9.7  * 9.7  = 18.14
+ */
+asm volatile ( \
+	"clr   r2 		\n\t" \
+	"clr   r3		\n\t" \
+	"mul   %A1, %A1 \n\t" \
+	"movw  %A0, r0  \n\t" \
+	"muls  %B1, %B1 \n\t" \
+	"movw  %C0, r0  \n\t" \
+	"mulsu %B1, %A1 \n\t" \
+	"sbc   r3 , r2  \n\t" \
+	"lsl   r0 		\n\t" \
+	"rol   r1 		\n\t" \
+	"rol   r3 		\n\t" \
+	"sub %D0, r3 	\n\t" \
+	"add %B0, r0 	\n\t" \
+	"adc %C0, r1 	\n\t" \
+	"adc %D0, r2 	\n\t" \
+	"clr r1 \n\t" \
+	: \
+	"=&r" (y) \
+	: \
+	"a" ((int16_t) (q1>>16) ) \
+	: \
+	"r2", \
+	"r3" \
+);
+
+asm volatile ( \
+	"clr   r2 		\n\t" \
+	"clr   r3		\n\t" \
+	"mul   %A1, %A1 \n\t" \
+	"movw  %A0, r0  \n\t" \
+	"muls  %B1, %B1 \n\t" \
+	"movw  %C0, r0  \n\t" \
+	"mulsu %B1, %A1 \n\t" \
+	"sbc   r3 , r2  \n\t" \
+	"lsl   r0 		\n\t" \
+	"rol   r1 		\n\t" \
+	"rol   r3 		\n\t" \
+	"sub %D0, r3 	\n\t" \
+	"add %B0, r0 	\n\t" \
+	"adc %C0, r1 	\n\t" \
+	"adc %D0, r2 	\n\t" \
+	"clr r1 \n\t" \
+	: \
+	"=&r" (y2) \
+	: \
+	"a" ( (int16_t) (q2>>16) ) \
+	: \
+	"r2", \
+	"r3" \
+);
+
+	//SquareS16to32(y, (int16_t (q1>>12)) );
 	//y += (long)q2 * (long)q2;
-	SquareS16to32(y2, q2);
+	//SquareS16to32(y2, (int16_t (q2>>12)));
 	y += y2;
 
-	MultiSU16X16toH16(y2, q1, c);
-	MultiS16X16toH16(y2, y2, q2);
+	MultiSU16X16toH16(y2, ((int16_t) (q1>>16)), c);
+	MultiS16X16toH16(y2, y2, ((int16_t) (q2>>16)));
 	// c is 2.14 , result was right shifted 16 bits
 	// adjust by left shift twice
-	y2 <<=2;
+	// y2 <<=2;
 	y -= y2;
+	//y -=  ((c * (long) q1) >> 14) * (long) q2;
+
 
 	if(y<0)
 		y=0;
