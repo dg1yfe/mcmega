@@ -21,7 +21,6 @@
 #include "math.h"
 
 
-int32_t q1,q2;
 static int16_t z[2];
 uint16_t c;
 static uint16_t N;
@@ -30,7 +29,17 @@ volatile uint8_t tone_detect;
 
 volatile uint32_t samp_buf;
 volatile uint8_t samp_count=0;
-volatile long ge;
+
+// globals for tone detection
+int16_t cic_out;
+double q1,q2;
+int16_t comb[4];
+int16_t integr[4];
+int16_t cic_mem[4];
+uint8_t cic_ctr;
+
+double cheb1, cheb2;
+
 
 uint8_t sin_tab[] PROGMEM = {
 	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
@@ -218,6 +227,98 @@ void goertzel_init(uint8_t ctcss_index)
 }
 
 
+void goertzel_process(double &s)
+{
+	double q0;
+
+	q0 = g_coeff * q1 - q2 + *s;
+	q2 = q1;
+	q1 = *s;
+
+	// estimated CPU load:
+	// 125 cycles per multiplication
+	// 275 cycles per addition (75 - 275)
+	//
+	// cycles = 125 + 275 + 275
+	//        = 675 cycles per goertzel sample
+	// Fs_g = 1 kHz
+	//
+	// -> 675000 cycles / second
+	// -> 8,4% CPU load @ 8 MHz
+	//   16,9% CPU load @ 4 MHz 
+}
+
+
+// CIC multirate filter
+// perform decimation by factor 8
+uint8_t cic(int8_t x)
+{
+	// integration part
+	// performed every sample
+	integr[0] += x;
+	integr[1] += integr[0];
+	integr[2] += integr[1];
+	integr[3] += integr[2];
+
+	if(--cic_ctr == 0)
+	{
+		cic_ctr = 8;
+		// decimation
+		// performed at Fs/8
+		comb[0] = integr[3] - cic_mem[0];
+		comb[1] = comb[0]   - cic_mem[1];
+		comb[2] = comb[1]   - cic_mem[2];
+		comb[3] = comb[2]   - cic_mem[3];
+
+		// update storage
+		cic_mem[0] = integr[3];
+		cic_mem[1] = comb[0];
+		cic_mem[2] = comb[1];
+		cic_mem[3] = comb[2];
+		return 1;
+	}
+	return 0;
+	// estimated CPU load:
+	// 6 cycles per addition
+	// 2 cycles per move
+	//
+	// cycles = 4*6 + 1/8 * ( 4*6 + 4*2 )
+	//        = 28 cycles per sample
+	// Fs   = 8 kHz
+	//
+	// ->  28000 cycles / second
+	// -> 0,4% CPU load @ 8 MHz
+	//    0,7% CPU load @ 4 MHz 
+}
+
+
+// 2nd order IIR low-pass-filter, Direct Form II
+// implementation: chebychev low-pass as CIC amplitude compensation filter
+void cheby(double &x)
+{
+	double t;
+	
+	t = *x - cheb1 * CHEB_COEF_A1 - cheb2 * CHEB_COEF_A2;
+	*x = (t + cheb1 * 2 + cheb2) * CHEB_COEF_GAIN;
+		
+	cheb2 = cheb1;
+	cheb1 = t;
+	
+	// estimated CPU load:
+	// 125 cycles per multiplication
+	// 175 cycles per addition (75 - 275)
+	//
+	// cycles = 4*125 + 4*175
+	//        = 1200 cycles per sample
+	// Fs_g = 1 kHz
+	//
+	// ->1200000 cycles / second
+	// ->15,0% CPU load @ 8 MHz
+	//   30,0% CPU load @ 4 MHz 
+}
+
+
+
 static inline int8_t iir_tp270(int8_t xn) __attribute__ ((always_inline));
 static inline int8_t iir_tp270(int8_t xn)
 {
@@ -252,177 +353,7 @@ z1  = x(i) - int32(y(i)*a2/256);
 }
 
 
-static inline void goertzel_process(int8_t xn) __attribute__ ((always_inline));
-static inline void goertzel_process(int8_t xn)
-{
-	int32_t q;
-/*
- * q1 - 32 Bit 8 1.7 8 8
- *              9  23
- */
 
-	// q =  c   *  q1   -   q2   +  xn;
-	//q2 = q1;
-	//q1 = q;
-// multiply 1.15 * 9.15
-// =       10.30 - 5 Byte
-//          9.31 - 5 Byte
-//
-/*
- *  0 = q  (signed 9.23)     | 8   1.7   8 | 8
- *  1 = c  (unsigned 1.15)   |     1.7   8
- *  2 = q1 (signed 9.23)     | 8   1.7   8 | 8
- *
- *
- *q	 D		 C		 B		 A
- *   8       8       8       8       8
- * 	9..2 |1.0..7 | 8..15 |16..23 |24..31
- *     	 |       |       |       |
- *  						q1_B *  c_A  ignored
- * 					q1_B *  c_B
- *					q1_C *  c_A
- *			q1_C *  c_B
- *          q1_D *  c_A
- *	q1_D *  c_B
- *
- *
- */
-asm volatile ( \
-	"clr     r2      \n\t" \
-	"fmulsu %D2, %B1 \n\t" \
-	"movw   %C0,  r0 \n\t" \
-	"fmul   %B2, %B1 \n\t" \
-	"movw   %A0,  r0 \n\t" \
-	"fmul   %C2, %A1 \n\t" \
-	"add    %A0,  r0 \n\t" \
-	"adc    %B0,  r1 \n\t" \
-	"fmulsu %D2, %A1 \n\t" \
-	"sbc    %D0,  r2 \n\t" \
-	"add    %B0,  r0 \n\t" \
-	"adc    %C0,  r1 \n\t" \
-	"adc    %D0,  r2 \n\t" \
-	"fmul   %C2, %B1 \n\t" \
-	"add    %B0,  r0 \n\t" \
-	"adc    %C0,  r1 \n\t" \
-	"adc    %D0,  r2 \n\t" \
-	"clr     r1      \n\t"
-	: \
-	"=&w" (q) \
-	: \
-	"a" (c), \
-	"a" (q1) \
-	: \
-	  "r2" \
-);
-
-	q -= q2;
-// q += xn<<8;
-asm volatile ( \
-	"add    %B0, %A1 \n\t" \
-	"adc    %C0, __zero_reg__ \n\t" \
-	"adc    %D0, __zero_reg__ \n\t" \
-	: \
-	"+w" (q) \
-	: \
-	"a" (xn) \
-	\
-);
-
-	q2 = q1;
-	q1 = q;
-
-	N--;
-}
-
-
-static inline long goertzel_eval(void) __attribute__ ((always_inline));
-static inline long goertzel_eval()
-{
-	int32_t y;
-	int32_t y2;
-/*
- * magnitude^2 = q1^2 + q2^2 - q1 * q2 * c
- */
-//	y -=  (c * (long) q1 * (long) q2)>>14;
-//	y = ((long)q1 * (long)q1);
-
-/*
- *  9.23 * 9.23 = 18.46
- *  9.7  * 9.7  = 18.14
- */
-
-asm volatile ( \
-	"clr   r2 		\n\t" \
-	"clr   r3		\n\t" \
-	"mul   %A1, %A1 \n\t" \
-	"movw  %A0, r0  \n\t" \
-	"muls  %B1, %B1 \n\t" \
-	"movw  %C0, r0  \n\t" \
-	"mulsu %B1, %A1 \n\t" \
-	"rol   r3 		\n\t" \
-	"sub   %D0, r3  \n\t" \
-	"sub   %D0, r3  \n\t" \
-	"add   %B0, r0 	\n\t" \
-	"adc   %C0, r1 	\n\t" \
-	"adc   %D0, r2 	\n\t" \
-	"add   %B0, r0 	\n\t" \
-	"adc   %C0, r1 	\n\t" \
-	"adc   %D0, r2 	\n\t" \
-	"clr   r1		\n\t" \
-	: \
-	"=&r" (y) \
-	: \
-	"a" ((int16_t) (q1>>16) ) \
-	: \
-	"r2", \
-	"r3" \
-);
-
-asm volatile ( \
-	"clr   r2 		\n\t" \
-	"clr   r3		\n\t" \
-	"mul   %A1, %A1 \n\t" \
-	"movw  %A0, r0  \n\t" \
-	"muls  %B1, %B1 \n\t" \
-	"movw  %C0, r0  \n\t" \
-	"mulsu %B1, %A1 \n\t" \
-	"rol   r3 		\n\t" \
-	"sub   %D0, r3  \n\t" \
-	"sub   %D0, r3  \n\t" \
-	"add   %B0, r0 	\n\t" \
-	"adc   %C0, r1 	\n\t" \
-	"adc   %D0, r2 	\n\t" \
-	"add   %B0, r0 	\n\t" \
-	"adc   %C0, r1 	\n\t" \
-	"adc   %D0, r2 	\n\t" \
-	"clr r1 \n\t" \
-	: \
-	"=&r" (y2) \
-	: \
-	"a" ( (int16_t) (q2>>16) ) \
-	: \
-	"r2", \
-	"r3" \
-);
-
-	//SquareS16to32(y, (int16_t (q1>>12)) );
-	//y += (long)q2 * (long)q2;
-	//SquareS16to32(y2, (int16_t (q2>>12)));
-	y += y2;
-
-	MultiSU16X16toH16(y2, ((int16_t) (q1>>16)), c);
-	MultiS16X16toH16(y2, y2, ((int16_t) (q2>>16)));
-	// c is 2.14 , result was right shifted 16 bits
-	// adjust by left shift twice
-	// y2 <<=2;
-	y -= y2;
-	//y -=  ((c * (long) q1) >> 14) * (long) q2;
-
-
-	if(y<0)
-		y=0;
-	return y;
-}
 
 
 void tone_decode_stop()
@@ -432,10 +363,11 @@ void tone_decode_stop()
 }
 
 
+
 uint8_t tone_decode()
 {
-	uint8_t i,j;
-	uint32_t buf;
+	uint8_t i;
+	int8_t j;
 
 	i=0;
 	while(samp_count && (i++ < 20))
@@ -445,30 +377,45 @@ uint8_t tone_decode()
 		j=samp_count;
 		buf = samp_buf;
 		taskEXIT_CRITICAL();
-		buf >>= j;
+		buf >>= j-1;
 
-		j = ((uint8_t) buf) & 1;
-		//j = iir_tp270(j);
+		// convert to -1 / +1
+		j = ((int8_t) buf & 2) - 1 ;
 
-		goertzel_process(j);
-
-		if(!N)
+		// perform rate decimation using CIC filter (R=8, N=4, M=1)
+		if(cic(j))
 		{
-			ge = goertzel_eval();
-			if( ((char) (ge >> 24)) > 10 )
+			// after rate conversion, this only runs at 1 kHz Samplerate
+			double s;
+			
+			// get output of CIC filter
+			s = (double) cic_comb[3];
+			// apply chebychev low-pass for amplitude compensation
+			cheby(&s);
+			// process sample in goertzel
+			goertzel_process(&s);
+
+			if(N==0)
 			{
-				tone_detect=5;
-			}
-			else
-			{
-				j=tone_detect;
-				if(j)
+				j = tone_detec;
+				switch(goertzel_eval())
 				{
-					j--;
-					tone_detect=j;
+					// certain misdetection
+					case 0:
+						j = j>0 ? j-- ; 0;
+						break;
+					// certain detection
+					case 1:
+						j = 5;
+						break;
+					// result has a great uncertainty, do nothing
+					default:
+						break;
+
 				}
-			}
-			goertzel_reset();
+				tone_detect = j;
+				goertzel_reset();			
+			}		
 		}
 	}
 	return tone_detect;
