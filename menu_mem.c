@@ -25,9 +25,9 @@
 
 #define MEM_SLOT_MAX 25
 
-char m_recall_str[] PROGMEM = "RECALL";
-char m_store_str[] PROGMEM = "STORE";
-char m_err_eep_str[] PROGMEM = "Err Slot";
+const char m_recall_str[] PROGMEM = "RECALL";
+const char m_store_str[] PROGMEM = "STORE";
+const char m_err_eep_str[] PROGMEM = "Err Slot";
 
 //
 //

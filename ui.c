@@ -21,7 +21,7 @@
 #include "subs.h"
 #include "audio.h"
 
-char version_str[] PROGMEM = "0.9";
+const char version_str[] PROGMEM = "0.9";
 
 void init_ui()
 {
@@ -65,12 +65,12 @@ void vUiTask( void * pvParameters)
 	vTaskDelay(150);
 */
 	reset_ui();
-	goertzel_init(5);
+	goertzel_init(770);
 
 	lcd_cpos(0);
     for(;;)
 	{
-		long g;
+		float g=0;
 
     	pll_led(0);
     	led_update();
@@ -87,9 +87,9 @@ void vUiTask( void * pvParameters)
 
 		if(g!=ge)
 		{
-			g=q1;
+			g=ge;
 			lcd_cpos(0);
-			printf_P(PSTR("%08x"), ge);
+			printf_P(PSTR("%08f"), ge);
 			lcd_fill();	
 
 		}

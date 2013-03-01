@@ -15,12 +15,13 @@
 
 #define CTCSS_TABMAX 54
 
-extern uint8_t sin_tab[] PROGMEM;
-extern uint16_t ctcss_tab[] PROGMEM;
+extern const uint8_t sin_tab[] PROGMEM;
+extern const uint16_t ctcss_tab[] PROGMEM;
 extern volatile uint32_t samp_buf;
 extern volatile uint8_t samp_count;
-extern uint16_t c;
-extern volatile long ge;
+extern volatile float ge;
+extern volatile float g_coeff;
+extern float q1,q2;
 extern volatile uint8_t tone_detect;
 
 void tone_start_pl(unsigned int frequency);
@@ -34,10 +35,9 @@ void dtone_start(unsigned int freq1, unsigned int freq2);
 
 uint8_t tone_decode();
 void tone_decode_stop();
-void goertzel_init(uint8_t ctcss_index);
+void goertzel_init(uint16_t ctcss_freq);
 
-extern uint16_t c;
-extern int32_t q1,q2;
+
 
 
 #endif /* AUDIO_H_ */

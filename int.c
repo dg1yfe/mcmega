@@ -56,7 +56,7 @@ ISR(TIMER2_COMP_vect)
 
 	if(!rxtx_state)	// process sample input in RX
 	{
-		if(c)
+		if(g_coeff)
 		{
 			uint32_t sb;
 			uint8_t sc;
@@ -156,7 +156,7 @@ void start_Timer2()
 
 void stop_Timer2()
 {
-	if(!(SEL_phase_delta || PL_phase_delta || c))
+	if(!(SEL_phase_delta || PL_phase_delta || g_coeff))
 	{
 		TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
 	}

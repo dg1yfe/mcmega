@@ -43,9 +43,10 @@ static inline void m_sql_switch(void);
 void m_tone(void);
 void m_txshift(char key);
 void m_submenu(char key);
+void m_test(char c);
 
 
-T_MENUITEM m_submenu_list[] PROGMEM =
+const T_MENUITEM m_submenu_list[] PROGMEM =
 {
 		{ "MENU    ", m_recall_submenu},
 		{ "RECALL  ", m_recall_submenu},
@@ -448,7 +449,7 @@ void m_test(char c)
 	else
 	{	
 		lcd_cpos(0);
-		printf_P(PSTR("%04x"), ge>>16);
+		printf_P(PSTR("%04x"), ((long)ge)>>16);
 		lcd_fill();	
 	}
 

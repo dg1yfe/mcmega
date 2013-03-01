@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <math.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,12 +19,13 @@
 #include "io.h"
 #include "int.h"
 #include "audio.h"
-#include "math.h"
+//#include "math.h"
 
 
-static int16_t z[2];
-uint16_t c;
-static uint16_t N;
+volatile float ge;
+volatile float g_coeff;
+static float z[2];
+static float N;
 
 volatile uint8_t tone_detect;
 
@@ -32,16 +34,20 @@ volatile uint8_t samp_count=0;
 
 // globals for tone detection
 int16_t cic_out;
-double q1,q2;
-int16_t comb[4];
-int16_t integr[4];
+float q1,q2;
+int16_t cic_comb[4];
+int16_t cic_int[4];
 int16_t cic_mem[4];
 uint8_t cic_ctr;
 
-double cheb1, cheb2;
 
 
-uint8_t sin_tab[] PROGMEM = {
+#define CHEB_COEF_A1 0.11743335167F
+#define CHEB_COEF_A2 0.44721148298F
+#define CHEB_COEF_GAIN 0.2769209287F
+
+
+const uint8_t sin_tab[] PROGMEM = {
 	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
 	   10, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 13, 13, 13,
 	   13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
@@ -61,7 +67,7 @@ uint8_t sin_tab[] PROGMEM = {
 };
 
 
-uint16_t ctcss_tab[] PROGMEM =
+const uint16_t ctcss_tab[] PROGMEM =
 {
 	 0, 670,  694,  719,  744,  770,  797,  825,  854,
 	 885,  915,  948,  974,	1000, 1035, 1072, 1109,
@@ -75,7 +81,7 @@ uint16_t ctcss_tab[] PROGMEM =
 
 
 // c = (2 - coeff) * 65536
-uint16_t ctcss_coeff_tab[] PROGMEM =
+const float ctcss_coeff_tab[] PROGMEM =
 {
 		0, 65445, 65439, 65432, 65424, 65416, 65408, 65398, 65389, 65378,
 		65367, 65354, 65344, 65334, 65320, 65304, 65288, 65270, 65251,
@@ -201,7 +207,7 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 	start_Timer2();
 }
 
-/* fsr = 8000
+/* fsr = 1000
  * fi = CTCSS Ton
  *
  * coeffi = 2 * cosine (2 * π * fi / fsr)
@@ -215,25 +221,28 @@ static inline void goertzel_reset(void)
 {
 	q1=0;
 	q2=0;
-	N=4000;
+	N=500;
 }
 
-void goertzel_init(uint8_t ctcss_index)
+
+
+void goertzel_init(uint16_t ctcss_freq)
 {
-	c = pgm_read_word(&ctcss_coeff_tab[ctcss_index]);
+	g_coeff = 2 * cos( 0.02F * M_PI * (float)ctcss_freq );
 	goertzel_reset();
 	tone_detect = 0;
 	start_Timer2();
 }
 
 
-void goertzel_process(double &s)
+
+void goertzel_process(float * s)
 {
-	double q0;
+	float q0;
 
 	q0 = g_coeff * q1 - q2 + *s;
 	q2 = q1;
-	q1 = *s;
+	q1 = q0;
 
 	// estimated CPU load:
 	// 125 cycles per multiplication
@@ -249,32 +258,58 @@ void goertzel_process(double &s)
 }
 
 
+
+uint8_t goertzel_eval()
+{
+	float p;
+
+	p = square(q2) + square(q1) - g_coeff * q1 * q2;
+	
+	ge = p;
+
+	if(p > 1E8F)
+		return 2;
+
+	if(p < 1E5F)
+		return 0;
+
+	return 1;
+
+	// estimated CPU load:
+	// 125 cycles per multiplication
+	// 175 cycles per addition (75 - 275)
+	//
+	// cycles = 4*125 + 3*175
+	//        = 1025 cycles
+}
+
+
 // CIC multirate filter
 // perform decimation by factor 8
 uint8_t cic(int8_t x)
 {
 	// integration part
 	// performed every sample
-	integr[0] += x;
-	integr[1] += integr[0];
-	integr[2] += integr[1];
-	integr[3] += integr[2];
+	cic_int[0] += x;
+	cic_int[1] += cic_int[0];
+	cic_int[2] += cic_int[1];
+	cic_int[3] += cic_int[2];
 
 	if(--cic_ctr == 0)
 	{
 		cic_ctr = 8;
 		// decimation
 		// performed at Fs/8
-		comb[0] = integr[3] - cic_mem[0];
-		comb[1] = comb[0]   - cic_mem[1];
-		comb[2] = comb[1]   - cic_mem[2];
-		comb[3] = comb[2]   - cic_mem[3];
+		cic_comb[0] = cic_int[3] - cic_mem[0];
+		cic_comb[1] = cic_comb[0]   - cic_mem[1];
+		cic_comb[2] = cic_comb[1]   - cic_mem[2];
+		cic_comb[3] = cic_comb[2]   - cic_mem[3];
 
 		// update storage
-		cic_mem[0] = integr[3];
-		cic_mem[1] = comb[0];
-		cic_mem[2] = comb[1];
-		cic_mem[3] = comb[2];
+		cic_mem[0] = cic_int[3];
+		cic_mem[1] = cic_comb[0];
+		cic_mem[2] = cic_comb[1];
+		cic_mem[3] = cic_comb[2];
 		return 1;
 	}
 	return 0;
@@ -294,10 +329,11 @@ uint8_t cic(int8_t x)
 
 // 2nd order IIR low-pass-filter, Direct Form II
 // implementation: chebychev low-pass as CIC amplitude compensation filter
-void cheby(double &x)
+void cheby(float * x)
 {
-	double t;
-	
+	float t;
+	static float cheb1, cheb2;	
+
 	t = *x - cheb1 * CHEB_COEF_A1 - cheb2 * CHEB_COEF_A2;
 	*x = (t + cheb1 * 2 + cheb2) * CHEB_COEF_GAIN;
 		
@@ -319,23 +355,24 @@ void cheby(double &x)
 
 
 
+/*
 static inline int8_t iir_tp270(int8_t xn) __attribute__ ((always_inline));
 static inline int8_t iir_tp270(int8_t xn)
 {
-/*b0=1;
- b1=int32(-376);
- b2=1;
+//b0=1;
+// b1=int32(-376);
+// b2=1;
 
- a0=1;
- a1=int32(-464);
- a2=int32(217);
- *
- *
-y(i)= x(i) + z0;
-z0  = int32((x(i) * b1)/256) - int32(y(i)*a1/256) + z1;
-z1  = x(i) - int32(y(i)*a2/256);
- *
- */
+// a0=1;
+// a1=int32(-464);
+// a2=int32(217);
+// *
+// *
+//y(i)= x(i) + z0;
+//z0  = int32((x(i) * b1)/256) - int32(y(i)*a1/256) + z1;
+//z1  = x(i) - int32(y(i)*a2/256);
+// *
+// *
 	int16_t y,t;
 
 	y= xn + z[0];
@@ -351,14 +388,14 @@ z1  = x(i) - int32(y(i)*a2/256);
 
 	return (int8_t) (y>>8);
 }
-
+*/
 
 
 
 
 void tone_decode_stop()
 {
-	c = 0;
+	g_coeff = 0;
 	stop_Timer2();
 }
 
@@ -372,6 +409,8 @@ uint8_t tone_decode()
 	i=0;
 	while(samp_count && (i++ < 20))
 	{
+		uint32_t buf;
+
 		taskENTER_CRITICAL();
 		samp_count--;
 		j=samp_count;
@@ -386,10 +425,10 @@ uint8_t tone_decode()
 		if(cic(j))
 		{
 			// after rate conversion, this only runs at 1 kHz Samplerate
-			double s;
+			float s;
 			
 			// get output of CIC filter
-			s = (double) cic_comb[3];
+			s = (float) cic_comb[3];
 			// apply chebychev low-pass for amplitude compensation
 			cheby(&s);
 			// process sample in goertzel
@@ -397,12 +436,12 @@ uint8_t tone_decode()
 
 			if(N==0)
 			{
-				j = tone_detec;
+				j = tone_detect;
 				switch(goertzel_eval())
 				{
 					// certain misdetection
 					case 0:
-						j = j>0 ? j-- ; 0;
+						j = j>0 ? j-1 : 0;
 						break;
 					// certain detection
 					case 1:

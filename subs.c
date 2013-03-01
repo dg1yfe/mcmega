@@ -190,7 +190,7 @@ void transmit()
 	led_set(YEL_LED, LED_ON);
 	vco_switch(1);
 	set_tx_freq(&frequency);
-	SetShiftReg(0, ~(SR_RXAUDIOEN));
+	SetShiftReg(0, (uint8_t)~(SR_RXAUDIOEN));
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
 	if(cfg_pwr_mode)
@@ -221,7 +221,7 @@ void squelch()
 		// or squelch deactivated (sql_mode == SQM_OFF)
 		// or carrier detected & tone detected
 		state = (PIN_SQL & BIT_SQL) || (sql_mode == SQM_OFF);
-		if((sql_mode != SQM_OFF) && c)
+		if((sql_mode != SQM_OFF) && g_coeff)
 			state = (PIN_SQL & BIT_SQL) && tone_detect;
 
 		if(state != sql_flag)
@@ -230,11 +230,11 @@ void squelch()
 			if(state)
 			{
 				// Enable Audio, Pull Ext Alarm low
-				SetShiftReg(SR_RXAUDIOEN, ~SR_EXTALARM);
+				SetShiftReg(SR_RXAUDIOEN, (uint8_t)~SR_EXTALARM);
 			}
 			else
 			{	// disable Audio, set Ext Alarm high
-				SetShiftReg(SR_EXTALARM, ~SR_RXAUDIOEN);
+				SetShiftReg(SR_EXTALARM, (uint8_t)~SR_RXAUDIOEN);
 			}
 		}
 	}
@@ -541,14 +541,14 @@ void audio_pa(uint8_t enable, uint8_t withrxaudio)
 	if (withrxaudio)
 		SetShiftReg(SR_RXAUDIOEN, 0xff);
 	else		
-		SetShiftReg(0, ~SR_RXAUDIOEN);
+		SetShiftReg(0, (uint8_t)~SR_RXAUDIOEN);
 
 
 	if(enable)
 	{
 		for(i=0;i<pwmmax;i+=2)
 		{
-			SetShiftReg(0, ~SR_AUDIOPA);
+			SetShiftReg(0, (uint8_t)~SR_AUDIOPA);
 			for(j=i;j<pwmmax;j++){
 				_delay_loop_1(2);
 			}
@@ -573,7 +573,7 @@ void audio_pa(uint8_t enable, uint8_t withrxaudio)
 	}
 
 	// restore rx audio state
-	SetShiftReg(rxaudio, ~SR_RXAUDIOEN);
+	SetShiftReg(rxaudio, (uint8_t)~SR_RXAUDIOEN);
 }
 
 

@@ -9,18 +9,18 @@
 #define MENU_H_
 #include <avr/pgmspace.h>
 
-extern char m_ok_str[] PROGMEM;
-extern char m_no_lock_str[] PROGMEM;
-extern char m_out_str[] PROGMEM;
-extern char m_range_str[] PROGMEM;
-extern char m_writing[] PROGMEM;
-extern char m_stored_str[] PROGMEM;
-extern char m_failed_str[] PROGMEM;
-extern char m_delete[] PROGMEM;
-extern char m_offset[] PROGMEM;
-extern char m_sq_on_str[] PROGMEM;
-extern char m_sq_off_str[] PROGMEM;
-extern char m_menu_str[] PROGMEM;
+extern const char m_ok_str[] PROGMEM;
+extern const  char m_no_lock_str[] PROGMEM;
+extern const  char m_out_str[] PROGMEM;
+extern const  char m_range_str[] PROGMEM;
+extern const  char m_writing[] PROGMEM;
+extern const  char m_stored_str[] PROGMEM;
+extern const  char m_failed_str[] PROGMEM;
+extern const  char m_delete[] PROGMEM;
+extern const  char m_offset[] PROGMEM;
+extern const  char m_sq_on_str[] PROGMEM;
+extern const  char m_sq_off_str[] PROGMEM;
+extern const  char m_menu_str[] PROGMEM;
 
 
 #define IDLE  	     0

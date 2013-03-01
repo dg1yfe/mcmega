@@ -21,17 +21,17 @@
 #include "menu_top.h"
 #include "display.h"
 
-char m_ok_str[] PROGMEM = "OK";
-char m_no_lock_str[] PROGMEM =  "NO LOCK ";
-char m_out_str[] PROGMEM =  "out of";
-char m_range_str[] PROGMEM =  "Range ";
-char m_writing[] PROGMEM =  "writing";
-char m_stored_str[] PROGMEM =  "stored";
-char m_failed_str[] PROGMEM =  "failed";
-char m_delete[] PROGMEM =  "deleting";
-char m_offset[] PROGMEM =  "TXSHIFT";
-char m_sq_on_str[] PROGMEM =  "SQ ON";
-char m_sq_off_str[] PROGMEM =  "SQ OFF";
+const char m_ok_str[] PROGMEM = "OK";
+const char m_no_lock_str[] PROGMEM =  "NO LOCK ";
+const char m_out_str[] PROGMEM =  "out of";
+const char m_range_str[] PROGMEM =  "Range ";
+const char m_writing[] PROGMEM =  "writing";
+const char m_stored_str[] PROGMEM =  "stored";
+const const char m_failed_str[] PROGMEM =  "failed";
+const char m_delete[] PROGMEM =  "deleting";
+const char m_offset[] PROGMEM =  "TXSHIFT";
+const char m_sq_on_str[] PROGMEM =  "SQ ON";
+const char m_sq_off_str[] PROGMEM =  "SQ OFF";
 
 
 //*****************************
