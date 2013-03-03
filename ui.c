@@ -45,6 +45,7 @@ static void reset_ui(void)
 
 void vUiTask( void * pvParameters)
 {
+	uint16_t t;
 
 	lcd_s_reset();
 //	int_lcd_timer_dec = 1;
@@ -65,12 +66,16 @@ void vUiTask( void * pvParameters)
 	vTaskDelay(150);
 */
 	reset_ui();
-	goertzel_init(770);
 
 	lcd_cpos(0);
+
+	goertzel_init(770);
+	t = tick_hms + 10;
+
     for(;;)
 	{
 		float g=0;
+		uint8_t sc=0;
 
     	pll_led(0);
     	led_update();
@@ -85,13 +90,30 @@ void vUiTask( void * pvParameters)
 			reset_ui();
 		}
 
-		if(g!=ge)
+
+		if(tone_detect)
+		{
+			led_set(YEL_LED, LED_ON);
+		}
+		else
+			led_set(YEL_LED, LED_OFF);
+		
+		sc=sc<samp_count ? samp_count : sc;
+		if(tick_hms > t)
 		{
 			g=ge;
+			t = tick_hms + 6;
+			if(m_state==IDLE)
+			{
 			lcd_cpos(0);
-			printf_P(PSTR("%08f"), ge);
+			
+			printf_P(PSTR("%2.2f"), g);
+			//printf_P(PSTR("%d"), tone_detect);
+			//printf_P(PSTR("%d"), sc);
 			lcd_fill();	
 
+			}
 		}
+		
 	}
 }

@@ -22,6 +22,7 @@
 #include "display.h"
 #include "timer.h"
 #include "eeprom.h"
+#include "audio.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
 
@@ -131,6 +132,7 @@ void vControlTask( void * pvParameters)
 
 		// if task did not block, wait here for 1 tick
 		// give UI task the opportunity to execute
-		vTaskDelayUntil( &xLastWakeTime, 1 );
+		if(samp_count < 10)
+			vTaskDelayUntil( &xLastWakeTime, 1 );
     }
 }

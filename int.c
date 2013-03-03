@@ -70,9 +70,9 @@ ISR(TIMER2_COMP_vect)
 			samp_buf = sb;
 			sc = samp_count;
 			sc++;
-			sc &= 31;
-			if(!sc)
-				sc=31;
+			//sc &= 31;
+			//if(!sc)
+				//sc=31;
 			samp_count = sc;
 		}
 	}

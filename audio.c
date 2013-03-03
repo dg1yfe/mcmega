@@ -42,10 +42,6 @@ uint8_t cic_ctr;
 
 
 
-#define CHEB_COEF_A1 0.11743335167F
-#define CHEB_COEF_A2 0.44721148298F
-#define CHEB_COEF_GAIN 0.2769209287F
-
 
 const uint8_t sin_tab[] PROGMEM = {
 	    8,  8,  8,  8,  8,  9,  9,  9,  9,  9,  9, 10, 10, 10, 10, 10,
@@ -78,18 +74,6 @@ const uint16_t ctcss_tab[] PROGMEM =
 	2336, 2371, 2418, 2455, 2503, 2541
 };
 
-
-
-// c = (2 - coeff) * 65536
-const float ctcss_coeff_tab[] PROGMEM =
-{
-		0, 65445, 65439, 65432, 65424, 65416, 65408, 65398, 65389, 65378,
-		65367, 65354, 65344, 65334, 65320, 65304, 65288, 65270, 65251,
-		65230, 65209, 65185, 65160, 65133, 65104, 65073, 65040, 65021,
-		65005, 64983, 64967, 64944, 64926, 64902, 64883, 64857, 64836,
-		64808, 64786, 64756, 64733, 64701, 64676, 64641, 64614, 64577,
-		64549, 64509, 64478, 64436, 64403, 64358, 64322, 64274, 64235
-};
 
 /*
 ;**********************
@@ -215,20 +199,29 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
  * 	Q0i = coeffi * Q1i - Q2i + x (n)
 	Q2i = Q1i
 	Q1i = Q0i (3)
+	
+	detection window size (bin size):
+	    fsr / N
+	-> 1000 / 200 =  5.0 Hz (0.2 s)
+	   1000 / 400 =  2.5 Hz (0.4 s)
+	   1000 / 100 = 10.0 Hz (0.1 s)
  */
 
 static inline void goertzel_reset(void)
 {
 	q1=0;
 	q2=0;
-	N=500;
+	N=200;
 }
 
 
-
+/*
+	Calculates Goertzel filter coefficient
+	Input: Frequency in 1/10 Hz (e.g. 770 for 77.0 Hz)
+*/
 void goertzel_init(uint16_t ctcss_freq)
-{
-	g_coeff = 2 * cos( 0.02F * M_PI * (float)ctcss_freq );
+{	//                 2 * pi * f_t / Fs
+	g_coeff = 2 * cos( 0.0002F * M_PI * (float)ctcss_freq );
 	goertzel_reset();
 	tone_detect = 0;
 	start_Timer2();
@@ -258,6 +251,7 @@ void goertzel_process(float * s)
 }
 
 
+enum {GE_DETECTED, GE_NOTDETECTED, GE_UNCERTAIN};
 
 uint8_t goertzel_eval()
 {
@@ -265,15 +259,15 @@ uint8_t goertzel_eval()
 
 	p = square(q2) + square(q1) - g_coeff * q1 * q2;
 	
-	ge = p;
+	ge = 10*log10(p);
 
-	if(p > 1E8F)
-		return 2;
+	if(p > 1E11F)
+		return GE_DETECTED;
 
-	if(p < 1E5F)
-		return 0;
+	if(p < 1E10F)
+		return GE_NOTDETECTED;
 
-	return 1;
+	return GE_UNCERTAIN;
 
 	// estimated CPU load:
 	// 125 cycles per multiplication
@@ -326,13 +320,21 @@ uint8_t cic(int8_t x)
 	//    0,7% CPU load @ 4 MHz 
 }
 
-
+// Chebychev type 1 (passband ripple)
+// 2. order
+// f_g = 0.58 (normalized)
+// ripple = 3 dB 
+#define CHEB_COEF_A1 0.117433F
+#define CHEB_COEF_A2 0.447211F
+#define CHEB_COEF_GAIN 0.276920F
 // 2nd order IIR low-pass-filter, Direct Form II
 // implementation: chebychev low-pass as CIC amplitude compensation filter
+// and additional alias rejection
 void cheby(float * x)
 {
 	float t;
-	static float cheb1, cheb2;	
+	static float cheb1=0;
+	static float cheb2=0;
 
 	t = *x - cheb1 * CHEB_COEF_A1 - cheb2 * CHEB_COEF_A2;
 	*x = (t + cheb1 * 2 + cheb2) * CHEB_COEF_GAIN;
@@ -355,44 +357,6 @@ void cheby(float * x)
 
 
 
-/*
-static inline int8_t iir_tp270(int8_t xn) __attribute__ ((always_inline));
-static inline int8_t iir_tp270(int8_t xn)
-{
-//b0=1;
-// b1=int32(-376);
-// b2=1;
-
-// a0=1;
-// a1=int32(-464);
-// a2=int32(217);
-// *
-// *
-//y(i)= x(i) + z0;
-//z0  = int32((x(i) * b1)/256) - int32(y(i)*a1/256) + z1;
-//z1  = x(i) - int32(y(i)*a2/256);
-// *
-// *
-	int16_t y,t;
-
-	y= xn + z[0];
-	t = -376;		// b1
-	MultiSU16X8toH16(z[0], t, xn);
-	z[0] += z[1];
-	t = -464;		// a1
-	MultiS16X16toH16(t,y,t);
-	z[0] += t;
-	t = 217;
-	MultiS16X16toH16(t,y,t);
-	z[1] = xn - t;
-
-	return (int8_t) (y>>8);
-}
-*/
-
-
-
-
 void tone_decode_stop()
 {
 	g_coeff = 0;
@@ -407,7 +371,7 @@ uint8_t tone_decode()
 	int8_t j;
 
 	i=0;
-	while(samp_count && (i++ < 20))
+	while(samp_count && (i++ < 28))
 	{
 		uint32_t buf;
 
@@ -421,34 +385,38 @@ uint8_t tone_decode()
 		// convert to -1 / +1
 		j = ((int8_t) buf & 2) - 1 ;
 
-		// perform rate decimation using CIC filter (R=8, N=4, M=1)
+		// perform rate decimation from 8 kHz to 1 kHz
+		// using a CIC filter (R=8, N=4, M=1)
 		if(cic(j))
 		{
 			// after rate conversion, this only runs at 1 kHz Samplerate
+			// and give us the time to perform the calculations using
+			// floating-point precision
 			float s;
 			
 			// get output of CIC filter
 			s = (float) cic_comb[3];
-			// apply chebychev low-pass for amplitude compensation
+			// apply chebychev low-pass for amplitude correction
 			cheby(&s);
 			// process sample in goertzel
 			goertzel_process(&s);
 
-			if(N==0)
+			if(--N==0)
 			{
 				j = tone_detect;
 				switch(goertzel_eval())
 				{
 					// certain misdetection
-					case 0:
-						j = j>0 ? j-1 : 0;
+					case GE_NOTDETECTED:
+						j>>=1;
 						break;
 					// certain detection
-					case 1:
-						j = 5;
+					case GE_DETECTED:
+						j = 8;
 						break;
 					// result has a great uncertainty, do nothing
 					default:
+						j = j>0 ? j-1 : 0;
 						break;
 
 				}

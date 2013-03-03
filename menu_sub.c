@@ -298,9 +298,13 @@ void m_ctcss_submenu(char key)
 				}
 				else
 				{
+					// CTCSS_SEL_RX
 					if(ctcss_index)
 					{
-						goertzel_init(ctcss_index);
+						uint16_t freq;
+
+						freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+						goertzel_init(freq);
 					}
 					else
 					{
