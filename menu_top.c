@@ -113,6 +113,7 @@ void m_top(uint8_t key)
 			m_tone();
 			break;
 		case KC_D6:
+			m_debug(key);
 			if(cfg_head == CHD2)
 			{
 				if(!m_timer_en)
@@ -516,4 +517,69 @@ char m_freq_digit(char key)
 }
 
 
+void m_debug(char key)
+{
+	float g=0;
+	static uint8_t sc=0;
+	static uint8_t mode = 0;
+	uint16_t t = 0;
 
+	if(!m_timer_en)
+	{
+		m_state = DEBUG;
+		save_dbuf();
+	}
+	
+	m_reset_timer();
+
+	switch(key)
+	{
+		case KC_EXIT:
+			m_timer = 0;
+			break;
+		case 1:
+			mode = 1;
+			break;
+		case 2:
+			mode = 2;
+			break;
+		case 3:
+			mode = 3;
+			break;
+		case 4:
+			goertzel_init(770);
+			break;
+		default:
+			break;
+	}
+
+	if(tone_detect)
+	{
+		led_set(YEL_LED, LED_ON);
+	}
+	else
+		led_set(YEL_LED, LED_OFF);
+		
+	sc=sc<samp_count ? samp_count : sc;
+	
+	if(tick_hms > t)
+	{
+		g=ge;
+		t = tick_hms + 6;
+		lcd_cpos(0);
+		switch(mode)
+		{
+			default:
+			case 1:
+				printf_P(PSTR("%2.0f"), g);
+				break;
+			case 2:			
+				printf_P(PSTR("%d"), tone_detect);
+				break;
+			case 3:
+				printf_P(PSTR("%d"), sc);
+				break;
+		}
+		lcd_fill();
+	}	
+}

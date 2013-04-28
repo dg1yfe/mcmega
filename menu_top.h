@@ -24,7 +24,7 @@ void m_prnt_tc(void);
 void m_submenu(char key);
 char m_freq_digit(char key);
 void m_top(uint8_t key);
-
+void m_debug(char key);
 
 
 #endif /* MENU_TOP_H_ */

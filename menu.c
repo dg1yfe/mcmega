@@ -114,6 +114,9 @@ void menu()
 		case CAL:
 			m_cal_submenu(c);
 			break;
+		case DEBUG:
+			m_debug(c);
+			break;
 		case TEST:
 			m_test(c);
 		default:
@@ -122,7 +125,11 @@ void menu()
 			break;
 		}
 	}
-
+	else
+	if(m_state == DEBUG)
+	{
+		m_debug(0);
+	}
 
 	// M_END
 

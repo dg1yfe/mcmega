@@ -21,7 +21,6 @@ extern volatile uint32_t samp_buf;
 extern volatile uint8_t samp_count;
 extern volatile float ge;
 extern volatile float g_coeff;
-extern float q1,q2;
 extern volatile uint8_t tone_detect;
 
 void tone_start_pl(unsigned int frequency);
