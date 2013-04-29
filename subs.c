@@ -214,15 +214,31 @@ void squelch()
 	if(!sql_timer && !rxtx_state)
 	{
 		char state;
-
+		char pin_state;
+		
 		sql_timer = SQL_INTERVAL;
 
 		// squelch open if carrier detected (bit_sql = 1)
 		// or squelch deactivated (sql_mode == SQM_OFF)
 		// or carrier detected & tone detected
-		state = (PIN_SQL & BIT_SQL) || (sql_mode == SQM_OFF);
+		pin_state = (PIN_SQL & BIT_SQL);
+
+		// if a signal appeared or disappeared
+		if(pin_state ^ sql_pin_flag)
+		{
+			tone_decode_reset();	// reset tone decoder to start NOW
+		}
+		sql_pin_flag = pin_state;
+
+		state = pin_state || (sql_mode == SQM_OFF);
 		if((sql_mode != SQM_OFF) && g_coeff)
-			state = (PIN_SQL & BIT_SQL) && tone_detect;
+		{
+			state = (PIN_SQL & BIT_SQL);
+			// disregard tone detection state until detector output was updated
+			if(tone_detect_updated)
+				 state = state && tone_detect;
+		}		
+		
 
 		if(state != sql_flag)
 		{

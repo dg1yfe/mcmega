@@ -176,6 +176,7 @@ extern char m_timer_en;
 extern char sql_timer;
 extern char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
 extern char sql_flag;
+extern uint8_t sql_pin_flag;
 
 extern char mem_bank;
 

@@ -13,15 +13,27 @@
 
 #define FS UINT32_C(8000)
 
+#define SAMP_BUF_LEN UINT8_C(32)
 #define CTCSS_TABMAX 54
 
 extern const uint8_t sin_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
-extern volatile uint32_t samp_buf;
-extern volatile uint8_t samp_count;
+extern volatile uint8_t samp_buf[SAMP_BUF_LEN];
+extern volatile uint8_t samp_buf_count;
 extern volatile float ge;
 extern volatile float g_coeff;
 extern volatile uint8_t tone_detect;
+extern volatile uint8_t tone_detect_updated;
+
+/*
+	Initialize ADC in free-running mode
+*/
+void adc_init();
+
+/*
+	re-init Goertzel registers
+*/
+void tone_decode_reset();
 
 void tone_start_pl(unsigned int frequency);
 

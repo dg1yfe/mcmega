@@ -53,14 +53,15 @@ void vApplicationTickHook()
 ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
+	static uint8_t samp_buf_w=0;
 
 	if(!rxtx_state)	// process sample input in RX
 	{
 		if(g_coeff)
 		{
-			uint32_t sb;
 			uint8_t sc;
-
+/*
+			uint32_t sb;
 			sb=samp_buf;
 			sb <<= 1;
 			if(PIN_SIGIN & BIT_SIGIN)
@@ -68,15 +69,16 @@ ISR(TIMER2_COMP_vect)
 				sb |= 1;
 			}
 			samp_buf = sb;
-			sc = samp_count;
+*/
+			samp_buf[samp_buf_w++] = ADCH;
+			ADCSRA |= (1 << ADSC);		// start next conversion now
+			samp_buf_w &= SAMP_BUF_LEN -1;
+			sc = samp_buf_count;
 			sc++;
-			//sc &= 31;
-			//if(!sc)
-				//sc=31;
-			samp_count = sc;
+			samp_buf_count = sc;
 		}
 	}
-	else	// Tone oscillators are not used in TX
+	else	// Tone oscillators are only used in TX
 	{
 		if(PL_phase_delta)
 		{

@@ -132,7 +132,7 @@ void vControlTask( void * pvParameters)
 
 		// if task did not block, wait here for 1 tick
 		// give UI task the opportunity to execute
-		if(samp_count < 10)
+		if(samp_buf_count < 10)
 			vTaskDelayUntil( &xLastWakeTime, 1 );
     }
 }

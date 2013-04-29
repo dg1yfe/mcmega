@@ -517,12 +517,12 @@ char m_freq_digit(char key)
 }
 
 
-void m_debug(char key)
+void m_debug(uint8_t key)
 {
 	float g=0;
 	static uint8_t sc=0;
 	static uint8_t mode = 0;
-	uint16_t t = 0;
+	static uint16_t t = 0;
 
 	if(!m_timer_en)
 	{
@@ -547,6 +547,9 @@ void m_debug(char key)
 			mode = 3;
 			break;
 		case 4:
+			mode = 4;
+			break;
+		case 5:
 			goertzel_init(770);
 			break;
 		default:
@@ -560,12 +563,12 @@ void m_debug(char key)
 	else
 		led_set(YEL_LED, LED_OFF);
 		
-	sc=sc<samp_count ? samp_count : sc;
+	sc=sc<samp_buf_count ? samp_buf_count : sc;
 	
 	if(tick_hms > t)
 	{
 		g=ge;
-		t = tick_hms + 6;
+		t = tick_hms + 8;
 		lcd_cpos(0);
 		switch(mode)
 		{
@@ -578,6 +581,9 @@ void m_debug(char key)
 				break;
 			case 3:
 				printf_P(PSTR("%d"), sc);
+				break;
+			case 4:
+				printf_P(PSTR("%+3d"),(samp_buf[0]-129)>>1);
 				break;
 		}
 		lcd_fill();

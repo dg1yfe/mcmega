@@ -33,9 +33,11 @@ static uint16_t g_blocksize = GOERTZEL_BLOCK;
 static float q1,q2;
 
 volatile uint8_t tone_detect;
+volatile uint8_t tone_detect_updated = 0;
 
-volatile uint32_t samp_buf;
-volatile uint8_t samp_count=0;
+volatile uint8_t samp_buf[SAMP_BUF_LEN];
+volatile uint8_t samp_buf_count=0;
+uint8_t samp_buf_r=0;
 
 // globals for tone detection
 int16_t cic_out;
@@ -77,6 +79,28 @@ const uint16_t ctcss_tab[] PROGMEM =
 	2035, 2065, 2107, 2138, 2181, 2213, 2257, 2291,
 	2336, 2371, 2418, 2455, 2503, 2541
 };
+
+
+void adc_init()
+{
+    ADMUX = (0 << REFS1) |      // AVCC external reference
+			(1 << REFS0) |
+			(1 << MUX1)  |
+			(1 << MUX0)	 |		// ADC channel 3
+			(1 << ADLAR);		// data is left adjusted
+    
+    ADCSRA = (1 << ADEN)  |
+    (0 << ADSC)  |		
+    (0 << ADIE)  |				// disable ADC interrupt
+    (1 << ADPS2) |		
+    (1 << ADPS1) |
+    (0 << ADPS0);				// 125 kHz ADC input clock (F_CPU / 64)
+    
+    ADCSRB = 0;					// Free-Running mode
+        
+    ADCSRA |= (1 << ADSC);		// start first conversion now
+	
+}
 
 
 /*
@@ -220,6 +244,14 @@ static inline void goertzel_reset(uint16_t block_size)
 }
 
 
+void tone_decode_reset()
+{
+	taskENTER_CRITICAL();	
+	goertzel_reset(GOERTZEL_BLOCK);
+	tone_detect_updated = 0;
+	taskEXIT_CRITICAL();
+}
+
 /*
 	Calculates Goertzel filter coefficient
 	Input: Frequency in 1/10 Hz (e.g. 770 for 77.0 Hz)
@@ -229,6 +261,7 @@ void goertzel_init(uint16_t ctcss_freq)
 	g_coeff = 2 * cos( 0.0002F * M_PI * (float)ctcss_freq );
 	goertzel_reset(320);
 	tone_detect = 0;
+	adc_init();
 	start_Timer2();
 }
 
@@ -272,10 +305,10 @@ uint8_t goertzel_eval()
 	ge = p;
 	po = (int8_t) p;
 
-	if(po > 50)
+	if(po > 62)
 		return GE_DETECTED;
 
-	if(po < 40)
+	if(po < 55)
 		return GE_NOTDETECTED;
 
 	return GE_UNCERTAIN;
@@ -382,23 +415,24 @@ uint8_t tone_decode()
 	int8_t j;
 
 	i=0;
-	while(samp_count && (i++ < 28))
+	while(samp_buf_count && (i++ < 28))
 	{
-		uint32_t buf;
+		int8_t buf;
 
 		taskENTER_CRITICAL();
-		samp_count--;
-		j=samp_count;
-		buf = samp_buf;
+		j=samp_buf_count-1;
+		samp_buf_count=j;
 		taskEXIT_CRITICAL();
-		buf >>= j;
+		buf = samp_buf[samp_buf_r++]-129;
+		samp_buf_r &= SAMP_BUF_LEN-1;
 
-		// convert to -1 / +1
-		j = ((int8_t) buf & 1);
+		buf >>= 1;	// reduce to about 4 bit value
 
 		// perform rate decimation from 8 kHz to 1 kHz
 		// using a CIC filter (R=8, N=4, M=1)
-		if(cic(j))
+		// maximum input bit-length = 4 bit !
+		// ( CIC operates on 16 bit values and enlarges values by 12 bit)
+		if(cic(buf))
 		{
 			// after rate conversion, this only runs at 1 kHz Samplerate
 			// and give us the time to perform the calculations using
@@ -420,7 +454,7 @@ uint8_t tone_decode()
 				{
 					// certain misdetection
 					case GE_NOTDETECTED:
-						j>>=1;
+						j=0;
 						break;
 					// certain detection
 					case GE_DETECTED:
@@ -433,6 +467,7 @@ uint8_t tone_decode()
 
 				}
 				tone_detect = j;
+				tone_detect_updated = 1;
 				goertzel_reset(GOERTZEL_BLOCK);			
 			}		
 		}

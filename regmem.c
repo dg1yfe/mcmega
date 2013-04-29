@@ -84,6 +84,7 @@ char m_timer_en;
 char sql_timer;
 char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
 char sql_flag;
+uint8_t sql_pin_flag;
 
 char mem_bank;
 
