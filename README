@@ -1,0 +1,6 @@
+MCmega is a port of the MC70 firmware to the AVR platform.
+It provides an alternative firmware for Motorola MC micro transceivers to enable the use of those radios for HAM radio.
+The project includes a PCB (printed ciruit board) with an ATMega64 which is designed to replace the original CPU on the GLN6628B/GLN6984A command board used in the MC micro model EZA9.
+
+Check out the details on the projects homepage:
+http://mc70.stus-disco.de
