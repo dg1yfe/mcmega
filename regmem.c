@@ -2,7 +2,31 @@
  * regmem.c
  *
  *  Created on: 27.05.2012
- *      Author: Felix Erckenbrecht
+ *****************************************************************************
+ *	MCmega - Firmware for the Motorola MC micro radio
+ *           to use it as an Amateur-Radio transceiver
+ *
+ * Copyright (C) 2013 Felix Erckenbrecht, DG1YFE
+ *
+ * ( AVR port of "MC70"
+ *   Copyright (C) 2004 - 2013  Felix Erckenbrecht, DG1YFE)
+ *
+ * This file is part of MCmega.
+ *
+ * MCmega is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * MCmega is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MCmega.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ ****************************************************************************
  */
 #include <stdint.h>
 #include "regmem.h"
@@ -67,14 +91,12 @@ unsigned long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeic
 long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 char rxtx_state;			// 0=RX
-
-char cfg_pwr_mode;				// Lo / Hi Power
+char ui_ptt_req;			//
 
 char ptt_debounce;
 
+char cfg_pwr_mode;				// Lo / Hi Power
 char cfg_defch_save;
-char ui_ptt_req;			//
-
 uint8_t cfg_head;				// Type of Control Head
 
 char m_state;
@@ -96,6 +118,19 @@ char tone_index;
 char oci_ctr;
 
 int ts_count;
+
+typedef struct {
+	unsigned rxfreq : 13;	// 1,25 kHz Steps, 10240 kHz max
+	signed   offset : 10;	// 25 kHz Steps for Offset, signed
+	unsigned ofs_active: 1;	// Offset activated?
+	unsigned ctcss_index: 6;	// CTCSS frequency (index)
+	unsigned ctcss_squelch: 1;	// Off / Carrier / RSSI Board / CTCSS
+	unsigned reserved:1;
+	char	 name[6];
+	} T_MemChannel;
+
+typedef struct {
+} T_Config;	
 
 
 //*****************************

@@ -2,16 +2,31 @@
  * eeprom.c
  *
  *  Created on: 12.07.2012
- *      Author: F. Erckenbrecht
-****************************************************************************
-;
-;    MC 70    v1.6   - Firmware for Motorola mc micro trunking radio
-;                      for use as an Amateur-Radio transceiver
-;
-;    Copyright (C) 2004 - 2012  Felix Erckenbrecht, DG1YFE
-;
-;
-****************************************************************************
+ *****************************************************************************
+ *	MCmega - Firmware for the Motorola MC micro radio
+ *           to use it as an Amateur-Radio transceiver
+ *
+ * Copyright (C) 2013 Felix Erckenbrecht, DG1YFE
+ *
+ * ( AVR port of "MC70"
+ *   Copyright (C) 2004 - 2013  Felix Erckenbrecht, DG1YFE)
+ *
+ * This file is part of MCmega.
+ *
+ * MCmega is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * MCmega is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with MCmega.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ ****************************************************************************
  */
 
 #include <stdlib.h>
@@ -399,6 +414,46 @@ char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 	return 0;
 
 }
+
+uint8_t eep_rd_memch(uint8_t slot, uint32_t * f, uint32_t * offset, uint8_t * flags)
+{
+	char err;
+	long fbuf;
+	uint16_t eep_address;
+	void * buf;
+
+	buf = alloca((size_t)3);
+
+	if(slot > 24)
+		return -1;
+
+	eep_address = (uint16_t) slot * 10;
+	eep_address += 0x100;
+	eeprom_read_block((void *)buf,(void *) eep_address, 3);
+
+	// get channel
+	if(f)
+	{
+		fbuf = *((uint16_t *) buf);
+		fbuf >>=3;		// 13 significant Bits
+		fbuf *= 1250;	// multiply by 1250 to obtain frequency
+		fbuf += FBASE; // add Base frequency
+		*f = fbuf;		
+	}
+
+	if(offset)
+	{
+		buf++;
+		fbuf = *((uint16_t *) buf);
+		fbuf >>=5;
+		fbuf *= 25000;
+		
+	}
+
+	return 0;
+
+}
+
 
 
 void eep_enable(uint8_t enable)
