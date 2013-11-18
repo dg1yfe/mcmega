@@ -427,7 +427,11 @@ void m_set_shift()
 			f_in_buf[i]='0';
 		}
 	}
-
+	else{
+		i=cpos;
+	}
+	// terminate input / appended input
+	f_in_buf[i]=0;
 	f = atol(f_in_buf);
 	f *= 1000;
 

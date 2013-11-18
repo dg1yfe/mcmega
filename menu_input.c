@@ -74,6 +74,7 @@ inline void m_start_input(char key)
 {
 	save_dbuf();
 	lcd_clr(0);
+	memset(f_in_buf,0,sizeof(f_in_buf));	// clear input buffer;
 	m_print(key);
 	m_state = F_IN;
 }
