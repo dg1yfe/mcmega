@@ -339,7 +339,8 @@ void mts_switch(char key)
 	m_reset_timer();
 	switch(key)
 	{
-		case KC_ENTER:
+		case KC_EXIT:
+			// invert sign of TX shift
 			offset = -offset;
 			txshift = offset;
 			ui_txshift = offset;
@@ -416,7 +417,9 @@ void m_set_shift()
 {
 	long f;
 	uint8_t i;
-		
+	
+	// if input was less than 3 digits,
+	// append '0' to expand to 4 digits total	
 	if(cpos<3)
 	{
 		for(i=cpos;i<4;i++)
