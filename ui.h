@@ -35,4 +35,6 @@
 void vUiTask( void * pvParameters) __attribute__((noreturn));
 void init_ui(void);
 
+extern const char version_str[];
+
 #endif /* UI_H_ */

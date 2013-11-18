@@ -45,7 +45,7 @@
 #include "subs.h"
 #include "audio.h"
 
-const char version_str[] PROGMEM = "0.9";
+const char version_str[] PROGMEM = "13_2beta";
 
 void init_ui()
 {

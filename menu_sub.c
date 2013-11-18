@@ -46,7 +46,7 @@
 #include "eeprom.h"
 #include "subs.h"
 #include "audio.h"
-
+#include "ui.h"
 
 void m_ctcss_submenu(char key);
 
@@ -249,7 +249,7 @@ void m_version_submenu(char key)
 	m_state=SHOW_VERSION;
 	m_reset_timer();
 	lcd_cpos(0);
-	printf_P(PSTR("12.001"));
+	printf_P(version_str);
 	lcd_fill();
 	if(key == KC_EXIT)
 		m_timer=0;
