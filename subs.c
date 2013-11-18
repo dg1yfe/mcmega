@@ -89,14 +89,14 @@ void pwr_sw_chk(char cSaveSettings)
 
 void watchdog_toggle()
 {
-	PORT_SBUS_DATA ^= (1<<BIT_SBUS_DATA);
+	PORT_SBUS_DATA ^= BIT_SBUS_DATA;
 }
 
 
 void watchdog_toggle_ms()
 {
-	PORT_SBUS_DATA &= ~(1<<BIT_SBUS_DATA);
-	DDR_SBUS_DATA = (DDR_SBUS_DATA & ~(1<<BIT_SBUS_DATA)) | ((tick_ms & 2)<< (BIT_SBUS_DATA-1));
+	PORT_SBUS_DATA &= ~(BIT_SBUS_DATA);
+	DDR_SBUS_DATA = (DDR_SBUS_DATA & ~(BIT_SBUS_DATA)) | ((tick_ms & 2)? BIT_SBUS_DATA : 0);
 }
 
 
@@ -245,10 +245,14 @@ void squelch()
 			{
 				// Enable Audio, Pull Ext Alarm low
 				SetShiftReg(SR_RXAUDIOEN, (uint8_t)~SR_EXTALARM);
+				// enable yellow LED
+				led_set(YEL_LED, LED_ON);
 			}
 			else
 			{	// disable Audio, set Ext Alarm high
 				SetShiftReg(SR_EXTALARM, (uint8_t)~SR_RXAUDIOEN);
+				// disable yellow LED
+				led_set(YEL_LED, LED_ON);
 			}
 		}
 	}
