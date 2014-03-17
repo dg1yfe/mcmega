@@ -341,10 +341,9 @@ void mts_switch(char key)
 	{
 		case KC_EXIT:
 			// invert sign of TX shift
-			offset = -offset;
-			txshift = offset;
+			txshift = -offset;
 			ui_txshift = offset;
-			vTaskDelay(1);
+			vTaskDelay(1);	// wait for control task to process new shift setting
 			mts_print();
 			break;
 		case KC_D7:
@@ -364,7 +363,7 @@ void mts_switch(char key)
 			m_state = TXSHIFT_DIGIT;
 			m_digit_editor(0,0,0,-1);
 			break;
-		case KC_EXIT:
+		case KC_ENTER:
 			m_timer=0;
 			break;
 		default:

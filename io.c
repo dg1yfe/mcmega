@@ -249,11 +249,10 @@ void init_io()
 	 * Bit 7	: DPTT
 	 */
 
-	// let SR clock pin be input, ext. pull-up sets it to high
 	// leave Bit 6 low & input
 	// only use PORTE2 as data i/o
 	DDRD  = ( 1 << 5) | ( 0 << 6 ) | ( 1 << 7 );
-	PORTD = ( 1 << 5) | ( 0 << 6);
+	PORTD = ( 0 << 5) | ( 0 << 6);
 
 	/*
 	 * Port E:
