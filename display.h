@@ -8,6 +8,13 @@
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
+// Control Head Error Counter
+// After this amount of reset char is received
+// the control head is being reset
+#define LCD_CH_RESET_MAX 50
+
+#define LCD_NO_CLEAR_LED 0
+#define LCD_CLEAR_LED 1
 
 void lcd_h_reset(void);
 char lcd_s_reset(void);

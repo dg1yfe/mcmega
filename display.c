@@ -38,6 +38,7 @@
 #include "regmem.h"
 #include "firmware.h"
 #include "io.h"
+#include "display.h"
 
 void lcd_clr(char clear_leds);
 void lcd_cpos(unsigned char pos);
@@ -128,7 +129,7 @@ char lcd_s_reset()
 	{
 		// clear LCD and LEDs
 		lcd_clr(1);
-		ch_reset_detected = 50;
+		ch_reset_detected = LCD_CH_RESET_MAX;
 	}
 
 	return ret;

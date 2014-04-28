@@ -34,7 +34,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include <util/delay_basic.h>
+#include <avr/delay.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -45,6 +45,22 @@
 #include "macros.h"
 #include "regmem.h"
 #include "firmware.h"
+#include "display.h"
+
+
+// serial bus maximum frequency in kHz
+// the maximum rate is limited by RC low-pass-filters
+// towards PLL: R = 12k7, C = (68 pF + 10 pF) -> Tau = 0.99 us
+// -> rise time & fall time must be >= 5*Tau
+// -> clock period = 5*0.99 -> 10 us -> 100 kHz
+#ifdef DEBUG_BUILD
+// make it faster for debug builds due to missing optimization
+#define SBUS_PLL_CLOCK 500
+#else
+#define SBUS_PLL_CLOCK 100
+#endif
+#define SBUS_PLL_DELAY  (1000/SBUS_PLL_CLOCK)
+#define SBUS_PLL_DELAY2 (SBUS_PLL_DELAY/2)
 
 
 void SetShiftReg(uint8_t or_value, uint8_t and_value);
@@ -341,7 +357,7 @@ void init_sci()
 
 	vSemaphoreCreateBinary( TxDone );
 	xSemaphoreTake( TxDone, 0 );
-	ch_reset_detected = 50;
+	ch_reset_detected = LCD_CH_RESET_MAX;
 }
 
 
@@ -424,14 +440,12 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 
  */
 	char i, bits;
-	long data;
-
-	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
+	uint32_t data;
 
 	if(RegSelect)
 	{
 		// set R (14 Bit) + Control (1 Bit, 1)
-		data = ((long)divNR << 2) | 2;	// include Control Bit
+		data = ((uint32_t)divNR << 2) | 2;	// include Control Bit
 		// shift first data bit to MSB position
 		data <<= 16;
 		bits = 15;
@@ -439,18 +453,21 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	else
 	{
 		// set N (10 Bit) & A (7 Bit) & Control ( 1 Bit, 0)
-		data = ( (long) divNR << 8 ) | ((long)divA << 1);
+		data = ( (uint32_t) divNR << 8 ) | ((uint32_t)divA << 1);
 		// shift first data bit to MSB position
 		data <<= 14;
 		bits = 18;
 	}
 
-	DDR_SBUS_DATA |= BIT_SBUS_DATA;
+	xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
 
 	taskENTER_CRITICAL();
+
+	DDR_SBUS_DATA |= BIT_SBUS_DATA;
+
 	for(i=bits;i>0;i--)
 	{
-		if(data & 0x80000000)
+		if( (data >> 24) & 0x80)
 		{
 			PORT_SBUS_DATA |= BIT_SBUS_DATA;
 		}
@@ -462,9 +479,11 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 		PORT_SBUS_CLK &= ~BIT_SBUS_CLK;
 
 		data <<= 1;
-
+		// we need to wait some microseconds for the signal to settle
+		_delay_us(SBUS_PLL_DELAY2);
 		// set Port Bit to 1
 		PORT_SBUS_CLK |= BIT_SBUS_CLK;
+		_delay_us(SBUS_PLL_DELAY2);
 	}
 	// toggle PLL latch
 	PORT_PLL_LATCH |= BIT_PLL_LATCH;
@@ -472,11 +491,14 @@ void SetPLL(const char RegSelect, char divA, int divNR)
 	// set Data to input (ext. Pull up)
 	DDR_SBUS_DATA &= ~BIT_SBUS_DATA;
 
-	PORT_PLL_LATCH &= ~BIT_PLL_LATCH;
-
 	// Bus access finished
 	xSemaphoreGiveRecursive(SerialBusMutex);
 	taskEXIT_CRITICAL();
+	
+	// ensure proper pulse width for latch signal
+	_delay_us(SBUS_PLL_DELAY2);
+	// reset latch
+	PORT_PLL_LATCH &= ~BIT_PLL_LATCH;
 }
 
 
