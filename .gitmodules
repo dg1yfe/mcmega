@@ -1,0 +1,3 @@
+[submodule "mcmboot"]
+	path = mcmboot
+	url = /Volumes/gitrepo/mcmboot
