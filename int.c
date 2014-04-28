@@ -64,11 +64,6 @@ void vApplicationTickHook()
 		lcd_timer--;
 	}
 
-	if(bus_busy==0)
-	{	// invert data line to reset HW watchdog
-		// SR_DATAPORT ^= SR_DATABIT;
-	}
-
 	gp_timer--;
 
 }

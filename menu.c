@@ -69,7 +69,7 @@ void menu_init()
 	m_timer_en = 0;
 
 	// set squelch mode
-	sql_mode = SQM_CARRIER;
+	config.squelchMode = SQM_CARRIER;
 	arrow_set(2,1);
 
 }

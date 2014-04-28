@@ -139,7 +139,7 @@ void m_top(uint8_t key)
 			break;
 		case KC_D6:
 			m_debug(key);
-			if(cfg_head == CHD2)
+			if(config.controlHead == CONTROL_HEAD2)
 			{
 				if(!m_timer_en)
 					save_dbuf();
@@ -264,14 +264,14 @@ static inline void m_frq_down()
 //
 static inline void m_sql_switch()
 {
-	if (sql_mode == SQM_CARRIER)
+	if (config.squelchMode == SQM_CARRIER)
 	{
-		sql_mode = SQM_OFF;
+		config.squelchMode = SQM_OFF;
 		arrow_set(2,0);
 	}
 	else
 	{
-		sql_mode = SQM_CARRIER;
+		config.squelchMode = SQM_CARRIER;
 		arrow_set(2,1);
 	}
 }

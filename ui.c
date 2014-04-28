@@ -51,7 +51,7 @@ void init_ui()
 {
     ui_frequency = 0;
     ui_txshift = -1;
-	sql_mode = SQM_CARRIER;
+	config.squelchMode = SQM_CARRIER;
 }
 
 // reset user interface
@@ -79,7 +79,7 @@ void vUiTask( void * pvParameters)
 {
 	lcd_s_reset();
 //	int_lcd_timer_dec = 1;
-	cfg_head = CONTROL_HEAD3;
+	config.controlHead = CONTROL_HEAD3;
 
 #ifdef DEBUG_BUILD
 #else

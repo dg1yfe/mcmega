@@ -194,7 +194,7 @@ void transmit()
 	SetShiftReg(0, (uint8_t)~(SR_RXAUDIOEN));
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
-	if(cfg_pwr_mode)
+	if(config.powerMode)
 	{
 		SetShiftReg(SR_MICEN, ~SR_TXPWRLO);
 	}
@@ -231,8 +231,8 @@ void squelch()
 		}
 		sql_pin_flag = pin_state;
 
-		state = pin_state || (sql_mode == SQM_OFF);
-		if((sql_mode != SQM_OFF) && g_coeff)
+		state = pin_state || (config.squelchMode == SQM_OFF);
+		if((config.squelchMode != SQM_OFF) && g_coeff)
 		{
 			state = (PIN_SQL & BIT_SQL);
 			// disregard tone detection state until detector output was updated
@@ -603,18 +603,18 @@ void rfpwr_set(uint8_t enable_hi_power)
 {
 	if(enable_hi_power)
 	{
-		cfg_pwr_mode &= ~((uint8_t)8);
+		config.powerMode = 0;
 	}
 	else
 	{
-		cfg_pwr_mode |= 8;
+		config.powerMode = 1;
 	}
 }
 
 
 void rfpwr_print()
 {
-	if(cfg_pwr_mode)
+	if(config.powerMode)
 		arrow_set(3, 0);
 	else
 		arrow_set(3, 1);

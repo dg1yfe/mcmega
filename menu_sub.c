@@ -70,7 +70,7 @@ void m_ctcss_submenu(char key);
 //
 void m_power()
 {
-	if(cfg_pwr_mode)
+	if(config.powerMode)
 	{
 		// pwr is low, set to high
 		rfpwr_set(1);
@@ -102,7 +102,7 @@ void m_power_submenu(char key)
 		{
 			case KC_D1:
 			case KC_D2:
-				cfg_pwr_mode ^= 8;
+				config.powerMode ^= 1;
 				print = 1;
 				break;
 			case KC_ENTER:
@@ -118,7 +118,7 @@ void m_power_submenu(char key)
 	if(print)
 	{
 		lcd_cpos(0);
-		if(cfg_pwr_mode)
+		if(config.powerMode)
 		{
 			printf_P(PSTR("pwr lo"));
 			arrow_set(3, 0);
@@ -146,7 +146,7 @@ void m_defch_submenu(char key)
 
 	if (m_state != DEFCH_SELECT)
 	{
-		index = cfg_defch_save & 2;
+		index = config.defChanSave & 2;
 		m_state = DEFCH_SELECT;
 	}
 	else
@@ -171,10 +171,10 @@ void m_defch_submenu(char key)
 					uint8_t buf;
 
 					taskENTER_CRITICAL();
-					buf = cfg_defch_save;
+					buf = config.defChanSave;
 					buf &= ~2;
 					buf |= (index & 2);
-					cfg_defch_save = buf;
+					config.defChanSave = buf;
 					taskEXIT_CRITICAL();
 					eeprom_update_byte((uint8_t *) 0x1fd, buf);
 					lcd_cpos(0);
@@ -277,8 +277,28 @@ void m_ctcss_rx(char key)
 void m_ctcss_submenu(char key)
 {
 	char print = 1;
-
+	uint8_t ctcss_index;
+	uint8_t	ctcss_index_other;
+	
 	m_reset_timer();
+
+	if(m_state == CTCSS_SEL_TX)
+	{
+		ctcss_index = config.ctcssIndexTx;
+		ctcss_index_other = config.ctcssIndexRx;
+	}	
+	else
+	{
+		ctcss_index = config.ctcssIndexRx;
+		ctcss_index_other = config.ctcssIndexTx;
+	}	
+
+
+	// avoid "same as RX" / "same as TX" for bith settings
+	// if it happens (eg invalid config), force current index to "CTCSS off" position
+	if(!ctcss_index && (ctcss_index == ctcss_index_other)){
+		ctcss_index = 1;
+	}
 
 	if (key != -1)
 	{
@@ -287,11 +307,21 @@ void m_ctcss_submenu(char key)
 			case KC_D1:
 			{
 				ctcss_index = ctcss_index < CTCSS_TABMAX-1 ? ctcss_index+1 : 0;
+				// "same as RX" / "same as TX" can only be selected for TX or RX
+				// otherwise there will be a paradoxon and the whole universe will cease to exist ;)
+				if(!ctcss_index && (ctcss_index == ctcss_index_other)){
+					ctcss_index++;
+				}
 				break;
 			}
 			case KC_D2:
 			{
 				ctcss_index = ctcss_index ? ctcss_index-1 : CTCSS_TABMAX-1;
+				// "same as RX" / "same as TX" can only be selected for TX or RX
+				// otherwise there will be a paradoxon and the whole universe will cease to exist ;)
+				if(!ctcss_index && (ctcss_index == ctcss_index_other)){
+					ctcss_index=CTCSS_TABMAX-1;
+				}
 				break;
 			}
 			case KC_ENTER:
@@ -302,9 +332,15 @@ void m_ctcss_submenu(char key)
 				{
 					uint16_t freq;
 
-					freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+					if(ctcss_index){
+						freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+					}
+					else{
+						freq = pgm_read_word(&ctcss_tab[ctcss_index_other]);
+					}						
+						
 					if(freq)
-					{
+					{						
 						tone_start_pl(freq);
 					}
 					else
@@ -318,16 +354,23 @@ void m_ctcss_submenu(char key)
 						vTaskDelay(100);
 						printf_P(PSTR("OFF"));
 						lcd_fill();
+						vTaskDelay(100);
 					}
 				}
 				else
 				{
 					// CTCSS_SEL_RX
-					if(ctcss_index)
-					{
-						uint16_t freq;
+					uint16_t freq;
 
+					if(ctcss_index){
 						freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+					}
+					else{
+						freq = pgm_read_word(&ctcss_tab[ctcss_index_other]);
+					}
+									
+					if(freq)
+					{
 						goertzel_init(freq);
 					}
 					else
@@ -340,6 +383,7 @@ void m_ctcss_submenu(char key)
 						vTaskDelay(100);
 						printf_P(PSTR("OFF"));
 						lcd_fill();
+						vTaskDelay(100);
 					}
 				}
 
@@ -367,21 +411,43 @@ void m_ctcss_submenu(char key)
 		}
 	}
 
+	if(m_state == CTCSS_SEL_TX)
+	{
+		config.ctcssIndexTx = ctcss_index;
+	}	
+	else
+	{
+		config.ctcssIndexRx = ctcss_index;
+	}	
+	
 	if(print)
 	{
 		uint16_t freq;
 		char c[6];
 
 		memset(c,0,sizeof c);
-		freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+		
+		if(ctcss_index){
+			freq = pgm_read_word(&ctcss_tab[ctcss_index]);
+		}
+		else{
+			freq = pgm_read_word(&ctcss_tab[ctcss_index_other]);
+		}						
 		itoa(freq,c,10);
 		lcd_cpos(0);
-		if(freq==0)
+		if(ctcss_index && (freq==0))
 		{
 			printf_P(PSTR("OFF"));
 		}
 		else
-		{
+		{	if (freq == 0)
+			{
+				c[0]=' '
+				c[1]='O';
+				c[2]='F';
+				c[3]='F';
+			}
+			else
 			if (freq<1000)
 			{
 				c[3] = c[2];
@@ -392,8 +458,17 @@ void m_ctcss_submenu(char key)
 				c[4] = c[3];
 				c[3] = '_';
 			}
-			printf_P(PSTR("%s Hz"),c);
-		}
+			if(ctcss_index)
+			{
+				printf_P(PSTR("%s Hz"),c);				
+			}
+			else{
+				if(m_state == CTCSS_SEL_TX)
+					printf_P(PSTR("=RX%s"),c);
+				else
+					printf_P(PSTR("=TX%s"),c);				
+			}
+		}		
 		lcd_fill();
 	}
 

@@ -38,7 +38,7 @@
 #define FS UINT32_C(8000)
 
 #define SAMP_BUF_LEN UINT8_C(32)
-#define CTCSS_TABMAX 54
+#define CTCSS_TABMAX 55
 
 extern const uint8_t sin_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;

@@ -43,7 +43,8 @@
 //
 #define SQM_OFF       0
 #define SQM_CARRIER   1
-#define SQM_CTCSS     2
+#define SQM_RSSI      2
+#define SQM_CTCSS     3
 
 // Power Switch (0 = Power On)
 #define PORT_SWB	PORTD
@@ -93,12 +94,25 @@
 
 #define SQEXTBIT SR_EXTALARM
 
+
+//*******************
+// Type Definitions
+//*******************
+typedef struct {
+	unsigned	powerMode:1;			// Lo / Hi Power
+	unsigned	squelchMode:2;			// Squelch mode
+	unsigned	defChanSave:2;			// save current frequency as default channel?
+	unsigned	ctcssIndexRx:6;			// CTCSS
+	unsigned	ctcssIndexTx:6;
+	unsigned	controlHead:3;			// control head
+} T_Config;	
+
+
 //*******************
 // R E G I S T E R S
 //*******************
 
 extern char SR_data_buf;
-extern char bus_busy;
 extern void * oci_vec;
 extern char tasksw;
 extern char last_tasksw;
@@ -132,7 +146,6 @@ extern uint8_t cpos2;
 
 extern char f_in_buf[9];	// 9 byte buffer
 
-extern uint8_t ctcss_index;
 extern int  oci_int_ctr;
 
 extern int f_step;			// Schrittweite in Hz
@@ -158,21 +171,17 @@ extern long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 extern char rxtx_state;			// 0=RX
 
-char cfg_pwr_mode;				// Lo / Hi Power
+extern T_Config config;			// Radio Configuration
 
 extern char ptt_debounce;
 
-extern char cfg_defch_save;
 extern char ui_ptt_req;			//
-
-extern uint8_t cfg_head;				// Type of Control Head
 
 extern char m_state;
 extern int  m_timer;				// 100ms
 extern char m_timer_en;
 
 extern char sql_timer;
-extern char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
 extern char sql_flag;
 extern uint8_t sql_pin_flag;
 

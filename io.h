@@ -54,9 +54,6 @@
 #define PORT_EEP_DISABLE PORTG
 #define BIT_EEP_DISABLE  (1 << 4);
 
-#define CONTROL_HEAD3 0
-#define CONTROL_HEAD2 1
-
 #define PORT_SEL_DAC PORTC
 #define MASK_SEL_DAC  (0x0f)
 

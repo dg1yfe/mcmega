@@ -34,7 +34,7 @@
 #include <string.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
-#include <avr/delay.h>
+#include <util/delay.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -787,7 +787,7 @@ char sci_rx_m(char * data)
 	}
 	else
 	{
-		*data = pgm_read_byte( &key_convert[cfg_head][raw]);
+		*data = pgm_read_byte( &key_convert[(uint8_t)config.controlHead][raw]);
 	}
 	return raw;
 }
@@ -816,7 +816,7 @@ char sci_read_m( char * data)
 		return -1;
 	}
 
-	*data = key_convert[cfg_head][raw];
+	*data = key_convert[(uint8_t)config.controlHead][raw];
 
 	return raw;
 }

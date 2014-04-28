@@ -242,8 +242,8 @@
 /*
  * Control Head definitions, used for key convert table
  */
-#define CHD3 0
-#define CHD2 1
+#define CONTROL_HEAD3 0
+#define CONTROL_HEAD2 1
 
 /*
  * ;****************************************************************************

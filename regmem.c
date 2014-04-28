@@ -41,7 +41,6 @@ char tasksw;
 char last_tasksw;
 char tasksw_en;
 int  start_task;
-char bus_busy;
 char pcc_cdiff_flag; 	// Flag
 
 char led_buf;			// Bit 0 (1)  - gelb
@@ -69,7 +68,6 @@ uint8_t cpos2;
 
 char f_in_buf[9];			// 9 byte buffer
 
-uint8_t ctcss_index;
 int  oci_int_ctr;
 
 int f_step;					// Schrittweite in Hz
@@ -95,17 +93,13 @@ char ui_ptt_req;			//
 
 char ptt_debounce;
 
-char cfg_pwr_mode;				// Lo / Hi Power
-char cfg_defch_save;
-uint8_t cfg_head;				// Type of Control Head
-
 char m_state;
 int  m_timer = 0;			// 100ms
 char m_timer_en;
 
 char sql_timer;
-char sql_mode;				// Mode ($80 = Carrier, $40 = RSSI, 0 = off)
 char sql_flag;
+
 uint8_t sql_pin_flag;
 
 char mem_bank;
@@ -124,13 +118,13 @@ typedef struct {
 	signed   offset : 10;	// 25 kHz Steps for Offset, signed
 	unsigned ofs_active: 1;	// Offset activated?
 	unsigned ctcss_index: 6;	// CTCSS frequency (index)
-	unsigned ctcss_squelch: 1;	// Off / Carrier / RSSI Board / CTCSS
+	unsigned ctcss_squelch: 1;	// CTCSS squelch active
 	unsigned reserved:1;
 	char	 name[6];
 	} T_MemChannel;
 
-typedef struct {
-} T_Config;	
+
+T_Config config;
 
 
 //*****************************
