@@ -102,11 +102,13 @@ void watchdog_toggle_ms()
 
 void wd_reset()
 {
+#ifndef DISABLE_WATCHDOG_RESET
 	if(xSemaphoreTakeRecursive(SerialBusMutex,0))
 	{
 		watchdog_toggle_ms();
 		xSemaphoreGiveRecursive(SerialBusMutex);
 	}
+#endif	
 }
 
 
@@ -158,18 +160,19 @@ static inline void vco_switch(char vco)
 	}
 }
 
+
 void receive()
 {
 	led_set(YEL_LED, LED_OFF);
 
 	PORT_DPTT |=  BIT_DPTT;			// Disable PA drive
-	SetShiftReg(0, ~SR_MICEN);	// Disable Mic Amp
+	SetShiftReg(0, ~SR_MICEN);		// Disable Mic Amp
 
-	vTaskDelay(TX_TO_RX_TIME);	// Wait TX to RX Time
+	vTaskDelay(TX_TO_RX_TIME);		// Wait TX to RX Time
 
-	vco_switch(0);				// enabe RX VCO
+	vco_switch(0);					// enable RX VCO
 
-	set_rx_freq(&frequency);	// set VCO to RX frequency
+	set_rx_freq(&frequency);		// set VCO to RX frequency
 
 	rxtx_state = 0;
 
@@ -252,7 +255,7 @@ void squelch()
 			{	// disable Audio, set Ext Alarm high
 				SetShiftReg(SR_EXTALARM, (uint8_t)~SR_RXAUDIOEN);
 				// disable yellow LED
-				led_set(YEL_LED, LED_ON);
+				led_set(YEL_LED, LED_OFF);
 			}
 		}
 	}
