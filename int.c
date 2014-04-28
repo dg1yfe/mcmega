@@ -166,7 +166,7 @@ void init_OCI()
 void init_Timer2()
 {
 #if (F_CPU / FS / 8) > 255
-#warning "OCR2 value exceeds 255"
+#warning "OCR2 value exceeds 255 - (OCR2 is the result of F_CPU / FS / 8 )"
 #endif
 	OCR2 = (uint8_t) (F_CPU/FS / 8) - 1;
 	TCCR2 |= (1 << WGM21) | (0 << WGM20) ;
