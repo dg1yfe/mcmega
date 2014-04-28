@@ -34,20 +34,22 @@
 
 #include <stdint.h>
 
+#define PLL_LOCK_STATE_FORCE_UPDATE 1
+
 uint8_t freq_init(void);
 char init_pll(unsigned int spacing);
 void pll_led(char force);
 char pll_lock_chk(void);
-void pll_set_channel(unsigned long channel);
-void set_freq(unsigned long * freq);
-void set_tx_freq(unsigned long * freq);
-void set_rx_freq(unsigned long * freq);
-unsigned long frq_cv_freq_ch(unsigned long * freq);
-unsigned long frq_cv_ch_freq(unsigned long ch);
-unsigned long frq_get_freq(void);
-unsigned long frq_calc_freq(char * str);
-void frq_update(unsigned long *freq);
-void freq_print(unsigned long * freq);
+void pll_set_channel(uint32_t channel);
+void set_rx_freq(uint32_t * freq);
+void set_tx_freq(uint32_t * freq);
+void set_freq(uint32_t * freq);
+uint32_t frq_cv_freq_ch(unsigned long * freq);
+uint32_t frq_cv_ch_freq(unsigned long ch);
+uint32_t frq_get_freq(void);
+uint32_t frq_calc_freq(char * str);
+void frq_update(uint32_t *freq);
+void freq_print(uint32_t * freq);
 void freq_offset_print(void);
 void frq_check(void);
 

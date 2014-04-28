@@ -40,8 +40,8 @@
 #include "display.h"
 #include "subs.h"
 
-void set_rx_freq(unsigned long * freq);
-void set_tx_freq(unsigned long * freq);
+void set_rx_freq(uint32_t * freq);
+void set_tx_freq(uint32_t * freq);
 unsigned long frq_get_freq(void);
 
 uint8_t freq_init_eep(void);
@@ -232,12 +232,12 @@ void pll_set_channel(unsigned long ch)
 // changed Regs : none
 //
 //
-void set_rx_freq(unsigned long * freq)
+void set_rx_freq(uint32_t * freq)
 {
 	unsigned long f;
 	ldiv_t divresult;
 
-	f = *freq - RXZF;
+	f = (unsigned long) *freq - RXZF;
 	divresult = ldiv(f, FSTEP);
 	f = divresult.quot;
 
@@ -265,12 +265,12 @@ void set_rx_freq(unsigned long * freq)
 // changed Regs : none
 //
 //
-void set_tx_freq(unsigned long * freq)
+void set_tx_freq(uint32_t * freq)
 {
 	unsigned long f;
 	ldiv_t divresult;
 
-	f = *freq - offset;
+	f = (unsigned long) *freq - offset;
 	divresult = ldiv(f, FSTEP);
 	f = divresult.quot;
 
@@ -300,7 +300,7 @@ void set_tx_freq(unsigned long * freq)
 // changed Regs : none
 //
 //
-void set_freq(unsigned long * freq)
+void set_freq(uint32_t * freq)
 {
 	if(rxtx_state)
 		set_tx_freq(freq);
@@ -321,12 +321,12 @@ void set_freq(unsigned long * freq)
 // changed Regs : D,X
 //
 //
-unsigned long frq_cv_freq_ch(unsigned long * freq)
+unsigned long frq_cv_freq_ch(uint32_t * freq)
 {
 	ldiv_t divresult;
 	unsigned long ch;
 
-	divresult = ldiv(*freq, FSTEP);
+	divresult = ldiv((unsigned long) *freq, FSTEP);
 	ch = divresult.quot;
 	if(divresult.rem > (FSTEP>>1))
 	{
@@ -348,7 +348,7 @@ unsigned long frq_cv_freq_ch(unsigned long * freq)
 //  changed Regs : D,X
 //
 //
-unsigned long frq_cv_ch_freq(unsigned long ch)
+uint32_t frq_cv_ch_freq(unsigned long ch)
 {
 	return (ch * FSTEP);
 }
@@ -367,7 +367,7 @@ unsigned long frq_cv_ch_freq(unsigned long ch)
 //  changed Regs : D,X
 //
 //
-unsigned long frq_get_freq(void)
+uint32_t frq_get_freq(void)
 {
 	return((unsigned long)channel * FSTEP);
 }
@@ -404,7 +404,7 @@ unsigned long frq_calc_freq(char * str)
 //
 // changed Regs : None
 //
-void frq_update(unsigned long *freq)
+void frq_update(uint32_t *freq)
 {
 	// TODO: Replace with message
 	ui_frequency = *freq;

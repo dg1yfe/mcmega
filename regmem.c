@@ -82,13 +82,13 @@ char gp_timer;				// General Purpose Timer, 1ms Decrement
 char ui_timer;
 uint8_t lcd_timer;				// 1ms
 
-unsigned long frequency;	// aktuelle Frequenz
+uint32_t frequency;	// aktuelle Frequenz
 
 long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
 long txshift;
 long channel;				// aktuell in der PLL gesetzter Kanal
-unsigned long ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
-long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
+uint32_t ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
+int32_t ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 char rxtx_state;			// 0=RX
 char ui_ptt_req;			//
