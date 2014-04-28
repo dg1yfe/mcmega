@@ -45,7 +45,7 @@
 #include "subs.h"
 #include "audio.h"
 
-const char version_str[] PROGMEM = "13_2beta";
+const char version_str[] PROGMEM = "14_1beta";
 
 void init_ui()
 {
@@ -54,16 +54,24 @@ void init_ui()
 	sql_mode = SQM_CARRIER;
 }
 
+// reset user interface
+#define UI_RESET_COLD 1
+#define UI_RESET_WARM 0
 
-static void reset_ui(void)
+static void reset_ui(uint8_t type)
 {
-	freq_print(&frequency);
+	if(type == UI_RESET_COLD)
+		lcd_clr(LCD_CLEAR_LED);		// clear lcd content including LEDs
+	else
+		lcd_cpos(0);
+	
+	freq_print(&frequency);		// print current frequency
 	vTaskDelay(15);
-	freq_offset_print();
-	rfpwr_print();
-	pll_led(1);
+	freq_offset_print();		// print state of tx shift
+	rfpwr_print();				// print state of output power
+	pll_led(PLL_LOCK_STATE_FORCE_UPDATE);// force update of PLL led state
 
-	menu_init();
+	menu_init();				// (re-)initialize menu
 }
 
 
@@ -73,8 +81,9 @@ void vUiTask( void * pvParameters)
 //	int_lcd_timer_dec = 1;
 	cfg_head = CONTROL_HEAD3;
 
+#ifdef DEBUG_BUILD
+#else
    	led_update();
-#ifndef DEBUG
 	printf_P(PSTR("DG1YFE"));
 	lcd_fill();
 	lcd_cpos(0);
@@ -84,12 +93,10 @@ void vUiTask( void * pvParameters)
 	vTaskDelay(150);
 	printf_P(version_str);
 	lcd_fill();
-	lcd_cpos(0);
 	vTaskDelay(150);
+//	reset_ui(UI_RESET_WARM);
 #endif
-	reset_ui();
-
-	lcd_cpos(0);
+	reset_ui(UI_RESET_COLD);
 
     for(;;)
 	{
@@ -103,7 +110,7 @@ void vUiTask( void * pvParameters)
 		if(!ch_reset_detected)
 		{
 			lcd_s_reset();
-			reset_ui();
+			reset_ui(UI_RESET_COLD);
 		}		
 	}
 }
