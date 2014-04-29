@@ -442,7 +442,7 @@ void m_ctcss_submenu(char key)
 		else
 		{	if (freq == 0)
 			{
-				c[0]=' '
+				c[0]=' ';
 				c[1]='O';
 				c[2]='F';
 				c[3]='F';
