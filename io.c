@@ -362,7 +362,9 @@ void init_sci()
 }
 
 
-
+/*
+ *  Control Task exclusive
+ */
 void SetShiftReg(uint8_t or_value, uint8_t and_value)
 {
 	char i, d;
@@ -377,9 +379,14 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 // SR_MICEN     - 6 - Mic enable  (1=enable)          (PIN 12) *
 // SR_RXAUDIOEN - 7 - Rx Audio enable (1=enable)      (PIN 11)
 
+	// UI task must not access blocking IO directly
+	if(xTaskGetCurrentTaskHandle()== xUiTaskHandle)
+		return;
 	// get exclusive Bus access
-	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING)
-		xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
+	if(xTaskGetSchedulerState()==taskSCHEDULER_RUNNING){
+		if(xSemaphoreTakeRecursive(SerialBusMutex, 0) == pdFAIL)
+			return;
+	}
 
 	//
 	SR_data_buf &= and_value;
@@ -912,7 +919,7 @@ void sci_rx_handler()
 
 		if(!(UCSR0A & ((1<<UPE0) | (1<<FE0))))
 		{
-			// reception ok
+			// reception OK
 
 			rx = UDR0;
 			if((rx == 0x7e) && ch_reset_detected)
@@ -984,8 +991,8 @@ void sci_tx_handler()
 					tx_stall--;
 				else
 					// check if there is something to be sent in the buffer
-					// Block here for at max 1 tick
-				if(xQueuePeek( xTxQ, &tx, 1) == pdPASS)
+					// do not block here
+				if(xQueuePeek( xTxQ, &tx, 0) == pdPASS)
 				{
 					// do not send if there is a byte in the input buffer
 					// could be a keystroke which has to be acknowledged first
@@ -1001,30 +1008,6 @@ void sci_tx_handler()
 	}
 }
 
-//************************
-// C H E C K   I N B U F
-//************************
-//
-// Parameter : none
-// Result    : A - Bytes in Buffer
-//
-char check_inbuf()
-{
-	return (rx_char_buf & 0x80);
-}
-//
-//************************
-// C H E C K   O U T B U F
-//************************
-//
-// Parameter : none
-// Result    : A - Bytes in Buffer
-//
-char check_outbuf()
-{	// TODO: remove
-	//return ((io_outbuf_w - io_outbuf_r) & io_outbuf_mask);
-	return 0;
-}
 //
 //****************
 // S C I   A C K
