@@ -4,6 +4,7 @@
  *  Created on: 01.08.2012
  *      Author: F. Erckenbrecht
  */
+#include <stdint.h>
 #include <avr/eeprom.h>
 #include <util/crc16.h>
 #include <alloca.h>
@@ -60,13 +61,13 @@ uint8_t crc8_ccitt(const uint8_t data, const uint8_t crc)
 }
 
 
-static uint8_t config_checkConfigCrc( T_Config * cfgPtr){
+uint8_t config_checkConfigCrc( T_Config * cfgPtr){
 	uint8_t crc = CONFIG_CRC_INIT;
 	uint8_t * crcPtr = &(cfgPtr->crc);
 	uint8_t * d = (uint8_t *) cfgPtr;
 
 	// calculate CRC for config data in SRAM
-	while(cfgPtr <= (T_Config *) crcPtr){
+	while(d <= crcPtr){
 		crc = crc8_ccitt(*(d++), crc);
 	}
 	return crc;
@@ -79,7 +80,7 @@ static void config_calcConfigCrc( T_Config * cfgPtr){
 	uint8_t * d = (uint8_t *) cfgPtr;
 
 	// calculate CRC for config data in SRAM
-	while((uint8_t *)cfgPtr < crcPtr){
+	while(d < crcPtr){
 		crc = crc8_ccitt(*(d++), crc);
 	}
 	cfgPtr->crc = crc;
