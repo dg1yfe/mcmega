@@ -31,6 +31,7 @@
 #ifndef REGMEM_H_
 #define REGMEM_H_
 #include <stdint.h>
+#include "config.h"
 //
 // Port Function Macros
 //
@@ -96,19 +97,6 @@
 
 
 //*******************
-// Type Definitions
-//*******************
-typedef struct {
-	unsigned	powerMode:1;			// Lo / Hi Power
-	unsigned	squelchMode:2;			// Squelch mode
-	unsigned	defChanSave:2;			// save current frequency as default channel?
-	unsigned	ctcssIndexRx:6;			// CTCSS
-	unsigned	ctcssIndexTx:6;
-	unsigned	controlHead:3;			// control head
-} T_Config;	
-
-
-//*******************
 // R E G I S T E R S
 //*******************
 
@@ -161,8 +149,6 @@ extern char lcd_timer_en;
 
 //trx_state       .db
 
-extern unsigned long frequency;	// aktuelle Frequenz
-
 extern long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
 extern long txshift;
 extern long channel;			// aktuell in der PLL gesetzter Kanal
@@ -170,8 +156,6 @@ extern unsigned long ui_frequency;	// Über UI eingegebene Frequenz wird hier ge
 extern long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 extern char rxtx_state;			// 0=RX
-
-extern T_Config config;			// Radio Configuration
 
 extern char ptt_debounce;
 

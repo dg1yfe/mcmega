@@ -139,15 +139,6 @@ ISR(TIMER2_COMP_vect)
 
 
 
-void init_SIO()
-{
-	//TODO : Bitrate
-
-	// enable UART RX interrupt
-	//UCSR0B |= (1 << RXCIE0);
-}
-
-
 void init_OCI()
 {
 	tick_ms = 0;
@@ -182,3 +173,6 @@ void stop_Timer2()
 		TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
 	}
 }
+
+
+// TODO: Analog Comparator ISR / Brown-Out detection

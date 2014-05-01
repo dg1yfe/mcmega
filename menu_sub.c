@@ -402,6 +402,7 @@ void m_ctcss_submenu(char key)
 				lcd_fill();
 				vTaskDelay(200);
 			}
+			// no break
 			case KC_EXIT:
 			{
 				print = 0;

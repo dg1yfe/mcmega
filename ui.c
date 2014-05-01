@@ -49,9 +49,8 @@ const char version_str[] PROGMEM = "14_1beta";
 
 void init_ui()
 {
-    ui_frequency = 0;
-    ui_txshift = -1;
-	config.squelchMode = SQM_CARRIER;
+    ui_frequency = 0;	// TODO: replace by message
+    ui_txshift = -1;	// TODO: replace by message
 }
 
 // reset user interface
@@ -65,7 +64,7 @@ static void reset_ui(uint8_t type)
 	else
 		lcd_cpos(0);
 	
-	freq_print(&frequency);		// print current frequency
+	freq_print(&config.frequency);		// print current frequency
 	vTaskDelay(15);
 	freq_offset_print();		// print state of tx shift
 	rfpwr_print();				// print state of output power
@@ -79,7 +78,6 @@ void vUiTask( void * pvParameters)
 {
 	lcd_s_reset();
 //	int_lcd_timer_dec = 1;
-	config.controlHead = CONTROL_HEAD3;
 
 #ifdef DEBUG_BUILD
 #else
@@ -111,6 +109,7 @@ void vUiTask( void * pvParameters)
 		{
 			lcd_s_reset();
 			reset_ui(UI_RESET_COLD);
-		}		
+		}
+		config_validate();
 	}
 }

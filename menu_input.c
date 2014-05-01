@@ -203,7 +203,7 @@ inline void m_set_freq_x()
 inline void m_frq_prnt()
 {
 	lcd_cpos(0);
-	freq_print(&frequency);
+	freq_print(&config.frequency);
 	freq_offset_print();
 	lcd_fill();
 	m_timer_en = 0;

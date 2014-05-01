@@ -47,7 +47,7 @@ char read_ieep_ch(uint16_t slot, long * freq);
 char store_eeep_ch(uint16_t slot);
 char store_ieep_ch(uint16_t slot);
 char store_current(void);
-char read_current(unsigned long * freq,long * txshift, long * offset);
+uint8_t read_current(T_Config * cfgPtr);
 
 void squelch(void);
 

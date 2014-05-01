@@ -37,7 +37,8 @@
 #include <avr/eeprom.h>
 #include <util/crc16.h>
 #include <alloca.h>
-#include <util/delay_basic.h>
+#include <util/delay.h>
+#include <avr/sleep.h>
 
 #include "regmem.h"
 
@@ -54,6 +55,7 @@
 #include "eeprom.h"
 #include "subs.h"
 #include "audio.h"
+#include "config.h"
 
 void pwr_sw_chk(char cSaveSettings)
 {
@@ -66,20 +68,25 @@ void pwr_sw_chk(char cSaveSettings)
 		if (cSaveSettings)
 		{
 			//TODO: storeCurrent();
+			config_validate();
+			config_saveToEeprom(&config);
 		}
+		set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 
 		xSemaphoreTakeRecursive(SerialBusMutex, portMAX_DELAY);
+		taskENTER_CRITICAL();
 		eep_enable(0);
 		// disable RX Audio
 		audio_pa(0,1);
 
-		vTaskDelay(10);
+		_delay_ms(10);
 		// shut-down Radio
 		// TODO: Check if further bits need to be set/reset e.g. Audio PA
-		taskENTER_CRITICAL();
 		SetShiftReg(0,~SR_9V6);
+		sleep_enable();
+		// Halt CPU ... wake-up occurs by pulling #RESET low
+		sleep_cpu();
 		while(1);
-
 	}
 
 	return;
@@ -172,7 +179,7 @@ void receive()
 
 	vco_switch(0);					// enable RX VCO
 
-	set_rx_freq(&frequency);		// set VCO to RX frequency
+	set_rx_freq(&config.frequency);		// set VCO to RX frequency
 
 	rxtx_state = 0;
 
@@ -190,7 +197,7 @@ void transmit()
 {
 	led_set(YEL_LED, LED_ON);
 	vco_switch(1);
-	set_tx_freq(&frequency);
+	set_tx_freq(&config.frequency);
 	SetShiftReg(0, (uint8_t)~(SR_RXAUDIOEN));
 	vTaskDelay(RX_TO_TX_TIME);	// Wait RX to TX Time
 
@@ -286,7 +293,6 @@ unsigned int crc16(unsigned int bytecount, void * data, unsigned int init)
 char read_iep_ch(uint16_t slot, long * freq)
 {
 	void * buf;
-	char err;
 	long fbuf;
 
 	buf = alloca((size_t)10);
@@ -371,7 +377,7 @@ char store_ieep_ch(uint16_t slot)
 	if(slot > 24)
 		return -1;
 
-	fbuf = frequency;
+	fbuf = config.frequency;
 	fbuf -= FBASE;				// subtract Base Frequency
 
 	fdiv = ldiv(fbuf, 1250);	// divide by 1250 Hz
@@ -412,7 +418,7 @@ char store_eeep_ch(uint16_t slot)
 	if(slot > 24)
 		return -1;
 
-	fbuf = frequency;
+	fbuf = config.frequency;
 	fbuf -= FBASE;				// subtract Base Frequency
 
 	fdiv = ldiv(fbuf, 1250);	// divide by 1250 Hz
@@ -461,7 +467,7 @@ char store_current(void)
 	if(buf == NULL)
 		return -1;
 
-	fbuf = frequency;
+	fbuf = config.frequency;
 	fbuf -= FBASE;				// subtract Base Frequency
 
 	fdiv = ldiv(fbuf, 1250);	// divide by 1250 Hz
@@ -471,14 +477,14 @@ char store_current(void)
 
 	buf++;
 
-	fbuf = txshift;				// get active TX shift
+	fbuf=config.tx_shift;
 	if(fbuf < 0)
 	{
 		fbuf *= -1;
 		*((char *) buf) = 2;	// Byte 2, Bit 1 = sign of TX shift
 	}
 
-	if(offset)					// check if tx shift is used
+	if(!config.shift_active)	// check if tx shift is used
 	{
 		*((char *) buf) |= 4;	// Byte 2, Bit 2 = state of TX shift
 	}
@@ -502,7 +508,7 @@ char store_current(void)
 
 
 
-char read_current(unsigned long * freq,long * txshift, long * offset)
+uint8_t read_current(T_Config * cfgPtr) // unsigned long * freq,int32_t * txshift, uint8_t * shift_active)
 {
 	void * buf;
 	long fbuf;
@@ -518,7 +524,7 @@ char read_current(unsigned long * freq,long * txshift, long * offset)
 	fbuf >>=3;		// 13 significant Bits
 	fbuf *= 1250;	// multiply by 1250 to obtain frequency
 	fbuf += FBASE; // add Base frequency
-	*freq = fbuf;
+	cfgPtr->frequency = fbuf;
 
 	buf++;
 	// get TX shift, stored in 12.5 kHz Steps
@@ -531,16 +537,16 @@ char read_current(unsigned long * freq,long * txshift, long * offset)
 		fbuf *= -1;
 	}
 
-	*txshift = fbuf;
+	cfgPtr->tx_shift = fbuf;
 	
 	// check if offset should be activated
 	if(*((char*)buf) & 4)
 	{
-		*offset = fbuf;
+		cfgPtr->shift_active = 1;
 	}
 	else
 	{
-		*offset = 0;
+		cfgPtr->shift_active = 0;
 	}
 
 	return 0;

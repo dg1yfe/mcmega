@@ -391,7 +391,6 @@ char eep_write_crc()
 char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 {
 	void * buf;
-	char err;
 	long fbuf;
 	uint16_t eep_address;
 
@@ -417,7 +416,6 @@ char eep_rd_ch_freq(uint8_t slot, unsigned long * f)
 
 uint8_t eep_rd_memch(uint8_t slot, uint32_t * f, uint32_t * offset, uint8_t * flags)
 {
-	char err;
 	long fbuf;
 	uint16_t eep_address;
 	void * buf;

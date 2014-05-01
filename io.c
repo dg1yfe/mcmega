@@ -224,7 +224,8 @@ void init_io()
 	 *  Port A:
 	 *  Bit 0-2 : PL Encode
 	 *  Bit 3	: F1 / #F2  (Input from Control Panel, parallel to SCI RX)
-	 *  Bit 4-5 : n.c.
+	 *  Bit 4	: n.c.
+	 *  Bit 5	: CALL_LED
 	 *  Bit 6	: HUB
 	 *  Bit 7	: Test
 	 */
@@ -274,7 +275,7 @@ void init_io()
 	 * Port E:
 	 * Bit 0-1	: UART0 (SCI to Control Head)
 	 * Bit 2	: Data In
-	 * Bit 3	: Call LED
+	 * Bit 3	: Brown-Out detection (AIN1)
 	 * Bit 4	: #NMI  (INT4)
 	 * Bit 5	: #STBY (INT5)
 	 * Bit 6	: Lock Detect (INT6)    ( 1 = Lock )

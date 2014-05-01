@@ -68,16 +68,7 @@ uint8_t freq_init()
 	uint8_t ret;
 
 // Try to read frequency settings from eeprom
-	ret=read_current(&frequency, &txshift, &offset);
-//	if(ret)
-	{
-		// default frequency
-		frequency = FDEF;
-		// default tx shift 
-		txshift = FTXOFF;
-		// tx shift currently deactivated
-		offset = FOFF0;
-	}
+	ret=read_current(&config);
 	return ret;
 }
 
@@ -249,7 +240,7 @@ void set_rx_freq(uint32_t * freq)
 
 	f = frq_get_freq();
 	f += RXZF;
-	frequency = f;
+	config.frequency = f;
 }
 
 //**************************
@@ -283,7 +274,7 @@ void set_tx_freq(uint32_t * freq)
 	f = frq_get_freq();
 
 	f += offset;
-	frequency = f;
+	config.frequency = f;
 }
 
 

@@ -48,18 +48,23 @@
 #include "timer.h"
 #include "eeprom.h"
 #include "audio.h"
+#include "config.h"
 
 void vControlTask( void * pvParameters) __attribute__((noreturn));
+
+#define TASK_PRIO_UI 1
+#define TASK_PRIO_CONTROL 2
 
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 int main(void)
 {
+	// These are the handles for both tasks this program is going to use
 	xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
 	// create Main Tasks
-	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, 1, &xUiTaskHandle);
-	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, 2, &xControlTaskHandle);
+	xTaskCreate( vUiTask, (const signed char *) "User if", 384, NULL, TASK_PRIO_UI, &xUiTaskHandle);
+	xTaskCreate( vControlTask, (const signed char *) "Control", 256, NULL, TASK_PRIO_CONTROL, &xControlTaskHandle);
 	// TODO: check if Task was created and try to display error
 
 	init_io();
@@ -67,8 +72,13 @@ int main(void)
 	// power down if it is not
 	pwr_sw_chk( 0 );
 
-	// initialize timer interrupt stuff;
-	init_SIO();
+	// restore basic radio configuration data
+	// and state where it came from (SRAM, EEPROM or FLASH)
+	config_state = config_basicRadio();
+
+	// initialize interrupt stuff;
+
+	// no serial interrupt, this is handled within the main loop
 	init_OCI();
 	init_ui();
 
@@ -107,20 +117,21 @@ void vControlTask( void * pvParameters)
 	init_sci();
 	init_Timer2();
 
-	init_pll(FSTEP);
+	init_pll(config.f_step);
 
 	lcd_h_reset();
-	
 
 	led_set(GRN_LED, LED_ON);
 	
-	eep_enable(1);
+	eep_enable(0);		// keep external EEPROM disabled
 
-	if(freq_init())
+	freq_init();
+
+	if(config_state == CONFIG_FLASH)
 		led_set(YEL_LED, LED_BLINK);
 
 	receive();
-	rfpwr_set(DEFAULT_RF_PWR);
+	rfpwr_set(config.powerMode);
 	
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio

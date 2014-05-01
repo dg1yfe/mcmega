@@ -237,8 +237,8 @@ void m_submenu(char key)
 //
 static inline void m_frq_up()
 {
-	frequency += FSTEP;
-	frq_update(&frequency);
+	config.frequency += FSTEP;
+	frq_update(&config.frequency);
 	m_frq_prnt();
 }
 
@@ -249,8 +249,8 @@ static inline void m_frq_up()
 //
 static inline void m_frq_down()
 {
-	frequency -= FSTEP;
-	frq_update(&frequency);
+	config.frequency -= FSTEP;
+	frq_update(&config.frequency);
 	m_frq_prnt();
 }
 //*******************************
@@ -341,8 +341,8 @@ void mts_switch(char key)
 	{
 		case KC_EXIT:
 			// invert sign of TX shift
-			txshift = -offset;
-			ui_txshift = offset;
+			config.tx_shift = -config.tx_shift;
+			ui_txshift = config.tx_shift;
 			vTaskDelay(1);	// wait for control task to process new shift setting
 			mts_print();
 			break;
@@ -354,7 +354,7 @@ void mts_switch(char key)
 			}
 			else
 			{
-				ui_txshift = txshift;
+				ui_txshift = config.tx_shift;
 			}
 			vTaskDelay(1);
 			mts_print();
@@ -394,7 +394,7 @@ void mts_digit(char key)
 			long f;
 			f = atoi(dbuf);
 			f *= 1000;
-			txshift = f;
+			config.tx_shift = f;
 			ui_txshift = f;
 			taskYIELD();
 			m_state = IDLE;
@@ -434,7 +434,7 @@ void m_set_shift()
 	f = atol(f_in_buf);
 	f *= 1000;
 
-	txshift = f;
+	config.tx_shift = f;
 	// shift is negative by default
 	ui_txshift = f;
 	vTaskDelay(1);
