@@ -46,18 +46,18 @@ uint8_t crc8_ccitt(const uint8_t data, const uint8_t crc)
 {
 	//
 	uint8_t i;
-	uint16_t r;
+	uint8_t r;
 	r = crc;
-	r <<= 8;
-	r |= data;
+	r ^= data;
 
 	for(i=0;i<8;i++){
-		if(r & 0x8000){
-			r ^= 0x0700;
-		}
-		r <<= 1;
+		if(r & 0x80){
+			r = (r<<1)^ 0x07;
+		}else{
+			r <<= 1;
+		}		
 	}
-	return (uint8_t) (r >> 8);
+	return r;
 }
 
 
@@ -74,7 +74,7 @@ uint8_t config_checkConfigCrc( T_Config * cfgPtr){
 }
 
 
-static void config_calcConfigCrc( T_Config * cfgPtr){
+void config_calcConfigCrc( T_Config * cfgPtr){
 	uint8_t crc = CONFIG_CRC_INIT;
 	uint8_t * crcPtr = &(cfgPtr->crc);
 	uint8_t * d = (uint8_t *) cfgPtr;
@@ -88,6 +88,7 @@ static void config_calcConfigCrc( T_Config * cfgPtr){
 
 
 // initialize basic radio configuration
+// TODO: Apply config
 uint8_t config_basicRadio()
 {
 	xConfigQ = xQueueCreate( 1, sizeof( T_ConfigUpdateMessage ) );

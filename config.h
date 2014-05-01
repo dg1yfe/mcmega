@@ -63,6 +63,7 @@ typedef struct {
 #define CONFIG_UM_FSTEP		4
 #define CONFIG_UM_DEFCHANSAVE 8
 #define CONFIG_UM_SQUELCHMODE 16
+#define CONFIG_UM_POWERMODE 32;
 
 typedef struct {
 	T_ConfigControl cfgdata;

@@ -65,7 +65,7 @@ void pwr_sw_chk(char cSaveSettings)
 	if( PIN_SWB & BIT_SWB )
 	{
 		//TODO: Add 9,6V Power Fail check to EZA9 HW
-		if (cSaveSettings)
+		if (cSaveSettings && cconf.defChanSave)
 		{
 			//TODO: storeCurrent();
 			config_validate();
@@ -615,6 +615,9 @@ void rfpwr_set(uint8_t enable_hi_power)
 	{
 		config.powerMode = 1;
 	}
+	cfgUpdate.cfgdata.powerMode = config.powerMode;
+	cfgUpdate.updateMask = CONFIG_UM_POWERMODE;
+	config_sendUpdate();
 }
 
 

@@ -6,7 +6,7 @@
  *	MCmega - Firmware for the Motorola MC micro radio
  *           to use it as an Amateur-Radio transceiver
  *
- * Copyright (C) 2013 Felix Erckenbrecht, DG1YFE
+ * Copyright (C) 2013,2014 Felix Erckenbrecht, DG1YFE
  *
  * ( AVR port of "MC70"
  *   Copyright (C) 2004 - 2013  Felix Erckenbrecht, DG1YFE)
@@ -191,6 +191,8 @@ inline void m_set_freq_x()
 	f = atol(f_in_buf);
 	// convert frequency input in kHz to Hz
 	f *= 1000;
+	config.frequency = f;
+	// send updated frequency to control task
 	frq_update(&f);
 	lcd_clr(0);
 	m_state = M_IDLE;

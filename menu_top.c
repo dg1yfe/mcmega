@@ -277,6 +277,9 @@ static inline void m_sql_switch()
 		config.squelchMode = SQM_CARRIER;
 		arrow_set(2,1);
 	}
+	cfgUpdate.cfgdata.squelchMode = config.squelchMode;
+	cfgUpdate.updateMask = CONFIG_UM_SQUELCHMODE;
+	config_sendUpdate();
 }
 
 //**************************************
@@ -343,9 +346,9 @@ void mts_switch(char key)
 	{
 		case KC_EXIT:
 			// invert sign of TX shift
-			config.tx_shift = -config.tx_shift;
-			if(config.shift_active)
+			if(config.tx_shift)
 			{
+				config.tx_shift = -config.tx_shift;
 				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
 				cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 				config_sendUpdate();
@@ -357,10 +360,12 @@ void mts_switch(char key)
 			if(cconf.active_tx_shift)
 			{
 				cfgUpdate.cfgdata.active_tx_shift = 0;
+				config.shift_active = 0;
 			}
 			else
 			{
 				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
+				config.shift_active = 1;
 			}
 			cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 			config_sendUpdate();
