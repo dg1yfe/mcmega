@@ -70,8 +70,6 @@ char f_in_buf[9];			// 9 byte buffer
 
 int  oci_int_ctr;
 
-int f_step;					// Schrittweite in Hz
-
 int tick_ms;				// 1ms Increment
 int s_tick_ms;				// Software timer
 int tick_hms;				// 100ms Increment
@@ -80,11 +78,7 @@ char gp_timer;				// General Purpose Timer, 1ms Decrement
 char ui_timer;
 uint8_t lcd_timer;				// 1ms
 
-long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
-long txshift;
 long channel;				// aktuell in der PLL gesetzter Kanal
-uint32_t ui_frequency;			// Über UI eingegebene Frequenz wird hier gespeichert
-int32_t ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 char rxtx_state;			// 0=RX
 char ui_ptt_req;			//

@@ -217,7 +217,7 @@ void m_mem_select(char key)
 					{
 						frq_update(&f);
 						lcd_clr(0);
-						m_state = IDLE;
+						m_state = M_IDLE;
 
 						printf_P(m_ok_str);
 						vTaskDelay(200);

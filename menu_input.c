@@ -193,7 +193,7 @@ inline void m_set_freq_x()
 	f *= 1000;
 	frq_update(&f);
 	lcd_clr(0);
-	m_state = IDLE;
+	m_state = M_IDLE;
 
 	printf_P(m_ok_str);
 	vTaskDelay(200);

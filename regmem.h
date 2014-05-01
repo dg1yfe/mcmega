@@ -136,8 +136,6 @@ extern char f_in_buf[9];	// 9 byte buffer
 
 extern int  oci_int_ctr;
 
-extern int f_step;			// Schrittweite in Hz
-
 extern int tick_ms;			// 1ms Increment
 extern int s_tick_ms;		// Software timer
 extern int tick_hms;		// 100ms Increment
@@ -149,11 +147,8 @@ extern char lcd_timer_en;
 
 //trx_state       .db
 
-extern long offset;				// Für RX/TX verwendete Shift (0/+TXS/-TXS)
 extern long txshift;
 extern long channel;			// aktuell in der PLL gesetzter Kanal
-extern unsigned long ui_frequency;	// Über UI eingegebene Frequenz wird hier gespeichert
-extern long ui_txshift;			// Über UI eingegebene Frequenz wird hier gespeichert
 
 extern char rxtx_state;			// 0=RX
 

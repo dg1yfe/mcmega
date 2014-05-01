@@ -9,6 +9,9 @@
 #define FIRMWARE_H_
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "config.h"
+
 extern xTaskHandle xUiTaskHandle, xControlTaskHandle;
+extern T_ConfigControl cconf;
 
 #endif /* FIRMWARE_H_ */

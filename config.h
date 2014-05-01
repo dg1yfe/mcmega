@@ -38,10 +38,10 @@ typedef struct {
 	unsigned	powerMode:1;			// Lo / Hi Power
 	unsigned	squelchMode:2;			// Squelch mode
 	unsigned	defChanSave:2;			// save current frequency as default channel?
+	unsigned	shift_active:1;
+	unsigned	controlHead:3;			// control head
 	unsigned	ctcssIndexRx:6;			// CTCSS
 	unsigned	ctcssIndexTx:6;
-	unsigned	controlHead:3;			// control head
-	unsigned	shift_active:1;
 	unsigned	reserved:1;				// write 0
 	uint32_t	frequency;
 	int32_t		tx_shift;
@@ -49,13 +49,34 @@ typedef struct {
 	uint8_t		crc;					// CRC-8 (x^8+x^2+x1+1)
 } T_Config;
 
+typedef struct {
+	uint32_t	frequency;
+	int32_t		active_tx_shift;
+	uint16_t	f_step;
+	unsigned	powerMode:1;
+	unsigned	squelchMode:2;
+	unsigned	defChanSave:1;
+} T_ConfigControl;
+
+#define CONFIG_UM_FREQUENCY 1
+#define CONFIG_UM_TXSHIFT	2
+#define CONFIG_UM_FSTEP		4
+#define CONFIG_UM_DEFCHANSAVE 8
+#define CONFIG_UM_SQUELCHMODE 16
+
+typedef struct {
+	T_ConfigControl cfgdata;
+	uint8_t	updateMask;
+}T_ConfigUpdateMessage;
 
 extern T_Config config;			// Radio Configuration
+extern T_ConfigUpdateMessage cfgUpdate;
 extern uint8_t  config_state;
 
 uint8_t config_basicRadio(void);// configure Radio from SRAM, EEPROM or Flash
 void config_saveToEeprom(T_Config * cfgPtr);
 void config_validate(void);
+void config_syncControlConfig(T_Config * cfgPtr, T_ConfigControl * ctrlPtr);
 
 
 #endif /* CONFIG_H_ */

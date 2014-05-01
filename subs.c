@@ -238,8 +238,8 @@ void squelch()
 		}
 		sql_pin_flag = pin_state;
 
-		state = pin_state || (config.squelchMode == SQM_OFF);
-		if((config.squelchMode != SQM_OFF) && g_coeff)
+		state = pin_state || (cconf.squelchMode == SQM_OFF);
+		if((cconf.squelchMode != SQM_OFF) && g_coeff)
 		{
 			state = (PIN_SQL & BIT_SQL);
 			// disregard tone detection state until detector output was updated
@@ -317,7 +317,7 @@ char read_iep_ch(uint16_t slot, long * freq)
 	fbuf = *((uint16_t *) buf);
 	fbuf &= 0x1ff;	// use 9 bit, max 12,775 MHz Shift
 	fbuf *= 25000;	// multiply by 25 kHz
-	ui_txshift = fbuf;
+	config.tx_shift = fbuf;
 
 	return 0;
 }
@@ -359,7 +359,7 @@ char read_eeep_ch(uint16_t slot, long * freq)
 	fbuf = *((uint16_t *) buf);
 	fbuf &= 0x1ff;	// use 9 bit, max 12,775 MHz Shift
 	fbuf *= 25000;	// multiply by 25 kHz
-	ui_txshift = fbuf;
+	config.tx_shift = fbuf;
 
 	return 0;
 }
@@ -385,7 +385,7 @@ char store_ieep_ch(uint16_t slot)
 	fbuf <<= 3;
 	*((long *) buf) = fbuf;		// store 13 Bit in Buffer
 
-	fbuf = offset;				// get stored TX shift (if used or not)
+	fbuf = config.tx_shift;		// get stored TX shift (if used or not)
 	fdiv = ldiv(fbuf, 25000);	// divide by 25 kHz
 	fbuf = fdiv.quot;
 	fbuf &= 0x1ff;				// reduce to 9 active bits
@@ -426,7 +426,7 @@ char store_eeep_ch(uint16_t slot)
 	fbuf <<= 3;
 	*((long *) buf) = fbuf;		// store 13 Bit in Buffer
 
-	fbuf = offset;				// get stored TX shift (if used or not)
+	fbuf = config.tx_shift;		// get stored TX shift (if used or not)
 	fdiv = ldiv(fbuf, 25000);	// divide by 25 kHz
 	fbuf = fdiv.quot;
 	fbuf &= 0x1ff;				// reduce to 9 active bits

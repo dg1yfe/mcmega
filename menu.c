@@ -64,7 +64,7 @@ const char m_sq_off_str[] PROGMEM =  "SQ OFF";
 void menu_init()
 {
 	// initialize state variable
-	m_state = IDLE;
+	m_state = M_IDLE;
 	// disable menu timeout timer
 	m_timer_en = 0;
 
@@ -144,7 +144,7 @@ void menu()
 		case TEST:
 			m_test(c);
 		default:
-		case IDLE:
+		case M_IDLE:
 			m_top(c);
 			break;
 		}
@@ -167,7 +167,7 @@ void menu()
 			// restore previous display content
 			restore_dbuf();
 			// go back to IDLE state
-			m_state = IDLE;
+			m_state = M_IDLE;
 		}
 	}
 }
@@ -192,5 +192,5 @@ void m_norestore()
 {
 	m_timer_en = 0;
 	// go back to IDLE state
-	m_state = IDLE;
+	m_state = M_IDLE;
 }

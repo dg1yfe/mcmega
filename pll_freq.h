@@ -36,11 +36,10 @@
 
 #define PLL_LOCK_STATE_FORCE_UPDATE 1
 
-uint8_t freq_init(void);
-char init_pll(unsigned int spacing);
+uint8_t pll_setChannelSpacing(unsigned int spacing);
 void pll_led(char force);
 char pll_lock_chk(void);
-void pll_set_channel(uint32_t channel);
+void pll_setChannel(uint32_t channel);
 void set_rx_freq(uint32_t * freq);
 void set_tx_freq(uint32_t * freq);
 void set_freq(uint32_t * freq);
@@ -51,7 +50,6 @@ uint32_t frq_calc_freq(char * str);
 void frq_update(uint32_t *freq);
 void freq_print(uint32_t * freq);
 void freq_offset_print(void);
-void frq_check(void);
 
 
 

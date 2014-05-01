@@ -68,7 +68,9 @@ void vApplicationTickHook()
 
 }
 
-
+// 8 kHz Interrupt for audio processing
+// in RX: Get audio samples from ADC and store in sample buffer
+// in TX: Run digital oscillators to produce signaling tones (CTCSS/DTMF/etc.)
 ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
@@ -89,6 +91,7 @@ ISR(TIMER2_COMP_vect)
 			}
 			samp_buf = sb;
 */
+			// read latest sample from ADC
 			samp_buf[samp_buf_w++] = ADCH;
 			ADCSRA |= (1 << ADSC);		// start next conversion now
 			samp_buf_w &= SAMP_BUF_LEN -1;
@@ -99,6 +102,7 @@ ISR(TIMER2_COMP_vect)
 	}
 	else	// Tone oscillators are only used in TX
 	{
+		// check if CTCSS (Motorola speak 'private line') generator is active
 		if(PL_phase_delta)
 		{
 			PL_phase += PL_phase_delta;
@@ -109,6 +113,7 @@ ISR(TIMER2_COMP_vect)
 			PORT_PL_DAC = index;
 		}
 
+		// check if signaling generator is active with dual-tone
 		if(SEL_phase_delta2)
 		{
 			uint8_t index2;
@@ -126,6 +131,7 @@ ISR(TIMER2_COMP_vect)
 			PORT_SEL_DAC = index;
 		}
 		else
+		// check for single tone activity
 		if(SEL_phase_delta)
 		{
 			SEL_phase += SEL_phase_delta;
@@ -148,13 +154,15 @@ void init_OCI()
 
 /*
  * Timer for DDS oscillator
+ * runs at 8 kHz
  */
 void init_Timer2()
 {
 #if (F_CPU / FS / 8) > 255
 #warning "OCR2 value exceeds 255 - (OCR2 is the result of F_CPU / FS / 8 )"
 #endif
-	OCR2 = (uint8_t) (F_CPU/FS / 8) - 1;
+	// when calculating the compare value, round to nearest integer (+4/8)
+	OCR2 = (uint8_t) ( (F_CPU/FS + 4) / 8) - 1;
 	TCCR2 |= (1 << WGM21) | (0 << WGM20) ;
 	TIMSK |= (1 << OCIE2);
 }

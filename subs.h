@@ -33,11 +33,14 @@
 #define SUBS_H_
 #include <stdint.h>
 
+#define PWR_DONTSAVECONFIG 0
+#define PWR_SAVECONFIG 1
 void pwr_sw_chk( char cSaveSettings);
 
 void receive(void);
 void transmit(void);
 
+#define PTT_EVENT_BIT 0x80
 char ptt_get_status(void);
 //void vco_switch(char vco);
 unsigned int crc16(unsigned int bytecount, void * data, unsigned int init);

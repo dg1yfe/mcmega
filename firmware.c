@@ -56,6 +56,7 @@ void vControlTask( void * pvParameters) __attribute__((noreturn));
 #define TASK_PRIO_CONTROL 2
 
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
+T_ConfigControl cconf;
 
 int main(void)
 {
@@ -96,6 +97,7 @@ int main(void)
 void vControlTask( void * pvParameters)
 {
 	char i;
+	// use own config structure to ensure validity at ANY time
 
 	portTickType xLastWakeTime;
 /*
@@ -114,18 +116,19 @@ void vControlTask( void * pvParameters)
                 cli
  *
  */
+	// synchronize configurations
+	config_syncControlConfig(&config, &cconf);
+
 	init_sci();
 	init_Timer2();
 
-	init_pll(config.f_step);
+	pll_setChannelSpacing(cconf.f_step);
 
 	lcd_h_reset();
 
 	led_set(GRN_LED, LED_ON);
 	
 	eep_enable(0);		// keep external EEPROM disabled
-
-	freq_init();
 
 	if(config_state == CONFIG_FLASH)
 		led_set(YEL_LED, LED_BLINK);
@@ -145,20 +148,30 @@ void vControlTask( void * pvParameters)
 	xLastWakeTime = xTaskGetTickCount();
 	while (1)
     {
+		// process samples from ADC (if active)
 		tone_decode();
-		pwr_sw_chk(0);
+
+		// check for changes in configuration by the user
+		config_checkForUpdate();
+
+		// check power switch
+		pwr_sw_chk(PWR_SAVECONFIG);
+		// update software timer
 		s_timer_update();
+		// check PTT
 		i=ptt_get_status();
-		if(i & 0x80)
+		// check if PTT status changed
+		if(i & PTT_EVENT_BIT)
 		{
-			if(i & 0x7f)
+			if(i & ~PTT_EVENT_BIT)
 				transmit();
 			else
 				receive();
 		}
+		// update squelch
 		squelch();
 
-		frq_check();
+		// reset hardware watchdog
 		wd_reset();
 		do
 		{

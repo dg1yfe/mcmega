@@ -50,6 +50,8 @@
 #include "menu_mem.h"
 #include "subs.h"
 #include "audio.h"
+#include "firmware.h"
+#include "config.h"
 
 typedef struct
 {
@@ -156,6 +158,7 @@ void m_top(uint8_t key)
 			break;
 		case KC_ENTER:
 			m_submenu(key);
+			break;
 		default:
 			break;
 	}
@@ -237,7 +240,7 @@ void m_submenu(char key)
 //
 static inline void m_frq_up()
 {
-	config.frequency += FSTEP;
+	config.frequency += config.f_step;
 	frq_update(&config.frequency);
 	m_frq_prnt();
 }
@@ -249,7 +252,7 @@ static inline void m_frq_up()
 //
 static inline void m_frq_down()
 {
-	config.frequency -= FSTEP;
+	config.frequency -= config.f_step;
 	frq_update(&config.frequency);
 	m_frq_prnt();
 }
@@ -320,9 +323,8 @@ void m_txshift(char key)
 inline void mts_print()
 {
 	lcd_cpos(0);
-	offset*=-1;
-	decout(PRINTSIGN | 5, 3, (char *)&offset);
-	offset*=-1;
+	cfgUpdate.cfgdata.active_tx_shift = -cconf.active_tx_shift;
+	decout(PRINTSIGN | 5, 3, (char *)&cfgUpdate.cfgdata.active_tx_shift);
 	//TODO: Replace with printf ?
 	lcd_fill();
 	freq_offset_print();
@@ -342,21 +344,26 @@ void mts_switch(char key)
 		case KC_EXIT:
 			// invert sign of TX shift
 			config.tx_shift = -config.tx_shift;
-			ui_txshift = config.tx_shift;
-			vTaskDelay(1);	// wait for control task to process new shift setting
+			if(config.shift_active)
+			{
+				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
+				cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
+				config_sendUpdate();
+			}
 			mts_print();
 			break;
 		case KC_D7:
 			// toggle shift state on/off
-			if(offset)
+			if(cconf.active_tx_shift)
 			{
-				ui_txshift = 0;
+				cfgUpdate.cfgdata.active_tx_shift = 0;
 			}
 			else
 			{
-				ui_txshift = config.tx_shift;
+				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
 			}
-			vTaskDelay(1);
+			cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
+			config_sendUpdate();
 			mts_print();
 			break;
 		case KC_D6:
@@ -394,10 +401,18 @@ void mts_digit(char key)
 			long f;
 			f = atoi(dbuf);
 			f *= 1000;
-			config.tx_shift = f;
-			ui_txshift = f;
-			taskYIELD();
-			m_state = IDLE;
+			if(f)
+			{
+				config.tx_shift = f;
+				cfgUpdate.cfgdata.active_tx_shift = f;
+			}
+			else{
+				config.shift_active = 0;
+				cfgUpdate.cfgdata.active_tx_shift = 0;
+			}
+			cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
+			config_sendUpdate();
+			m_state = M_IDLE;
 			m_timer = 8;	// wait 800 ms before reverting to frequency
 //TODO Print "OK"
 		}
@@ -434,11 +449,24 @@ void m_set_shift()
 	f = atol(f_in_buf);
 	f *= 1000;
 
-	config.tx_shift = f;
+	if(f){
+		config.tx_shift = f;
+	}
+	else{
+		// instead of allowing a shift = 0, deactivate the shift
+		config.shift_active = 0;
+	}
 	// shift is negative by default
-	ui_txshift = f;
-	vTaskDelay(1);
-	m_state = IDLE;
+	if(config.shift_active){
+		cfgUpdate.cfgdata.active_tx_shift = f;
+	}
+	else{
+		cfgUpdate.cfgdata.active_tx_shift = 0;
+	}
+	cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
+	config_sendUpdate();
+
+	m_state = M_IDLE;
 	m_timer = 8;	// wait 800 ms before reverting to frequency
 	mts_print();
 }

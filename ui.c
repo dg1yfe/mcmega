@@ -49,8 +49,6 @@ const char version_str[] PROGMEM = "14_1beta";
 
 void init_ui()
 {
-    ui_frequency = 0;	// TODO: replace by message
-    ui_txshift = -1;	// TODO: replace by message
 }
 
 // reset user interface

@@ -8,8 +8,13 @@
 #include <util/crc16.h>
 #include <alloca.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
 #include "config.h"
 #include "macros.h"
+#include "firmware.h"
 
 #define CONFIG_MAGIC 0x17ef
 #define CONFIG_CRC_INIT 0xff;
@@ -24,8 +29,11 @@ static void config_initDefault(T_Config * cfgPtr);
 // to keep config in RAM during reboots without power-loss
 uint8_t  config_state = CONFIG_INVALID;
 uint16_t config_magic	__attribute__ ((section (".noinit")));
+
 T_Config config __attribute__ ((section (".noinit")));
 
+static xQueueHandle xConfigQ;
+T_ConfigUpdateMessage cfgUpdate;
 
 /*
  * Calculate CRC-8 (x^8 + x^2 + x^1 + 1)
@@ -81,6 +89,8 @@ static void config_calcConfigCrc( T_Config * cfgPtr){
 // initialize basic radio configuration
 uint8_t config_basicRadio()
 {
+	xConfigQ = xQueueCreate( 1, sizeof( T_ConfigUpdateMessage ) );
+
 // check for magic word in memory
 // ( check if there could be a valid config in SRAM)
 	if(config_magic == CONFIG_MAGIC){
@@ -123,12 +133,8 @@ static void config_initDefault(T_Config * cfgPtr)
 
 void config_saveToEeprom(T_Config * cfgPtr)
 {
+	config_calcConfigCrc(&config);
 	eeprom_update_block(&config,(void *)CONFIG_EEPROM_BASE, sizeof(config));
-}
-
-inline void config_beginUpdate()
-{
-	config_state = CONFIG_UPDATE_PENDING;
 }
 
 inline void config_validate()
@@ -137,3 +143,45 @@ inline void config_validate()
 	config_calcConfigCrc(&config);
 	config_state = CONFIG_VALID;
 }
+
+// Only to be called when config is valid
+void config_syncControlConfig(T_Config * cfgPtr, T_ConfigControl * ctrlPtr)
+{
+	ctrlPtr->frequency = cfgPtr->frequency;
+	ctrlPtr->f_step = cfgPtr->f_step;
+	ctrlPtr->active_tx_shift = cfgPtr->shift_active ? cfgPtr->tx_shift : 0;
+	ctrlPtr->powerMode = cfgPtr->powerMode;
+	ctrlPtr->squelchMode = cfgPtr->squelchMode;
+}
+
+
+void config_sendUpdate(){
+	xQueueSendToBack( xConfigQ, &cfgUpdate, 0);
+}
+
+
+void config_checkForUpdate(){
+	T_ConfigUpdateMessage cfgm;
+	if(xQueueReceive( xConfigQ, &cfgm, 0) == pdPASS){
+
+		if(cfgm.updateMask & CONFIG_UM_TXSHIFT){
+			cconf.active_tx_shift = cfgm.cfgdata.active_tx_shift;
+		}
+
+		if(cfgm.updateMask & CONFIG_UM_FREQUENCY){
+			cconf.frequency = cfgm.cfgdata.frequency;
+			set_freq(&cconf.frequency);
+		}
+		if(cfgm.updateMask & CONFIG_UM_FSTEP){
+			// TODO: Implement update to frequency spacing
+		}
+		if(cfgm.updateMask & CONFIG_UM_DEFCHANSAVE){
+			cconf.defChanSave = cfgm.cfgdata.defChanSave;
+		}
+		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
+			cconf.squelchMode = cfgm.cfgdata.squelchMode;
+		}
+
+	}
+}
+

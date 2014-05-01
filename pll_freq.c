@@ -39,55 +39,24 @@
 #include "io.h"
 #include "display.h"
 #include "subs.h"
+#include "firmware.h"
 
 void set_rx_freq(uint32_t * freq);
 void set_tx_freq(uint32_t * freq);
 unsigned long frq_get_freq(void);
 
-uint8_t freq_init_eep(void);
-uint8_t freq_init_rom(void);
 
-
-/*
-;********************
-; F R E Q   I N I T
-;********************
-;
-; Frequenzeinstellungen setzen
-;
-; Versucht zun�chst Frequenzeinstellungen aus EEPROM zu laden,
-; schl�gt dies fehl wird aus dem ROM initialisiert
-; (in UI Task gelbe LED blinken lassen)
-;
-; Parameter    : none
-;
-; Return value : 0 = OK (Init aus EEPROM)
-*/
-uint8_t freq_init()
-{
-	uint8_t ret;
-
-// Try to read frequency settings from eeprom
-	ret=read_current(&config);
-	return ret;
-}
-
-
-
-//*****************
-// P L L   I N I T
-//*****************
+//***************************************************
+// P L L   S E T C H A N N E L S P A C I N G
+//***************************************************
 //
-// Initialisiert PLL
+// Initializes PLL reference divider
+// (the one which defines the channel spacing)
 //
-// Parameter: D - Kanalraster
+// Result : 0=OK
+//          1=Error (Spacing too narrow / divider exceeds 14 bit)
 //
-// Ergebnis : A - Status: 0=OK
-//                        1=Fehler (Kanalraster zu klein)
-//
-// changed Regs: A,B
-//
-char init_pll(unsigned int spacing)
+uint8_t pll_setChannelSpacing(unsigned int spacing)
 {
 	ldiv_t divresult;
 
@@ -162,7 +131,7 @@ char pll_lock_chk()
 	char lock;
 
 	lock = PIN_PLL_LOCK & BIT_PLL_LOCK ? 1 : 0;
-	return(lock);
+	return lock;
 }
 
 
@@ -170,16 +139,14 @@ char pll_lock_chk()
 // P L L   S E T   C H A N N E L
 //*******************************
 //
-// programmiert die PLL auf den in X:D gegebenen Kanal
+// programmiert die PLL auf den gegebenen Kanal
 //
-// Parameter    : X:D - Kanal
+// Parameter    : Kanal
 //
 // Ergebnis     : Nichts
 //
-// changed Regs : none
 //
-//
-void pll_set_channel(unsigned long ch)
+void pll_setChannel(unsigned long ch)
 {
 	ldiv_t divresult;
 
@@ -189,26 +156,6 @@ void pll_set_channel(unsigned long ch)
 	SetPLL(0, divresult.rem & 127, divresult.quot & 1023);
 	SetPLL(1, 0, PLLREF);
 }
-
-//**************************
-// P L L   S E T   F R E Q
-//**************************
-//
-// programmiert die PLL auf Frequenz
-//
-// Parameter    : X - Zeiger auf Frequenz (32 Bit)
-//
-// Ergebnis     : Nichts
-//
-// changed Regs : none
-//
-//
-// pll_set_freq
-//                 jsr  frq_cv_freq_ch         // Frequenz in Kanal mit Schrittweite f_step umrechnen
-//                                             // Kanal kommt in X:D
-//                 jsr  pll_set_channel        // PLL programmieren
-//
-//                 rts
 
 //**************************
 // S E T   R X   F R E Q
@@ -228,24 +175,27 @@ void set_rx_freq(uint32_t * freq)
 	unsigned long f;
 	ldiv_t divresult;
 
+	// subtract IF (intermediate frequency) from desired frequency
 	f = (unsigned long) *freq - RXZF;
-	divresult = ldiv(f, FSTEP);
+	divresult = ldiv(f, cconf.f_step);
 	f = divresult.quot;
 
-	if(divresult.rem > (FSTEP>>1))
+	if(divresult.rem > (cconf.f_step))
 	{
 		f++;
 	}
-	pll_set_channel(f);
+	pll_setChannel(f);
 
 	f = frq_get_freq();
 	f += RXZF;
-	config.frequency = f;
+	cconf.frequency = f;
 }
 
 //**************************
 // S E T   T X   F R E Q
 //**************************
+//
+// Control Task
 //
 // Setzt die Frequenz zum Senden
 //
@@ -261,26 +211,27 @@ void set_tx_freq(uint32_t * freq)
 	unsigned long f;
 	ldiv_t divresult;
 
-	f = (unsigned long) *freq - offset;
-	divresult = ldiv(f, FSTEP);
+	f = (unsigned long) *freq - cconf.active_tx_shift;
+	divresult = ldiv(f, cconf.f_step);
 	f = divresult.quot;
 
-	if(divresult.rem > (FSTEP>>1))
+	if(divresult.rem > (cconf.f_step>>1))
 	{
 		f++;
 	}
-	pll_set_channel(f);
+	pll_setChannel(f);
 
 	f = frq_get_freq();
 
-	f += offset;
-	config.frequency = f;
+	f += cconf.active_tx_shift;
+	cconf.frequency = f;
 }
 
 
 //**************************
 // S E T   F R E Q
 //**************************
+// Control Task
 //
 // Setzt die Frequenz auf die X zeigt, pr�ft vorher ob gesendet oder empfangen wird
 //
@@ -317,9 +268,9 @@ unsigned long frq_cv_freq_ch(uint32_t * freq)
 	ldiv_t divresult;
 	unsigned long ch;
 
-	divresult = ldiv((unsigned long) *freq, FSTEP);
+	divresult = ldiv((unsigned long) *freq, cconf.f_step);
 	ch = divresult.quot;
-	if(divresult.rem > (FSTEP>>1))
+	if(divresult.rem > (cconf.f_step>>1))
 	{
 		ch++;
 	}
@@ -341,7 +292,7 @@ unsigned long frq_cv_freq_ch(uint32_t * freq)
 //
 uint32_t frq_cv_ch_freq(unsigned long ch)
 {
-	return (ch * FSTEP);
+	return ( (uint32_t)ch * cconf.f_step);
 }
 
 //**************************
@@ -360,7 +311,7 @@ uint32_t frq_cv_ch_freq(unsigned long ch)
 //
 uint32_t frq_get_freq(void)
 {
-	return((unsigned long)channel * FSTEP);
+	return((uint32_t)channel * cconf.f_step);
 }
 
 //***************************
@@ -397,9 +348,9 @@ unsigned long frq_calc_freq(char * str)
 //
 void frq_update(uint32_t *freq)
 {
-	// TODO: Replace with message
-	ui_frequency = *freq;
-	vTaskDelay(1);
+	cfgUpdate.cfgdata.frequency = *freq;
+	cfgUpdate.updateMask = CONFIG_UM_FREQUENCY;
+	config_sendUpdate();
 }
 
 //********************
@@ -455,9 +406,9 @@ void freq_print(unsigned long * freq)
 //
 void freq_offset_print()
 {
-	if(offset)
+	if(cconf.active_tx_shift)
 	{
-		if(offset>0)
+		if(cconf.active_tx_shift>0)
 			arrow_set(6,1);
 		else
 			arrow_set(6,2);
@@ -482,6 +433,8 @@ void freq_offset_print()
 //
 // chanegd Regs : A, B, X
 //
+/*
+ *  replaced by config_checkForUpdate()
 void frq_check()
 {
 	// TODO: Set shift before frequency
@@ -496,3 +449,4 @@ void frq_check()
 		ui_txshift = -1;
 	}
 }
+*/
