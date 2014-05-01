@@ -84,7 +84,6 @@
 #define configUSE_PREEMPTION		1
 #define configUSE_IDLE_HOOK			0
 #define configUSE_TICK_HOOK			1
-//#define configCPU_CLOCK_HZ			( ( unsigned long ) 4924800 )
 #define configCPU_CLOCK_HZ			( ( unsigned long ) F_CPU )
 #define configTICK_RATE_HZ			( ( portTickType ) 1000 )
 #define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 4 )
@@ -113,6 +112,6 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelayUntil			1
 #define INCLUDE_vTaskDelay				1
 #define INCLUDE_xTaskGetSchedulerState	1
-
+#define INCLUDE_xTaskGetCurrentTaskHandle 1
 
 #endif /* FREERTOS_CONFIG_H */
