@@ -6,7 +6,7 @@
  *	MCmega -	Firmware for the Motorola MC micro radio
  *  to use it as an Amateur-Radio transceiver
  *
- * Copyright (C) 2013 Felix Erckenbrecht, DG1YFE
+ * Copyright (C) 2013,2014 Felix Erckenbrecht, DG1YFE
  *
  * ( AVR port of "MC70"
  *   Copyright (C) 2004 - 2013  Felix Erckenbrecht, DG1YFE)
@@ -94,7 +94,8 @@ const uint8_t sin_tab[] PROGMEM = {
 
 const uint16_t ctcss_tab[] PROGMEM =
 {
-	 -1, 0, 670,  694,  719,  744,  770,  797,  825,  854,
+	  -1,    0, 									// 'like tx/rx' , 'off'
+	 670,  694,  719,  744,  770,  797,  825,  854,
 	 885,  915,  948,  974,	1000, 1035, 1072, 1109,
 	1148, 1188, 1230, 1273,	1318, 1365, 1413, 1462,
 	1514, 1567, 1598, 1622, 1655, 1679, 1713, 1738,
@@ -281,8 +282,9 @@ void tone_decode_reset()
 */
 void goertzel_init(uint16_t ctcss_freq)
 {	//                 2 * pi * f_t / Fs
-	g_coeff = 2 * cos( 0.0002F * M_PI * (float)ctcss_freq );
-	goertzel_reset(320);
+	//	Fs = 1 kHz -> 2/Fs = 0.002 * 1/10 Hz = 0.0002
+	g_coeff = 2 * cos( 0.2F * M_PI * (float)ctcss_freq / (float)FS);
+	goertzel_reset(GOERTZEL_BLOCK);
 	tone_detect = 0;
 	adc_init();
 	start_Timer2();
@@ -310,7 +312,7 @@ uint8_t goertzel_process(float * s)
 	//
 	// -> 675000 cycles / second
 	// -> 8,4% CPU load @ 8 MHz
-	//   16,9% CPU load @ 4 MHz 
+	//   13,8% CPU load @ 4.9 MHz
 }
 
 
@@ -384,7 +386,7 @@ uint8_t cic(int8_t x)
 	//
 	// ->  28000 cycles / second
 	// -> 0,4% CPU load @ 8 MHz
-	//    0,7% CPU load @ 4 MHz 
+	//    0,6% CPU load @ 4.9 MHz
 }
 
 // Chebychev type 1 (passband ripple)
@@ -396,7 +398,6 @@ uint8_t cic(int8_t x)
 #define CHEB_COEF_GAIN 0.276920F
 // 2nd order IIR low-pass-filter, Direct Form II
 // implementation: chebychev low-pass as CIC amplitude compensation filter
-// and additional alias rejection
 void cheby(float * x)
 {
 	float t;
@@ -419,7 +420,7 @@ void cheby(float * x)
 	//
 	// ->1200000 cycles / second
 	// ->15,0% CPU load @ 8 MHz
-	//   30,0% CPU load @ 4 MHz 
+	//   24,5% CPU load @ 4.9 MHz
 }
 
 
@@ -443,9 +444,11 @@ uint8_t tone_decode()
 		int8_t buf;
 
 		taskENTER_CRITICAL();
+		// these operation has to be atomic
 		j=samp_buf_count-1;
 		samp_buf_count=j;
 		taskEXIT_CRITICAL();
+
 		buf = samp_buf[samp_buf_r++]-129;
 		samp_buf_r &= SAMP_BUF_LEN-1;
 
@@ -462,11 +465,13 @@ uint8_t tone_decode()
 			// floating-point precision
 			float s;
 			
-			// get output of CIC filter
+			// get output of CIC filter and cast to float
 			s = (float) cic_comb[3];
+
 			// apply chebychev low-pass for amplitude correction
-			// optional, remove this to lower CPU load
-			cheby(&s);
+			// This is optional, remove this to lower CPU load
+			// detection of tones > 200 Hz might then be slightly degraded
+			// cheby(&s);
 			
 			// process sample in goertzel
 			if(goertzel_process(&s))

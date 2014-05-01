@@ -6,7 +6,7 @@
  *	MCmega - Firmware for the Motorola MC micro radio
  *           to use it as an Amateur-Radio transceiver
  *
- * Copyright (C) 2013 Felix Erckenbrecht, DG1YFE
+ * Copyright (C) 2013, 2014 Felix Erckenbrecht, DG1YFE
  *
  * ( AVR port of "MC70"
  *   Copyright (C) 2004 - 2013  Felix Erckenbrecht, DG1YFE)
@@ -35,10 +35,16 @@
 #include <avr/pgmspace.h>
 #include <stdint.h>
 
+// reduce sample frequency slightly when running off EZA9 internal XTAL
+// to minimize frequency error
+#if F_CPU == 4924800
+#define FS UINT32_C(7995)
+#else
 #define FS UINT32_C(8000)
+#endif
 
 #define SAMP_BUF_LEN UINT8_C(32)
-#define CTCSS_TABMAX 55
+#define CTCSS_TABMAX 56
 
 extern const uint8_t sin_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
