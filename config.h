@@ -63,10 +63,11 @@ typedef struct {
 #define CONFIG_UM_FSTEP		4
 #define CONFIG_UM_DEFCHANSAVE 8
 #define CONFIG_UM_SQUELCHMODE 16
-#define CONFIG_UM_POWERMODE 32;
+#define CONFIG_UM_POWERMODE 32
+#define CONFIG_UM_SHIFTACTIVE 64
 
 typedef struct {
-	T_ConfigControl cfgdata;
+	uint32_t cfgdata;
 	uint8_t	updateMask;
 }T_ConfigUpdateMessage;
 
@@ -77,7 +78,8 @@ extern uint8_t  config_state;
 uint8_t config_basicRadio(void);// configure Radio from SRAM, EEPROM or Flash
 void config_saveToEeprom(T_Config * cfgPtr);
 void config_validate(void);
-void config_syncControlConfig(T_Config * cfgPtr, T_ConfigControl * ctrlPtr);
+void config_sendUpdate(void);
+void config_checkForUpdate(void);
 
 
 #endif /* CONFIG_H_ */

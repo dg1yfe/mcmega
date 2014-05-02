@@ -50,7 +50,6 @@
 #include "menu_mem.h"
 #include "subs.h"
 #include "audio.h"
-#include "firmware.h"
 #include "config.h"
 
 typedef struct
@@ -267,17 +266,18 @@ static inline void m_frq_down()
 //
 static inline void m_sql_switch()
 {
+	uint8_t squelchMode;
 	if (config.squelchMode == SQM_CARRIER)
 	{
-		config.squelchMode = SQM_OFF;
+		squelchMode = SQM_OFF;
 		arrow_set(2,0);
 	}
 	else
 	{
-		config.squelchMode = SQM_CARRIER;
+		squelchMode = SQM_CARRIER;
 		arrow_set(2,1);
 	}
-	cfgUpdate.cfgdata.squelchMode = config.squelchMode;
+	cfgUpdate.cfgdata = (uint32_t) squelchMode;
 	cfgUpdate.updateMask = CONFIG_UM_SQUELCHMODE;
 	config_sendUpdate();
 }
@@ -325,9 +325,10 @@ void m_txshift(char key)
 
 inline void mts_print()
 {
+	int32_t shift;
 	lcd_cpos(0);
-	cfgUpdate.cfgdata.active_tx_shift = -cconf.active_tx_shift;
-	decout(PRINTSIGN | 5, 3, (char *)&cfgUpdate.cfgdata.active_tx_shift);
+	shift = -config.tx_shift;
+	decout(PRINTSIGN | 5, 3, (char *)&shift);
 	//TODO: Replace with printf ?
 	lcd_fill();
 	freq_offset_print();
@@ -348,8 +349,7 @@ void mts_switch(char key)
 			// invert sign of TX shift
 			if(config.tx_shift)
 			{
-				config.tx_shift = -config.tx_shift;
-				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
+				cfgUpdate.cfgdata = -config.tx_shift;
 				cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 				config_sendUpdate();
 			}
@@ -357,17 +357,8 @@ void mts_switch(char key)
 			break;
 		case KC_D7:
 			// toggle shift state on/off
-			if(cconf.active_tx_shift)
-			{
-				cfgUpdate.cfgdata.active_tx_shift = 0;
-				config.shift_active = 0;
-			}
-			else
-			{
-				cfgUpdate.cfgdata.active_tx_shift = config.tx_shift;
-				config.shift_active = 1;
-			}
-			cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
+			cfgUpdate.cfgdata = ~config.shift_active;
+			cfgUpdate.updateMask = CONFIG_UM_SHIFTACTIVE;
 			config_sendUpdate();
 			mts_print();
 			break;
@@ -408,14 +399,13 @@ void mts_digit(char key)
 			f *= 1000;
 			if(f)
 			{
-				config.tx_shift = f;
-				cfgUpdate.cfgdata.active_tx_shift = f;
+				cfgUpdate.cfgdata = f;
+				cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 			}
 			else{
-				config.shift_active = 0;
-				cfgUpdate.cfgdata.active_tx_shift = 0;
+				cfgUpdate.cfgdata = 0;
+				cfgUpdate.updateMask = CONFIG_UM_SHIFTACTIVE;
 			}
-			cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 			config_sendUpdate();
 			m_state = M_IDLE;
 			m_timer = 8;	// wait 800 ms before reverting to frequency
@@ -455,20 +445,14 @@ void m_set_shift()
 	f *= 1000;
 
 	if(f){
-		config.tx_shift = f;
+		cfgUpdate.cfgdata = f;
+		cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 	}
 	else{
 		// instead of allowing a shift = 0, deactivate the shift
-		config.shift_active = 0;
+		cfgUpdate.cfgdata = 0;
+		cfgUpdate.updateMask = CONFIG_UM_SHIFTACTIVE;
 	}
-	// shift is negative by default
-	if(config.shift_active){
-		cfgUpdate.cfgdata.active_tx_shift = f;
-	}
-	else{
-		cfgUpdate.cfgdata.active_tx_shift = 0;
-	}
-	cfgUpdate.updateMask = CONFIG_UM_TXSHIFT;
 	config_sendUpdate();
 
 	m_state = M_IDLE;

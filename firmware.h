@@ -12,6 +12,5 @@
 #include "config.h"
 
 extern xTaskHandle xUiTaskHandle, xControlTaskHandle;
-extern T_ConfigControl cconf;
 
 #endif /* FIRMWARE_H_ */

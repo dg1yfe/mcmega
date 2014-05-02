@@ -56,7 +56,6 @@ void vControlTask( void * pvParameters) __attribute__((noreturn));
 #define TASK_PRIO_CONTROL 2
 
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
-T_ConfigControl cconf;
 
 int main(void)
 {
@@ -116,13 +115,11 @@ void vControlTask( void * pvParameters)
                 cli
  *
  */
-	// synchronize configurations
-	config_syncControlConfig(&config, &cconf);
 
 	init_sci();
 	init_Timer2();
 
-	pll_setChannelSpacing(cconf.f_step);
+	pll_setChannelSpacing(config.f_step);
 
 	lcd_h_reset();
 

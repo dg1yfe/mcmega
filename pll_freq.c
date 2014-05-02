@@ -177,10 +177,10 @@ void set_rx_freq(uint32_t * freq)
 
 	// subtract IF (intermediate frequency) from desired frequency
 	f = (unsigned long) *freq - RXZF;
-	divresult = ldiv(f, cconf.f_step);
+	divresult = ldiv(f, config.f_step);
 	f = divresult.quot;
 
-	if(divresult.rem > (cconf.f_step))
+	if(divresult.rem > (config.f_step))
 	{
 		f++;
 	}
@@ -188,7 +188,7 @@ void set_rx_freq(uint32_t * freq)
 
 	f = frq_get_freq();
 	f += RXZF;
-	cconf.frequency = f;
+	config.frequency = f;
 }
 
 //**************************
@@ -211,11 +211,14 @@ void set_tx_freq(uint32_t * freq)
 	unsigned long f;
 	ldiv_t divresult;
 
-	f = (unsigned long) *freq - cconf.active_tx_shift;
-	divresult = ldiv(f, cconf.f_step);
+	f = (unsigned long) *freq;
+	if(config.shift_active){
+		f -= (signed long) config.tx_shift;
+	}
+	divresult = ldiv(f, config.f_step);
 	f = divresult.quot;
 
-	if(divresult.rem > (cconf.f_step>>1))
+	if(divresult.rem > (config.f_step>>1))
 	{
 		f++;
 	}
@@ -223,8 +226,10 @@ void set_tx_freq(uint32_t * freq)
 
 	f = frq_get_freq();
 
-	f += cconf.active_tx_shift;
-	cconf.frequency = f;
+	if(config.shift_active){
+		f += (signed long) config.tx_shift;
+	}
+	config.frequency = f;
 }
 
 
@@ -268,9 +273,9 @@ unsigned long frq_cv_freq_ch(uint32_t * freq)
 	ldiv_t divresult;
 	unsigned long ch;
 
-	divresult = ldiv((unsigned long) *freq, cconf.f_step);
+	divresult = ldiv((unsigned long) *freq, config.f_step);
 	ch = divresult.quot;
-	if(divresult.rem > (cconf.f_step>>1))
+	if(divresult.rem > (config.f_step>>1))
 	{
 		ch++;
 	}
@@ -292,7 +297,7 @@ unsigned long frq_cv_freq_ch(uint32_t * freq)
 //
 uint32_t frq_cv_ch_freq(unsigned long ch)
 {
-	return ( (uint32_t)ch * cconf.f_step);
+	return ( (uint32_t)ch * config.f_step);
 }
 
 //**************************
@@ -311,7 +316,7 @@ uint32_t frq_cv_ch_freq(unsigned long ch)
 //
 uint32_t frq_get_freq(void)
 {
-	return((uint32_t)channel * cconf.f_step);
+	return((uint32_t)channel * config.f_step);
 }
 
 //***************************
@@ -348,7 +353,7 @@ unsigned long frq_calc_freq(char * str)
 //
 void frq_update(uint32_t *freq)
 {
-	cfgUpdate.cfgdata.frequency = *freq;
+	cfgUpdate.cfgdata = *freq;
 	cfgUpdate.updateMask = CONFIG_UM_FREQUENCY;
 	config_sendUpdate();
 }
@@ -406,9 +411,9 @@ void freq_print(unsigned long * freq)
 //
 void freq_offset_print()
 {
-	if(cconf.active_tx_shift)
+	if(config.shift_active)
 	{
-		if(cconf.active_tx_shift>0)
+		if(config.tx_shift>0)
 			arrow_set(6,1);
 		else
 			arrow_set(6,2);

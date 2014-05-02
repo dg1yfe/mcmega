@@ -15,7 +15,7 @@
 
 #include "config.h"
 #include "macros.h"
-#include "firmware.h"
+#include "pll_freq.h"
 
 #define CONFIG_MAGIC 0x17ef
 #define CONFIG_CRC_INIT 0xff;
@@ -42,7 +42,7 @@ T_ConfigUpdateMessage cfgUpdate;
  * crc = ptr to previous crc value or init value
  */
 
-uint8_t crc8_ccitt(const uint8_t data, const uint8_t crc)
+static uint8_t crc8_ccitt(const uint8_t data, const uint8_t crc)
 {
 	//
 	uint8_t i;
@@ -120,7 +120,7 @@ static void config_initDefault(T_Config * cfgPtr)
 	cfgPtr->version = CONFIG_VERSION;
 	cfgPtr->controlHead = CONTROL_HEAD3;
 	cfgPtr->ctcssIndexRx = 1;
-	cfgPtr->ctcssIndexTx = 0;
+	cfgPtr->ctcssIndexTx = 1;
 	cfgPtr->defChanSave = 0;
 	cfgPtr->powerMode = DEFAULT_RF_PWR;
 	cfgPtr->reserved = 0;
@@ -146,16 +146,6 @@ inline void config_validate()
 	config_state = CONFIG_VALID;
 }
 
-// Only to be called when config is valid
-void config_syncControlConfig(T_Config * cfgPtr, T_ConfigControl * ctrlPtr)
-{
-	ctrlPtr->frequency = cfgPtr->frequency;
-	ctrlPtr->f_step = cfgPtr->f_step;
-	ctrlPtr->active_tx_shift = cfgPtr->shift_active ? cfgPtr->tx_shift : 0;
-	ctrlPtr->powerMode = cfgPtr->powerMode;
-	ctrlPtr->squelchMode = cfgPtr->squelchMode;
-}
-
 
 void config_sendUpdate(){
 	xQueueSendToBack( xConfigQ, &cfgUpdate, 0);
@@ -167,23 +157,39 @@ void config_checkForUpdate(){
 	if(xQueueReceive( xConfigQ, &cfgm, 0) == pdPASS){
 
 		if(cfgm.updateMask & CONFIG_UM_TXSHIFT){
-			cconf.active_tx_shift = cfgm.cfgdata.active_tx_shift;
+			config.tx_shift = (int32_t) cfgm.cfgdata;
+		}
+
+		if(cfgm.updateMask & CONFIG_UM_SHIFTACTIVE ){
+			config.shift_active = cfgm.cfgdata;
 		}
 
 		if(cfgm.updateMask & CONFIG_UM_FREQUENCY){
-			cconf.frequency = cfgm.cfgdata.frequency;
-			set_freq(&cconf.frequency);
+			config.frequency = cfgm.cfgdata;
 		}
+
 		if(cfgm.updateMask & CONFIG_UM_FSTEP){
 			// TODO: Implement update to frequency spacing
 		}
-		if(cfgm.updateMask & CONFIG_UM_DEFCHANSAVE){
-			cconf.defChanSave = cfgm.cfgdata.defChanSave;
-		}
-		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
-			cconf.squelchMode = cfgm.cfgdata.squelchMode;
+
+		// On frequency updates in any case OR
+		// on shift updates in TX
+		// set the frequency
+		if( (cfgm.updateMask & CONFIG_UM_FREQUENCY) ||
+			(rxtx_state &&
+			(cfgm.updateMask &(CONFIG_UM_SHIFTACTIVE | CONFIG_UM_TXSHIFT)))){
+			set_freq(&config.frequency);
 		}
 
+		if(cfgm.updateMask & CONFIG_UM_DEFCHANSAVE){
+			config.defChanSave = cfgm.cfgdata;
+		}
+		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
+			config.squelchMode = cfgm.cfgdata;
+		}
+
+		config_calcConfigCrc(&config);
+		config_state = CONFIG_VALID;
 	}
 }
 

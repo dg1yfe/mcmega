@@ -65,7 +65,7 @@ void pwr_sw_chk(char cSaveSettings)
 	if( PIN_SWB & BIT_SWB )
 	{
 		//TODO: Add 9,6V Power Fail check to EZA9 HW
-		if (cSaveSettings && cconf.defChanSave)
+		if (cSaveSettings && config.defChanSave)
 		{
 			//TODO: storeCurrent();
 			config_validate();
@@ -238,8 +238,8 @@ void squelch()
 		}
 		sql_pin_flag = pin_state;
 
-		state = pin_state || (cconf.squelchMode == SQM_OFF);
-		if((cconf.squelchMode != SQM_OFF) && g_coeff)
+		state = pin_state || (config.squelchMode == SQM_OFF);
+		if((config.squelchMode != SQM_OFF) && g_coeff)
 		{
 			state = (PIN_SQL & BIT_SQL);
 			// disregard tone detection state until detector output was updated
@@ -609,13 +609,12 @@ void rfpwr_set(uint8_t enable_hi_power)
 {
 	if(enable_hi_power)
 	{
-		config.powerMode = 0;
+		cfgUpdate.cfgdata = 0;
 	}
 	else
 	{
-		config.powerMode = 1;
+		cfgUpdate.cfgdata = 1;
 	}
-	cfgUpdate.cfgdata.powerMode = config.powerMode;
 	cfgUpdate.updateMask = CONFIG_UM_POWERMODE;
 	config_sendUpdate();
 }
