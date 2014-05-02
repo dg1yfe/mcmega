@@ -234,7 +234,7 @@ void squelch()
 		// if a signal appeared or disappeared
 		if(pin_state ^ sql_pin_flag)
 		{
-			tone_decode_reset();	// reset tone decoder to start NOW
+			tone_decoder_reset();	// reset tone decoder to start NOW
 		}
 		sql_pin_flag = pin_state;
 
@@ -627,3 +627,15 @@ void rfpwr_print()
 	else
 		arrow_set(3, 1);
 }
+
+
+void squelch_print()
+{
+	if(config.squelchMode == SQM_CARRIER)
+		arrow_set(2, 1);
+	else
+	if(config.squelchMode == SQM_OFF)
+		arrow_set(2, 0);
+}
+
+

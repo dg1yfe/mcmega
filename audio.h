@@ -45,6 +45,7 @@
 
 #define SAMP_BUF_LEN UINT8_C(32)
 #define CTCSS_TABMAX 56
+#define CTCSS_INDEX_OFF 1
 
 extern const uint8_t sin_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
@@ -63,10 +64,10 @@ void adc_init();
 /*
 	re-init Goertzel registers
 */
-void tone_decode_reset();
+void tone_decoder_reset();
 
 void tone_start_pl(unsigned int frequency);
-
+void tone_start_pl_index(uint8_t index);
 void tone_stop_pl();
 
 void tone_start_sel(unsigned int frequency);
@@ -75,7 +76,8 @@ void tone_stop_sel();
 void dtone_start(unsigned int freq1, unsigned int freq2);
 
 uint8_t tone_decode();
-void tone_decode_stop();
+void tone_decoder_start_index(uint8_t index);
+void tone_decoder_stop();
 void goertzel_init(uint16_t ctcss_freq);
 
 

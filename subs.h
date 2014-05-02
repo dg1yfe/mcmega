@@ -53,6 +53,7 @@ char store_current(void);
 uint8_t read_current(T_Config * cfgPtr);
 
 void squelch(void);
+void squelch_print(void);
 
 void wd_reset(void);
 

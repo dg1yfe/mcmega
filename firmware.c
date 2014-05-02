@@ -119,6 +119,7 @@ void vControlTask( void * pvParameters)
 	init_sci();
 	init_Timer2();
 
+	// Set Channel spacing
 	pll_setChannelSpacing(config.f_step);
 
 	lcd_h_reset();
@@ -130,7 +131,16 @@ void vControlTask( void * pvParameters)
 	if(config_state == CONFIG_FLASH)
 		led_set(YEL_LED, LED_BLINK);
 
+	// Initialize CTCSS TX & RX
+	tone_start_pl_index(config.ctcssIndexTx);
+	tone_decoder_start_index(config.ctcssIndexRx);
+
+	// Squelch is already set, display state is shown from UI task
+
+	// Frequency & Shift
+	// set radio to RX / apply frequency
 	receive();
+	// Power Mode
 	rfpwr_set(config.powerMode);
 	
 	pll_timer = 1;
@@ -147,9 +157,6 @@ void vControlTask( void * pvParameters)
     {
 		// process samples from ADC (if active)
 		tone_decode();
-
-		// check for changes in configuration by the user
-		config_checkForUpdate();
 
 		// check power switch
 		pwr_sw_chk(PWR_SAVECONFIG);
@@ -176,9 +183,15 @@ void vControlTask( void * pvParameters)
 			sci_tx_handler();
 		}while((UCSR0A & (1 << RXC0)));
 
+		// check for changes in configuration by the user
+		// block for 1 tick (thus allowing UI task to run)
+		config_checkForUpdate(1);
+
 		// if task did not block, wait here for 1 tick
 		// give UI task the opportunity to execute
 		if(samp_buf_count < 10)
+		{
 			vTaskDelayUntil( &xLastWakeTime, 1 );
+		}
     }
 }

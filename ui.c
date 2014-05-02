@@ -64,8 +64,9 @@ static void reset_ui(uint8_t type)
 	
 	freq_print(&config.frequency);		// print current frequency
 	vTaskDelay(15);
-	freq_offset_print();		// print state of tx shift
+	squelch_print();
 	rfpwr_print();				// print state of output power
+	freq_offset_print();		// print state of tx shift
 	pll_led(PLL_LOCK_STATE_FORCE_UPDATE);// force update of PLL led state
 
 	menu_init();				// (re-)initialize menu

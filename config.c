@@ -148,13 +148,18 @@ inline void config_validate()
 
 
 void config_sendUpdate(){
-	xQueueSendToBack( xConfigQ, &cfgUpdate, 0);
+	// block if queue is full
+	xQueueSendToBack( xConfigQ, &cfgUpdate, portMAX_DELAY);
+	// wait until message was read by control task
+	while(uxQueueMessagesWaiting(xConfigQ)){
+		vTaskDelay( 1 );
+	}
 }
 
 
-void config_checkForUpdate(){
+void config_checkForUpdate(portTickType ticksToWait){
 	T_ConfigUpdateMessage cfgm;
-	if(xQueueReceive( xConfigQ, &cfgm, 0) == pdPASS){
+	if(xQueueReceive( xConfigQ, &cfgm, ticksToWait) == pdPASS){
 
 		if(cfgm.updateMask & CONFIG_UM_TXSHIFT){
 			config.tx_shift = (int32_t) cfgm.cfgdata;

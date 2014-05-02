@@ -8,6 +8,7 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 #include <stdint.h>
+#include "FreeRTOS.h"
 
 #define CONFIG_POWER_HIGH 0
 #define CONFIG_POWER_LOW  1
@@ -79,7 +80,6 @@ uint8_t config_basicRadio(void);// configure Radio from SRAM, EEPROM or Flash
 void config_saveToEeprom(T_Config * cfgPtr);
 void config_validate(void);
 void config_sendUpdate(void);
-void config_checkForUpdate(void);
-
+void config_checkForUpdate(portTickType ticksToWait);
 
 #endif /* CONFIG_H_ */

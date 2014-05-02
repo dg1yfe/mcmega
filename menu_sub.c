@@ -346,7 +346,7 @@ void m_ctcss_submenu(char key)
 					else
 					{
 						tone_stop_pl();
-						tone_decode_stop();
+						tone_decoder_stop();
 						lcd_cpos(0);
 						printf_P(PSTR("TX CTCSS"));
 						lcd_fill();
@@ -375,7 +375,7 @@ void m_ctcss_submenu(char key)
 					}
 					else
 					{
-						tone_decode_stop();
+						tone_decoder_stop();
 						lcd_cpos(0);
 						printf_P(PSTR("RX CTCSS"));
 						lcd_fill();
@@ -396,7 +396,7 @@ void m_ctcss_submenu(char key)
 			case 0:
 			{
 				tone_stop_pl();
-				tone_decode_stop();
+				tone_decoder_stop();
 				lcd_cpos(0);
 				printf_P(PSTR("TONE OFF"));
 				lcd_fill();

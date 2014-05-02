@@ -143,6 +143,7 @@ void menu()
 			break;
 		case TEST:
 			m_test(c);
+			// no break
 		default:
 		case M_IDLE:
 			m_top(c);

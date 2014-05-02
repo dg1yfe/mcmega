@@ -170,6 +170,21 @@ void tone_start_pl(unsigned int frequency)
 }
 
 
+/*
+ *  Start or stop CTCSS tone by index
+ */
+void tone_start_pl_index(uint8_t index){
+	uint16_t freq;
+	if(index > CTCSS_INDEX_OFF && index < CTCSS_TABMAX){
+		freq = pgm_read_word(&ctcss_tab[index]);
+		tone_start_pl(freq);
+	}
+	else{
+		tone_stop_pl();
+	}
+}
+
+
 void tone_stop_pl()
 {
 	PL_phase_delta = 0;
@@ -268,7 +283,7 @@ static inline void goertzel_reset(uint16_t block_size)
 }
 
 
-void tone_decode_reset()
+void tone_decoder_reset()
 {
 	taskENTER_CRITICAL();	
 	goertzel_reset(GOERTZEL_BLOCK);
@@ -290,6 +305,16 @@ void goertzel_init(uint16_t ctcss_freq)
 	start_Timer2();
 }
 
+void tone_decoder_start_index(uint8_t index){
+	uint16_t freq;
+	if(index > CTCSS_INDEX_OFF && index < CTCSS_TABMAX){
+		freq = pgm_read_word(&ctcss_tab[index]);
+		goertzel_init(freq);
+	}
+	else{
+		tone_decoder_stop();
+	}
+}
 
 
 uint8_t goertzel_process(float * s)
@@ -425,10 +450,11 @@ void cheby(float * x)
 
 
 
-void tone_decode_stop()
+void tone_decoder_stop()
 {
 	g_coeff = 0;
 	stop_Timer2();
+	tone_decoder_reset();
 }
 
 
