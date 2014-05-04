@@ -310,7 +310,6 @@ void init_io()
 	SR_data_buf = 0;
 	led_buf = 0;
 	arrow_buf = 0;
-	sql_flag = 0;
 	ui_ptt_req = 0;
 
 	// create Mutex for HW access

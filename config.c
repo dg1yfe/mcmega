@@ -88,7 +88,6 @@ void config_calcConfigCrc( T_Config * cfgPtr){
 
 
 // initialize basic radio configuration
-// TODO: Apply config
 uint8_t config_basicRadio()
 {
 	xConfigQ = xQueueCreate( 1, sizeof( T_ConfigUpdateMessage ) );
@@ -135,8 +134,21 @@ static void config_initDefault(T_Config * cfgPtr)
 
 void config_saveToEeprom(T_Config * cfgPtr)
 {
+	uint8_t data;
+	uint8_t * bPtr;
+	uint8_t i;
+
+	// update CRC	
 	config_calcConfigCrc(&config);
-	eeprom_update_block(&config,(void *)CONFIG_EEPROM_BASE, sizeof(config));
+	bPtr = (uint8_t *) cfgPtr;
+	for(i=0;i<sizeof(config);i++){
+		data = eeprom_read_byte((uint8_t *) (CONFIG_EEPROM_BASE+i));
+		// if EEPROM data and SRAM data don't match, update the whole block
+		if(data != *bPtr++){			
+			eeprom_update_block(&config,(void *)CONFIG_EEPROM_BASE, sizeof(config));
+			break;			
+		}
+	}
 }
 
 inline void config_validate()
@@ -191,6 +203,13 @@ void config_checkForUpdate(portTickType ticksToWait){
 		}
 		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
 			config.squelchMode = cfgm.cfgdata;
+		}
+		if(cfgm.updateMask & CONFIG_UM_POWERMODE){
+			config.powerMode = cfgm.cfgdata;
+			// when in TX, apply new setting immediately
+			if(rxtx_state){
+				rfpwr_apply();
+			}
 		}
 
 		config_calcConfigCrc(&config);

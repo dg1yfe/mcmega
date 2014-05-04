@@ -89,11 +89,6 @@ char m_state;
 int  m_timer = 0;			// 100ms
 char m_timer_en;
 
-char sql_timer;
-char sql_flag;
-
-uint8_t sql_pin_flag;
-
 char mem_bank;
 
 char pll_locked_flag;		// Bit 0 - PLL not locked

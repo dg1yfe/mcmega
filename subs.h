@@ -59,7 +59,13 @@ void wd_reset(void);
 
 void audio_pa(uint8_t enable, uint8_t withrxaudio);
 
+void rfpwr_apply(void);
 void rfpwr_set(uint8_t enable_hi_power);
 void rfpwr_print(void);
+
+
+extern uint8_t sql_timer;
+extern uint8_t sql_flag;
+
 
 #endif /* SUBS_H_ */

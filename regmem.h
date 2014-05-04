@@ -160,10 +160,6 @@ extern char m_state;
 extern int  m_timer;				// 100ms
 extern char m_timer_en;
 
-extern char sql_timer;
-extern char sql_flag;
-extern uint8_t sql_pin_flag;
-
 extern char mem_bank;
 
 extern char pll_locked_flag;		// Bit 0 - PLL not locked
