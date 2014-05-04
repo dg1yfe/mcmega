@@ -68,10 +68,6 @@ void menu_init()
 	// disable menu timeout timer
 	m_timer_en = 0;
 
-	// set squelch mode
-	config.squelchMode = SQM_CARRIER;
-	arrow_set(2,1);
-
 }
 
 

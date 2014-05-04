@@ -135,12 +135,12 @@ void vControlTask( void * pvParameters)
 	tone_decoder_start_index(config.ctcssIndexRx);
 
 	// Squelch is already set, display state is shown from UI task
+	// Power Mode is already set, will be applied when calling "transmit"
+	// and shown by UI task (when it is allowed to run for the first time)
 
 	// Frequency & Shift
 	// set radio to RX / apply frequency
 	receive();
-	// Power Mode
-	rfpwr_set(config.powerMode);
 	
 	pll_timer = 1;
 	//enable Audio PA, but disable RX Audio

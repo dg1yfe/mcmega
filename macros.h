@@ -238,6 +238,8 @@
 #define KC_ENTER 0x10
 #define KC_EXIT  0x19
 #define KC_NON_NUMERIC 0x10
+#define KC_STAR 0x19
+#define KC_HASH 0x10
 
 /*
  * Control Head definitions, used for key convert table

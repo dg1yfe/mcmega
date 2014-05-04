@@ -57,6 +57,12 @@
 #include "audio.h"
 #include "config.h"
 
+
+uint8_t sql_timer;
+uint8_t sql_flag = 0;
+uint8_t sql_pin_flag;
+
+
 void pwr_sw_chk(char cSaveSettings)
 {
 	// check state of power switch (SWB+)
@@ -603,6 +609,18 @@ void audio_pa(uint8_t enable, uint8_t withrxaudio)
 	SetShiftReg(rxaudio, (uint8_t)~SR_RXAUDIOEN);
 }
 
+
+void rfpwr_apply()
+{
+	if(config.powerMode == CONFIG_POWER_LOW)
+	{
+		SetShiftReg(SR_TXPWRLO, 0xff);
+	}
+	else
+	{
+		SetShiftReg(0, (uint8_t) ~SR_TXPWRLO);
+	}
+}
 
 
 void rfpwr_set(uint8_t enable_hi_power)

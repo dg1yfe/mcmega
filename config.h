@@ -50,15 +50,6 @@ typedef struct {
 	uint8_t		crc;					// CRC-8 (x^8+x^2+x1+1)
 } T_Config;
 
-typedef struct {
-	uint32_t	frequency;
-	int32_t		active_tx_shift;
-	uint16_t	f_step;
-	unsigned	powerMode:1;
-	unsigned	squelchMode:2;
-	unsigned	defChanSave:1;
-} T_ConfigControl;
-
 #define CONFIG_UM_FREQUENCY 1
 #define CONFIG_UM_TXSHIFT	2
 #define CONFIG_UM_FSTEP		4

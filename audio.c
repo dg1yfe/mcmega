@@ -38,6 +38,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "macros.h"
 #include "regmem.h"
 #include "io.h"
 #include "int.h"
@@ -103,6 +104,19 @@ const uint16_t ctcss_tab[] PROGMEM =
 	2035, 2065, 2107, 2138, 2181, 2213, 2257, 2291,
 	2336, 2371, 2418, 2455, 2503, 2541
 };
+
+#define DTMF_A 10
+#define DTMF_B 11
+#define DTMF_C 12
+#define DTMF_D 13
+#define DTMF_STAR 14
+#define DTMF_HASH 15
+const uint8_t dtmf_index_tab[] PROGMEM = 
+{0x13, 0x00, 0x10,0x20,0x01,0x11,0x21,0x02,0x12,0x22,0x30,0x31,0x32,0x33,0x03,0x23};
+//   0,   1,     2,   3,   4,   5,   6,   7,   8,   9,   A,   B,   C,   D,   *,   #
+
+const uint16_t dtmf_tab_x[] PROGMEM = {1209, 1336, 1477, 1633 };
+const uint16_t dtmf_tab_y[] PROGMEM = {697, 770, 852, 941};
 
 
 void adc_init()
@@ -247,7 +261,7 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 
 	p1 = (unsigned long)freq1 << 16;
 	divresult = ldiv(p1, FS);
-	p1 = divresult.quot>>16;
+	p1 = divresult.quot;
 
 	p2 = (unsigned long)freq2 << 16;
 	divresult = ldiv(p2, FS);
@@ -258,6 +272,55 @@ void dtone_start(unsigned int freq1, unsigned int freq2)
 	start_Timer2();
 }
 
+
+void dtmf_key_to_frequency(uint8_t key, uint16_t * const freqx, uint16_t * const freqy){
+	uint8_t pos;
+	
+	switch(key){
+		case KC_HASH:
+			key = DTMF_HASH;
+			break;
+		case KC_STAR:
+			key = DTMF_STAR;
+			break;
+		case KC_D7:
+			key = DTMF_A;
+			break;
+		case KC_D8:
+			key = DTMF_B;
+			break;
+		case KC_D3:
+			key = DTMF_C;
+			break;
+		case KC_D4:
+			key = DTMF_D;
+			break;
+	}
+	key &= 0x0f;	// restrict key index to range 0-15
+	pos = pgm_read_byte(&dtmf_index_tab[key]);
+	
+	*freqx = pgm_read_word(&dtmf_tab_x[pos >> 4]);
+	*freqy = pgm_read_word(&dtmf_tab_y[pos & 0x0f]);	
+}
+/*
+; DTMF frequency matrix
+;
+;     1209  1336  1477  1633
+;
+; 697   1     2     3     A
+;
+; 770   4     5     6     B
+;
+; 852   7     8     9     C
+;
+; 941   *     0     #     D
+;
+*/
+
+
+//******************************************************
+// Decoder
+//
 /* fsr = 1000
  * fi = CTCSS Ton
  *

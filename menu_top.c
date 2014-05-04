@@ -70,6 +70,7 @@ void m_txshift(char key);
 void m_submenu(char key);
 void m_test(char c);
 void m_debug(uint8_t key);
+static void m_dtmf_direct(uint8_t key);
 
 
 const T_MENUITEM m_submenu_list[] PROGMEM =
@@ -104,64 +105,122 @@ void m_top(uint8_t key)
 {
 //	void (*fptr)(uint8_t key);
 
-	switch(key)
+	if(rxtx_state){
+		// TX
+		switch(key)
+		{
+			case 0:
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+			case 9:
+			case KC_ENTER:
+			case KC_EXIT:
+				m_dtmf_direct(key);
+				break;
+			case KC_D1:
+				m_frq_up();
+				break;
+			case KC_D2:
+				m_frq_down();
+				break;
+			case KC_D3:
+				m_sql_switch();
+				break;
+			case KC_D4:
+				m_power();
+				//m_none();
+				//m_prnt_tc();
+				break;
+			case KC_D5:
+				m_tone();
+			break;
+			case KC_D6:
+				m_debug(key);
+				if(config.controlHead == CONTROL_HEAD2)
+				{
+					if(!m_timer_en)
+					save_dbuf();
+					// initialize digit editor
+					m_digit_editor(0, 0, 0, -1);
+					m_state = FREQ_DIGIT;
+				}
+				break;
+			case KC_D7:
+				m_txshift(key);
+				break;
+			case KC_D8:
+				m_recall_submenu(KC_NONE);
+				break;
+			default:
+				break;
+		}
+	}
+	else
 	{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
+		switch(key)
+		{
+			case 0:
+			case 1:
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+			case 9:
 			m_start_input(key);
 			break;
-		case KC_EXIT:
+			case KC_EXIT:
 			m_test(key);
 			break;
-		case KC_D1:
+			case KC_D1:
 			m_frq_up();
 			break;
-		case KC_D2:
+			case KC_D2:
 			m_frq_down();
 			break;
-		case KC_D3:
+			case KC_D3:
 			m_sql_switch();
 			break;
-		case KC_D4:
+			case KC_D4:
 			m_power();
 			//m_none();
 			//m_prnt_tc();
 			break;
-		case KC_D5:
+			case KC_D5:
 			m_tone();
 			break;
-		case KC_D6:
+			case KC_D6:
 			m_debug(key);
 			if(config.controlHead == CONTROL_HEAD2)
 			{
 				if(!m_timer_en)
-					save_dbuf();
+				save_dbuf();
 				// initialize digit editor
 				m_digit_editor(0, 0, 0, -1);
 				m_state = FREQ_DIGIT;
 			}
 			break;
-		case KC_D7:
+			case KC_D7:
 			m_txshift(key);
 			break;
-		case KC_D8:
+			case KC_D8:
 			m_recall_submenu(KC_NONE);
 			break;
-		case KC_ENTER:
+			case KC_ENTER:
 			m_submenu(key);
 			break;
-		default:
+			default:
 			break;
+		}
 	}
-
 }
 
 //*************
@@ -636,4 +695,20 @@ void m_debug(uint8_t key)
 		}
 		lcd_fill();
 	}	
+}
+
+
+
+void m_dtmf_direct(uint8_t key){
+	uint16_t fx,fy;
+	dtmf_key_to_frequency(key,&fx,&fy);
+	// check if tone is still active
+	if(tone_timer){
+		// stop tone
+		tone_stop_sel();
+		// wait 40 ms (minimum DTMF pause time)
+		vTaskDelay(40/portTICK_RATE_MS);
+	}
+	tone_timer = 4;
+	dtone_start(fx,fy);
 }
