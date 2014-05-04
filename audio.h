@@ -74,6 +74,7 @@ void tone_start_sel(unsigned int frequency);
 
 void tone_stop_sel();
 void dtone_start(unsigned int freq1, unsigned int freq2);
+void dtmf_key_to_frequency(uint8_t key, uint16_t * const freqx, uint16_t * const freqy);
 
 uint8_t tone_decode();
 void tone_decoder_start_index(uint8_t index);
