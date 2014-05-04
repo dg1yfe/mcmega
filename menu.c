@@ -128,8 +128,8 @@ void menu()
 		case POWER_SELECT:
 			m_power_submenu(c);
 			break;
-		case DEFCH_SELECT:
-			m_defch_submenu(c);
+		case CONFIG_SELECT:
+			m_cfgsave_submenu(c);
 			break;
 		case CTCSS_SEL_RX:
 		case CTCSS_SEL_TX:

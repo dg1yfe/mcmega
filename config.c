@@ -121,7 +121,7 @@ static void config_initDefault(T_Config * cfgPtr)
 	cfgPtr->controlHead = CONTROL_HEAD3;
 	cfgPtr->ctcssIndexRx = 1;
 	cfgPtr->ctcssIndexTx = 1;
-	cfgPtr->defChanSave = 0;
+	cfgPtr->configAutosave = 0;
 	cfgPtr->powerMode = DEFAULT_RF_PWR;
 	cfgPtr->reserved = 0;
 	cfgPtr->squelchMode = SQM_CARRIER;
@@ -187,7 +187,7 @@ void config_checkForUpdate(portTickType ticksToWait){
 		}
 
 		if(cfgm.updateMask & CONFIG_UM_DEFCHANSAVE){
-			config.defChanSave = cfgm.cfgdata;
+			config.configAutosave = cfgm.cfgdata;
 		}
 		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
 			config.squelchMode = cfgm.cfgdata;
