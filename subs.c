@@ -71,7 +71,7 @@ void pwr_sw_chk(char cSaveSettings)
 	if( PIN_SWB & BIT_SWB )
 	{
 		//TODO: Add 9,6V Power Fail check to EZA9 HW
-		if (cSaveSettings && config.defChanSave)
+		if (cSaveSettings && config.configAutosave)
 		{
 			//TODO: storeCurrent();
 			config_validate();

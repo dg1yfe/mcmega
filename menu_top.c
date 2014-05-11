@@ -82,7 +82,7 @@ const T_MENUITEM m_submenu_list[] PROGMEM =
 		{ "RX CTCSS", m_ctcss_rx},
 		{ "DTMF    ", m_none},
 		{ "POWER   ", m_power_submenu},
-		{ "DEF CHAN", m_defch_submenu},
+		{ "DEF CHAN", m_cfgsave_submenu},
 		{ "VERSION ", m_version_submenu},
 		{ "CALIBRAT", m_cal_submenu}
 };

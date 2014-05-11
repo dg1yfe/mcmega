@@ -95,7 +95,6 @@ int main(void)
 
 void vControlTask( void * pvParameters)
 {
-	char i;
 	// use own config structure to ensure validity at ANY time
 
 	portTickType xLastWakeTime;
@@ -155,6 +154,7 @@ void vControlTask( void * pvParameters)
 	xLastWakeTime = xTaskGetTickCount();
 	while (1)
     {
+		uint8_t ptt_state ;
 		// process samples from ADC (if active)
 		tone_decode();
 
@@ -163,11 +163,11 @@ void vControlTask( void * pvParameters)
 		// update software timer
 		s_timer_update();
 		// check PTT
-		i=ptt_get_status();
+		ptt_state = ptt_get_status();
 		// check if PTT status changed
-		if(i & PTT_EVENT_BIT)
+		if(ptt_state & PTT_EVENT_BIT)
 		{
-			if(i & ~PTT_EVENT_BIT)
+			if(ptt_state & ~PTT_EVENT_BIT)
 				transmit();
 			else
 				receive();
@@ -177,6 +177,7 @@ void vControlTask( void * pvParameters)
 
 		// reset hardware watchdog
 		wd_reset();
+		// run handlers for serial port
 		do
 		{
 			sci_rx_handler();
@@ -189,6 +190,7 @@ void vControlTask( void * pvParameters)
 
 		// if task did not block, wait here for 1 tick
 		// give UI task the opportunity to execute
+		// but only if the sample buffer is at max 1/3 full
 		if(samp_buf_count < 10)
 		{
 			vTaskDelayUntil( &xLastWakeTime, 1 );

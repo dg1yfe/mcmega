@@ -38,7 +38,7 @@ typedef struct {
 	unsigned	version:2;				// Config struct version
 	unsigned	powerMode:1;			// Lo / Hi Power
 	unsigned	squelchMode:2;			// Squelch mode
-	unsigned	defChanSave:2;			// save current frequency as default channel?
+	unsigned	configAutosave:2;			// save current frequency as default channel?
 	unsigned	shift_active:1;
 	unsigned	controlHead:3;			// control head
 	unsigned	ctcssIndexRx:6;			// CTCSS
@@ -53,7 +53,7 @@ typedef struct {
 #define CONFIG_UM_FREQUENCY 1
 #define CONFIG_UM_TXSHIFT	2
 #define CONFIG_UM_FSTEP		4
-#define CONFIG_UM_DEFCHANSAVE 8
+#define CONFIG_UM_CONFIGAUTOSAVE 8
 #define CONFIG_UM_SQUELCHMODE 16
 #define CONFIG_UM_POWERMODE 32
 #define CONFIG_UM_SHIFTACTIVE 64

@@ -137,17 +137,17 @@ void m_power_submenu(char key)
 //
 //
 
-void m_defch_submenu(char key)
+void m_cfgsave_submenu(char key)
 {
 	static char index;
 	char print = 1;
 
 	m_reset_timer();
 
-	if (m_state != DEFCH_SELECT)
+	if (m_state != CONFIG_SELECT)
 	{
-		index = config.defChanSave & 2;
-		m_state = DEFCH_SELECT;
+		index = config.configAutosave & 2;
+		m_state = CONFIG_SELECT;
 	}
 	else
 	{
@@ -170,13 +170,12 @@ void m_defch_submenu(char key)
 				{
 					uint8_t buf;
 
-					taskENTER_CRITICAL();
-					buf = config.defChanSave;
+					buf = config.configAutosave;
 					buf &= ~2;
 					buf |= (index & 2);
-					config.defChanSave = buf;
-					taskEXIT_CRITICAL();
-					eeprom_update_byte((uint8_t *) 0x1fd, buf);
+					cfgUpdate.cfgdata = buf;
+					cfgUpdate.updateMask = CONFIG_UM_CONFIGAUTOSAVE;
+					config_sendUpdate();
 					lcd_cpos(0);
 					printf_P(m_ok_str);
 					lcd_fill();
@@ -187,6 +186,7 @@ void m_defch_submenu(char key)
 				{
 					char err;
 					// Store current frequency and shift to EEPROM as power-up default
+					// TODO: Store config structure to EEPROM
 					if(!(err = store_current()))
 					{
 						lcd_cpos(0);
