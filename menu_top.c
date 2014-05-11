@@ -659,6 +659,15 @@ void m_debug(uint8_t key)
 		case 5:
 			goertzel_init(770);
 			break;
+		case 6:
+			tone_start_sel(1500);
+			break;
+		case 7:
+			tone_start_sel(240);
+			break;
+		case 8:
+			tone_start_sel(1700);
+			break;
 		default:
 			break;
 	}

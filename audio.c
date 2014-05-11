@@ -93,6 +93,26 @@ const uint8_t sin_tab[] PROGMEM = {
 };
 
 
+const uint8_t rec_tab[] PROGMEM = {
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+	   15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
+};
+
+
 const uint16_t ctcss_tab[] PROGMEM =
 {
 	  -1,    0, 									// 'like tx/rx' , 'off'
@@ -174,7 +194,7 @@ void tone_start_pl(unsigned int frequency)
 
 	p = (unsigned long) frequency << 16;
 	
-	p+=40000;	// add 1/2 LSB to round instead of truncate
+	p+=FS*5;	// add 1/2 LSB (*10) to round instead of truncate
 
 	divresult = ldiv(p, FS*10);
 
@@ -217,9 +237,11 @@ void tone_start_sel(unsigned int frequency)
 	p = (unsigned long)frequency << 16;
 
 	divresult = ldiv(p, FS);
-
+	taskENTER_CRITICAL();
 	SEL_phase_delta = divresult.quot;
 	SEL_phase_delta2 = 0;
+	SEL_phase = 0;
+	taskEXIT_CRITICAL();
 
 	start_Timer2();
 }

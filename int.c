@@ -75,6 +75,7 @@ ISR(TIMER2_COMP_vect)
 {
 	uint8_t index;
 	static uint8_t samp_buf_w=0;
+	static uint16_t dither = 1;
 
 	if(!rxtx_state)	// process sample input in RX
 	{
@@ -102,11 +103,17 @@ ISR(TIMER2_COMP_vect)
 	}
 	else	// Tone oscillators are only used in TX
 	{
+		uint16_t pd;
+		
 		// check if CTCSS (Motorola speak 'private line') generator is active
-		if(PL_phase_delta)
+		pd = PL_phase_delta;
+		if(pd)
 		{
-			PL_phase += PL_phase_delta;
-			index = PL_phase >> 8;
+			uint16_t ph;
+			ph = PL_phase;
+			ph += pd;
+			PL_phase = ph;
+			index = ph >> 8;
 			index = pgm_read_byte(&sin_tab[index]);
 			index >>=1;
 			index |= PORT_PL_DAC & (~MASK_PL_DAC);
@@ -114,16 +121,23 @@ ISR(TIMER2_COMP_vect)
 		}
 
 		// check if signaling generator is active with dual-tone
-		if(SEL_phase_delta2)
+		pd=SEL_phase_delta2;
+		if(pd)
 		{
 			uint8_t index2;
-			SEL_phase  += SEL_phase_delta;
-			index = SEL_phase >> 8;
-			index = pgm_read_byte(&sin_tab[index]);
-
-			SEL_phase2 += SEL_phase_delta2;
-			index2 = SEL_phase2 >> 8;
+			uint16_t ph;
+			
+			ph = SEL_phase2;
+			ph += pd;
+			SEL_phase2 = ph;
+			index2 = ph >> 8;
 			index2 = pgm_read_byte(&sin_tab[index2]);
+
+			ph = SEL_phase;
+			ph += SEL_phase_delta;
+			SEL_phase = ph;
+			index = ph >> 8;
+			index = pgm_read_byte(&sin_tab[index]);
 
 			index+= index2;
 			index >>= 1;
@@ -132,13 +146,29 @@ ISR(TIMER2_COMP_vect)
 		}
 		else
 		// check for single tone activity
-		if(SEL_phase_delta)
-		{
-			SEL_phase += SEL_phase_delta;
-			index = SEL_phase >> 8;
-			index = pgm_read_byte(&sin_tab[index]);
-			index |= PORT_SEL_DAC & (~MASK_SEL_DAC);
-			PORT_SEL_DAC = index;
+		if(pd=SEL_phase_delta)
+		{	uint16_t sp;
+			uint8_t amplitude;
+			sp = SEL_phase;
+			sp += pd;
+			SEL_phase = sp;
+			index = sp >> 8;
+			amplitude = pgm_read_byte(&rec_tab[index]);
+			//amplitude -= 1;
+			dither = (dither >> 1) ^ (-(dither & 1u) & 0xB400u);
+			// add dithering
+			//amplitude += ((uint8_t)dither) & 0x1;
+			/*
+			if(amplitude & 0x80){
+				amplitude = 0;
+			}
+			else
+			if(amplitude & 0x10){
+				amplitude = 15;	
+			}
+			*/			
+//			amplitude |= PORT_SEL_DAC & (uint8_t)(~MASK_SEL_DAC);
+			PORT_SEL_DAC = amplitude;
 		}
 	}
 }

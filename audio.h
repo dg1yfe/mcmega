@@ -48,6 +48,7 @@
 #define CTCSS_INDEX_OFF 1
 
 extern const uint8_t sin_tab[] PROGMEM;
+extern const uint8_t rec_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
 extern volatile uint8_t samp_buf[SAMP_BUF_LEN];
 extern volatile uint8_t samp_buf_count;

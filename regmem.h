@@ -171,15 +171,6 @@ extern char oci_ctr;
 
 extern int ts_count;
 
-extern int osc1_dither;
-extern int osc3_phase;				// dual use: frequency input
-extern char osc_buf;
-extern int osc3_pd;				// & oscialltor 1 & 2 (1750 Hz & DTMF)
-extern char o2_en_;
-extern char o2_en1;
-extern char o2_en2;
-extern char o2_dither;
-
 //*****************************
 // I O   R I N G B U F F E R
 //*****************************
