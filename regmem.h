@@ -92,6 +92,7 @@
 #define SR_SELATT     UINT8_C(1 << 5)
 #define SR_MICEN      UINT8_C(1 << 6)
 #define SR_RXAUDIOEN  UINT8_C(1 << 7)
+#define SR_AND_NONE	  UINT8_C(0xff)
 
 #define SQEXTBIT SR_EXTALARM
 

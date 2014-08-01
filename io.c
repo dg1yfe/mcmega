@@ -436,6 +436,12 @@ void SetShiftReg(uint8_t or_value, uint8_t and_value)
 
 
 
+uint8_t GetShiftReg(void){
+	return SR_data_buf;
+}
+
+
+
 void SetPLL(const char RegSelect, char divA, int divNR)
 {
 /* 

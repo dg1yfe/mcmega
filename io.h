@@ -80,6 +80,8 @@
 void init_io( void );
 
 void SetShiftReg(uint8_t or_value, uint8_t and_value);
+uint8_t GetShiftReg(void);
+
 
 void init_sci( void );
 void SetPLL(const char RegSelect, char divA, int divNR);
