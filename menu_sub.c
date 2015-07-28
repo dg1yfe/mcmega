@@ -146,7 +146,7 @@ void m_cfgsave_submenu(char key)
 
 	if (m_state != CONFIG_SELECT)
 	{
-		index = config.configAutosave & 2;
+		index = config.configAutosave & CONFIG_SAVE_AUTO;
 		m_state = CONFIG_SELECT;
 	}
 	else
@@ -166,13 +166,11 @@ void m_cfgsave_submenu(char key)
 			case KC_ENTER:
 			{
 				print = 0;
-				if(index)
+				if(!(index & CONFIG_SAVE_NOW))
 				{
 					uint8_t buf;
 
-					buf = config.configAutosave;
-					buf &= ~2;
-					buf |= (index & 2);
+					buf = (index & CONFIG_SAVE_AUTO);
 					cfgUpdate.cfgdata = buf;
 					cfgUpdate.updateMask = CONFIG_UM_CONFIGAUTOSAVE;
 					config_sendUpdate();
@@ -187,24 +185,15 @@ void m_cfgsave_submenu(char key)
 					char err;
 					// Store current frequency and shift to EEPROM as power-up default
 					// TODO: Store config structure to EEPROM
-					if(!(err = store_current()))
-					{
-						lcd_cpos(0);
-						printf_P(m_ok_str);
-						lcd_fill();
-						vTaskDelay(500);
-						lcd_cpos(0);
-						printf_P(m_stored_str);
-					}
-					else
-					{
-						lcd_cpos(0);
-						printf_P(m_failed_str);
-						lcd_fill();
-						vTaskDelay(500);
-						lcd_cpos(0);
-						pputchar('x', err, 0);
-					}
+					cfgUpdate.updateMask = CONFIG_UM_SAVE_TO_EEPROM;
+					config_sendUpdate();
+					
+					lcd_cpos(0);
+					printf_P(m_ok_str);
+					lcd_fill();
+					vTaskDelay(500);
+					lcd_cpos(0);
+					printf_P(m_stored_str);
 					lcd_fill();
 					vTaskDelay(1000);
 					m_timer = 0;
@@ -225,14 +214,14 @@ void m_cfgsave_submenu(char key)
 		lcd_cpos(0);
 		switch(index)
 		{
-		case 0: // store now
-			printf_P(PSTR("STORE"));
-			break;
-		case 1: // manual
+		case CONFIG_SAVE_MANUAL: // manual
 			printf_P(PSTR("MANUAL"));
 			break;
-		case 2: // automatic
+		case CONFIG_SAVE_AUTO: // automatic
 			printf_P(PSTR("AUTO"));
+			break;
+		default: // store now
+			printf_P(PSTR("STORE"));
 			break;
 		}
 		lcd_fill();

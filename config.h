@@ -20,6 +20,10 @@ enum { CONFIG_OK, CONFIG_SRAM, CONFIG_EEPROM, CONFIG_FLASH };
 #define CONFIG_UPDATE_PENDING 0x5a
 #define CONFIG_UPDATED 0xa5
 
+#define CONFIG_SAVE_MANUAL	0
+#define CONFIG_SAVE_AUTO	1
+#define CONFIG_SAVE_NOW		2
+
 typedef struct {
 	uint32_t frequency;
 	int32_t	 tx_shift;
@@ -57,10 +61,12 @@ typedef struct {
 #define CONFIG_UM_SQUELCHMODE 16
 #define CONFIG_UM_POWERMODE 32
 #define CONFIG_UM_SHIFTACTIVE 64
+#define CONFIG_UM_CTCSS 128
+#define CONFIG_UM_SAVE_TO_EEPROM UINT32_C(1<<15)
 
 typedef struct {
 	uint32_t cfgdata;
-	uint8_t	updateMask;
+	uint16_t updateMask;
 }T_ConfigUpdateMessage;
 
 extern T_Config config;			// Radio Configuration

@@ -94,12 +94,14 @@ uint8_t config_basicRadio()
 
 // check for magic word in memory
 // ( check if there could be a valid config in SRAM)
+/*
 	if(config_magic == CONFIG_MAGIC){
 		// calculate CRC for config data in SRAM
 		// if CRC is OK, there is a correct config in SRAM, we are done
 		if(!config_checkConfigCrc(&config))
 			return CONFIG_SRAM;
 	}
+*/	
 	config_magic = CONFIG_MAGIC;
 
 	// if CRC does not fit (!= 0), try initialization from EEPROM
@@ -139,13 +141,13 @@ void config_saveToEeprom(T_Config * cfgPtr)
 	uint8_t i;
 
 	// update CRC	
-	config_calcConfigCrc(&config);
+	config_calcConfigCrc(cfgPtr);
 	bPtr = (uint8_t *) cfgPtr;
-	for(i=0;i<sizeof(config);i++){
+	for(i=0;i<sizeof(T_Config);i++){
 		data = eeprom_read_byte((uint8_t *) (CONFIG_EEPROM_BASE+i));
 		// if EEPROM data and SRAM data don't match, update the whole block
 		if(data != *bPtr++){			
-			eeprom_update_block(&config,(void *)CONFIG_EEPROM_BASE, sizeof(config));
+			eeprom_update_block(&config,(void *)CONFIG_EEPROM_BASE, sizeof(T_Config));
 			break;			
 		}
 	}
@@ -198,7 +200,7 @@ void config_checkForUpdate(portTickType ticksToWait){
 			set_freq(&config.frequency);
 		}
 
-		if(cfgm.updateMask & CONFIG_UM_DEFCHANSAVE){
+		if(cfgm.updateMask & CONFIG_UM_CONFIGAUTOSAVE){
 			config.configAutosave = cfgm.cfgdata;
 		}
 		if(cfgm.updateMask & CONFIG_UM_SQUELCHMODE){
@@ -211,9 +213,25 @@ void config_checkForUpdate(portTickType ticksToWait){
 				rfpwr_apply();
 			}
 		}
+		if(cfgm.updateMask & CONFIG_UM_CTCSS){
+			config.ctcssIndexRx = (uint8_t) cfgm.cfgdata;
+			config.ctcssIndexTx = (uint8_t) ((uint16_t)cfgm.cfgdata >> 8);
+			// apply CTCSS setting immediately
+			// but check if we're in TX or RX
+			if(rxtx_state){
+				// TX - (re)start CTCSS tone generator
+			}
+			else{
+				// RX - (re)initialize CTCSS detector
+			}				
+		}
 
-		config_calcConfigCrc(&config);
+		config_calcConfigCrc(&config);		
 		config_state = CONFIG_VALID;
+		
+		if(cfgm.updateMask & CONFIG_UM_SAVE_TO_EEPROM){
+			config_saveToEeprom(&config);
+		}
 	}
 }
 

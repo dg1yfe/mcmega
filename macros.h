@@ -35,7 +35,7 @@
 
 #define EZA9
 
-#define BAND_2M
+//#define BAND_2M
 //#define BAND_70CM
 
 // Timing
