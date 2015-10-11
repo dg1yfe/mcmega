@@ -57,6 +57,54 @@ void vControlTask( void * pvParameters) __attribute__((noreturn));
 
 xTaskHandle xUiTaskHandle, xControlTaskHandle;
 
+// Perform calibration of internal RC oscillator using the
+// reset sequence (0x7e) of the control head as a reference
+//
+// 0x7e in 1200e1 -> (Start/0) 01111111 (Stop/1)
+//                   --_________
+// -> Pulse of 1,66 ms on line
+// Pulse is inverted and presented to UART RX and F1/#F2 (PinA3)
+void autocal(void){
+	uint8_t tc1a, tc1b;
+	tc1a = TCCR1A;
+	tc1b = TCCR1B;
+	uint8_t pulse = 1;
+	uint16_t duration;
+	cli();
+	
+	TCCR1A=0;
+	TCNT1=0;
+	TIFR |= (1 << TOV1);	// clear Overflow flag of timer 1
+	TCCR1B=(1<<CS11);	// Timer 1 runs at CPU speed /8 (~ 1 MHz)
+	
+	// check 65 ms for Pulses (do not hang when control head is missing)
+	while(!(TIFR & (1<<TOV1))){
+		if ((pulse==0) && (PINA & (1<<3))){
+			TCNT1 = 0;
+			TCCR1B = (1 << CS10);	// Timer speed-up
+			break;
+		};	// check for falling edge
+		pulse = PINA & (1<<3);		
+	}
+	pulse = 0;
+	// Autocal only when pulses detected
+	while(!(TIFR & (1<<TOV1))){
+		if ((pulse==1) && !(PINA & (1<<3))){
+			duration = TCNT1;
+			break;
+		};	// check for falling edge
+		pulse = PINA & (1<<3);		
+	}
+	
+	TCCR1B = 0;	// stop timer
+	TCCR1A = tc1a;	// recall previous values
+	TCCR1B = tc1b;
+	
+	sei();
+	return;
+}
+
+
 int main(void)
 {
 	// These are the handles for both tasks this program is going to use
