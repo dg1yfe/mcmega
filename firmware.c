@@ -64,12 +64,15 @@ xTaskHandle xUiTaskHandle, xControlTaskHandle;
 //                   --_________
 // -> Pulse of 1,66 ms on line
 // Pulse is inverted and presented to UART RX and F1/#F2 (PinA3)
-void autocal(void){
-	uint8_t tc1a, tc1b;
-	tc1a = TCCR1A;
-	tc1b = TCCR1B;
+
+uint16_t autocalPulse(void)
+{
 	uint8_t pulse = 1;
-	uint16_t duration;
+	uint32_t duration=0;
+	uint32_t newcal;
+	uint8_t cal;
+	ldiv_t divresult;
+
 	cli();
 	
 	TCCR1A=0;
@@ -90,12 +93,39 @@ void autocal(void){
 	// Autocal only when pulses detected
 	while(!(TIFR & (1<<TOV1))){
 		if ((pulse==1) && !(PINA & (1<<3))){
-			duration = TCNT1;
+			duration = (uint32_t) TCNT1;
 			break;
 		};	// check for falling edge
 		pulse = PINA & (1<<3);		
 	}
+	return duration;
+}
+
+
+void autocal(void){
+	uint8_t tc1a, tc1b;
+	tc1a = TCCR1A;
+	tc1b = TCCR1B;
+	uint8_t i;
+	uint32_t duration;
+	uint32_t newcal;
+	uint8_t cal;
+	ldiv_t divresult;
+
+	cli();
+	duration = autocalPulse();
+	i=0;
+	while(duration && (i++<3)){
+		// cal_neu = cal_alt >>  * 256el
+
+		divresult = ldiv((uint32_t)(1666<<16), duration);
+
+		newcal = (uint32_t) OSCCAL * divresult.quot;
+		cal = (uint8_t) (newcal >>= 16);
+		OSCCAL = cal;
+	}
 	
+
 	TCCR1B = 0;	// stop timer
 	TCCR1A = tc1a;	// recall previous values
 	TCCR1B = tc1b;
@@ -103,6 +133,7 @@ void autocal(void){
 	sei();
 	return;
 }
+
 
 
 int main(void)
