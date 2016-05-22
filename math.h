@@ -37,6 +37,52 @@ uint8_t raise(uint8_t power);
 extern long exp10_9;
 extern long exp10tab[];
 
+
+struct S_fastfp{
+	uint8_t  exponent;
+	int8_t   sign;
+	uint16_t significant;
+}__attribute__((packed));
+
+typedef struct S_fastfp ffp_t;
+/*
+ * FP definition from
+ * https://people.ece.cornell.edu/land/courses/ece4760/Math/Floating_point/index.html
+ *
+ * "The floating format with 16 bits of mantissa,
+ *  7 bits of exponent, and a sign bit,
+ *  is stored in the space of a 32-bit long integer.
+ *  This format gives a factor of 2.5-3 speed up in multiplication (over IEEE)
+ *  and a speed up of about a factor of 1.3-4.0 for addition.
+ *  The speed for the multiply is about 35 cycles.
+ *  The speed for the add is 35-106 cycles.
+ *  My short float operations do not support overflow, denorm, or infinity
+ *   detection (but underflow is detected and the value set to zero).
+ *
+ *  This section will concentrate on numbers stored as 32-bit long ints.
+ *  The lower 16 bits are the mantissa (more properly, significand).
+ *  The mantissa value is considered a binary fraction with values
+ *  0.5<=mantissa<1.0. The top 8 bits are the exponent, but the top bit is used
+ *  for overflow during the calculation, so the exponent range is 0x00 to 0x7f,
+ *  or about 10^-18 to 10^18.
+ *  The sign bit is stored in the 23rd bit (high bit, 3rd byte).
+ *  The high order bit of the significand is always one (unless the actual value
+ *   is zero), because there are no denorms allowed.
+ *   Typical numbers are shown below.
+ *   Examples:
+ *	Decimal Value	Short float Representation
+ *	0.0				0x0000_0000
+ *	1.0				0x3f00_8000
+ * 	1.5				0x3f00_c000
+ * 10000			0x4c00_9c40
+ * 1.0001			0x3f00_8003
+ * -1.0				0x3f80_8000
+ * -1.5				0x3f80_c000
+ * 1e-18			0x0300_9392
+ * -1e-18			0x0380_9392
+ *
+ */
+
 // intRes = intIn1 + intIn2
 #define SaturatedAdd16(intIn1, intIn2) \
 asm volatile ( \

@@ -29,6 +29,7 @@
   ****************************************************************************
 */
 #include <stdint.h>
+#include "math.h"
 //
 //***********************
 // RAISE
@@ -73,3 +74,130 @@ uint8_t raise(uint8_t power)
 	buf <<= power;
 	return buf;
 }
+
+
+/*
+ * Fast FP multiplication in C
+ *
+ */
+ffp_t ffp_mult(ffp_t f1, ffp_t f2){
+/*
+ *
+ */
+	register ffp_t t;
+	register uint32_t p;
+
+	// Sign for result
+	t.sign = f1.sign ^ f2.sign;
+
+	t.exponent = f1.exponent + f2.exponent;
+	if(t.exponent >= 63){
+		// check for undeflow
+		// return 0 on underflow
+		*((uint32_t *) &t) = 0;
+		return t;
+	}
+
+	t.exponent -= 62; // subtract offset
+
+	// build mantissa
+	p = f1.significant * f2.significant;
+	// ignore lower word
+	// MultiU16X16toH16(t.significant, f1.significant, f2.significant);
+	// left shift result until result is normalized
+	//while(!(*((uint8_t*)&t.significant) & 0x80)){
+	while( ! (*((uint8_t *)&p+3) & 0x80)){
+		p<<=1;
+		t.exponent--;
+	}
+	t.significant = p>>16;
+	return t;
+}
+
+
+ffp_t ffp_add(ffp_t s1, ffp_t s2){
+	register ffp_t t;
+
+	if(s1.significant == 0)
+		return s2;
+
+	if(s2.significant == 0)
+		return s1;
+
+	// reorder so s2 > s1
+	if(s1.exponent != s2.exponent){
+		if(s1.exponent > s2.exponent){
+			t = s1;
+			s1 = s2;
+			s2 = t;
+		}
+	}
+	else{
+		if(s1.significant > s2.significant){
+			t = s1;
+			s1 = s2;
+			s2 = t;
+		}
+	}
+
+	// shift smaller to right
+	// if difference in exponents>15 just return bigger
+	t.exponent = s2.exponent - s1.exponent;
+	if(t.exponent > 15){
+		return s2;
+	}
+
+	// try to speed things up
+	if(t.exponent>=12){
+		s1.significant>>=12;
+		t.exponent-=12;
+	}
+	else
+	if(t.exponent>=8){
+		s1.significant>>=8;
+		t.exponent-=8;
+	}
+
+	s1.significant >>= t.exponent;
+
+	if(s1.sign == s2.sign){
+		// add
+		t.significant = s1.significant + s2.significant;
+		if(t.significant<s1.significant){
+			t.significant>>=1;
+			t.significant|=0x8000;
+			s2.exponent++;
+		}
+	}
+	else{
+		t.significant = s2.significant - s1.significant;
+		// normalize 0 <= difference <= 0.5
+		// test for highbyte == 0 (need to shift left by 8)
+		t.exponent=15;
+		if( *((uint8_t *) &t.significant +1)){
+			t.significant <<= 8;
+			s2.exponent-=8;
+			t.exponent=7;
+		}
+		if( *((uint8_t *) &t.significant +1)>=16){
+			t.significant <<= 4;
+			s2.exponent-=4;
+			t.exponent=3;
+		}
+		// shift left until MSB is set, but at max t.exponent shifts
+		while(!(*((uint8_t *) &t.significant +1) & 0x80)){
+			t.significant <<= 1;
+			s2.exponent--;
+			if(!t.exponent--){
+				// underflow - return 0;
+				*((uint32_t *) &t) = 0;
+			}
+		}
+	}
+	t.exponent = s2.exponent;
+	t.sign = s2.sign;
+
+	return t;
+}
+
+
