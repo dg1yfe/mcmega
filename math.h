@@ -29,8 +29,8 @@
  ****************************************************************************
  */
 
-#ifndef MATH_H_
-#define MATH_H_
+#ifndef MCM_MATH_H_
+#define MCM_MATH_H_
 
 uint8_t raise(uint8_t power);
 
@@ -82,6 +82,10 @@ typedef struct S_fastfp ffp_t;
  * -1e-18			0x0380_9392
  *
  */
+ffp_t ffp_mult(ffp_t f1, ffp_t f2);
+ffp_t ffp_add(ffp_t s1, ffp_t s2);
+
+
 
 // intRes = intIn1 + intIn2
 #define SaturatedAdd16(intIn1, intIn2) \
