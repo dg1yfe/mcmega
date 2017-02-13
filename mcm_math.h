@@ -31,6 +31,7 @@
 
 #ifndef MCM_MATH_H_
 #define MCM_MATH_H_
+#include <stdint.h>
 
 uint8_t raise(uint8_t power);
 
@@ -41,13 +42,18 @@ extern long exp10tab[];
 struct S_fastfp{
 	uint8_t  exponent;
 	int8_t   sign;
-	uint16_t significant;
+	union {
+		int8_t  significant_i8[2];
+		uint8_t  significant_u8[2];
+		uint16_t significant;
+	};
 }__attribute__((packed));
 
 typedef struct S_fastfp ffp_t;
 /*
  * FP definition from
  * https://people.ece.cornell.edu/land/courses/ece4760/Math/Floating_point/index.html
+ *
  *
  * "The floating format with 16 bits of mantissa,
  *  7 bits of exponent, and a sign bit,
@@ -72,19 +78,47 @@ typedef struct S_fastfp ffp_t;
  *   Examples:
  *	Decimal Value	Short float Representation
  *	0.0				0x0000_0000
- *	1.0				0x3f00_8000
+ *	1.0				0x3f00_8000 = 0.5 * 2^1 = 0.5 * 2 = 1
  * 	1.5				0x3f00_c000
  * 10000			0x4c00_9c40
  * 1.0001			0x3f00_8003
  * -1.0				0x3f80_8000
  * -1.5				0x3f80_c000
  * 1e-18			0x0300_9392
- * -1e-18			0x0380_9392
+ * -1e-18			0x0380_9392 = -37778 * 2^59
+ *
+ *
+ * sfp format is:
+ *  top byte is exponent, range +65/-62 (7 bits, offset binary)
+ *  third byte has sign bit in top bit
+ *  lower two bytes are mantissa fraction, normalized so that
+ *  the top mantissa bit is ALWAYS one, unless the value is zero
+ *  A zero is represented by all zero mantissa
+ *
+ *  0x40 = 64 = 2^2
+ *  0x3f = 63 = 2^1
+ *  0x3e = 62 = 2^0
  *
  */
-ffp_t ffp_mult(ffp_t f1, ffp_t f2);
+#define FFP_EXPONENT_BIAS 62
+#define FFP_SIGNIFICANT_HIGHBYTE 3
+#define FFP_SIGNIFICANT_LOWBYTE 2
+#define FFP_EXPONENT_BYTE 0
+#define FFP_SIGN_BYTE 1
+// fast float multiplication
+ffp_t ffp_mul(const ffp_t f1, const ffp_t f2);
+// fast float addition
 ffp_t ffp_add(ffp_t s1, ffp_t s2);
+ffp_t ffp_sub(ffp_t minuend, ffp_t subtrahend);
+ffp_t ffp_square(const ffp_t f);
 
+// fast float magnitude
+// (returns exponent) for binary logarithm approximation
+int8_t ffp_magnitude(const ffp_t f);
+int16_t ffp_logb(const ffp_t f);
+ffp_t int2sfp(const int16_t  i);
+ffp_t uint2sfp(const uint16_t  i);
+ffp_t fp2sfp(float a);
 
 
 // intRes = intIn1 + intIn2

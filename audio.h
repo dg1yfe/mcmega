@@ -52,8 +52,8 @@ extern const uint8_t rec_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
 extern volatile uint8_t samp_buf[SAMP_BUF_LEN];
 extern volatile uint8_t samp_buf_count;
-extern volatile float ge;
-extern volatile float g_coeff;
+extern volatile int16_t ge;
+extern volatile uint8_t tone_detector_active;
 extern volatile uint8_t tone_detect;
 extern volatile uint8_t tone_detect_updated;
 
@@ -80,8 +80,6 @@ void dtmf_key_to_frequency(uint8_t key, uint16_t * const freqx, uint16_t * const
 uint8_t tone_decode();
 void tone_decoder_start_index(uint8_t index);
 void tone_decoder_stop();
-void goertzel_init(uint16_t ctcss_freq);
-
 
 
 

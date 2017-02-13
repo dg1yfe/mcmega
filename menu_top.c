@@ -557,7 +557,7 @@ void m_test(char c)
 	else
 	{	
 		lcd_cpos(0);
-		printf_P(PSTR("%04x"), ((long)ge)>>16);
+		printf_P(PSTR("%04x"), ge);
 		lcd_fill();	
 	}
 
@@ -626,7 +626,7 @@ char m_freq_digit(char key)
 
 void m_debug(uint8_t key)
 {
-	float g=0;
+	int16_t g=0;
 	static uint8_t sc=0;
 	static uint8_t mode = 0;
 	static uint16_t t = 0;
@@ -683,6 +683,7 @@ void m_debug(uint8_t key)
 	
 	if(tick_hms > t)
 	{
+		uint16_t frac;
 		g=ge;
 		t = tick_hms + 8;
 		lcd_cpos(0);
@@ -690,7 +691,9 @@ void m_debug(uint8_t key)
 		{
 			default:
 			case 1:
-				printf_P(PSTR("%2.0f"), g);
+				frac = (uint16_t) g & 0xff;
+				frac = frac*100;
+				printf_P(PSTR("%3d.%2d"), g>>8, frac>>8);
 				break;
 			case 2:			
 				printf_P(PSTR("%d"), tone_detect);

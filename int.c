@@ -79,7 +79,7 @@ ISR(TIMER2_COMP_vect)
 
 	if(!rxtx_state)	// process sample input in RX
 	{
-		if(g_coeff)
+		if(tone_detector_active)
 		{
 			uint8_t sc;
 /*
@@ -206,7 +206,7 @@ void start_Timer2()
 
 void stop_Timer2()
 {
-	if(!(SEL_phase_delta || PL_phase_delta || g_coeff))
+	if(!(SEL_phase_delta || PL_phase_delta || tone_detector_active))
 	{
 		TCCR2 &= ~((1 << CS22) | (1 << CS21) | (1 << CS20));
 	}

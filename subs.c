@@ -247,7 +247,7 @@ void squelch()
 		sql_pin_flag = pin_state;
 
 		state = pin_state || (config.squelchMode == SQM_OFF);
-		if((config.squelchMode != SQM_OFF) && g_coeff)
+		if((config.squelchMode != SQM_OFF) && tone_detector_active)
 		{
 			state = (PIN_SQL & BIT_SQL);
 			// disregard tone detection state until detector output was updated

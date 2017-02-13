@@ -43,19 +43,24 @@
 #include "io.h"
 #include "int.h"
 #include "audio.h"
-//#include "math.h"
+#include "mcm_math.h"
 
 // 3.125 Hz resolution
 // 0.32 s evaluation time
 #define GOERTZEL_BLOCK 290
 
-volatile float ge;
-volatile float g_coeff;
-static uint16_t g_block_ctr;
-static uint16_t g_blocksize = GOERTZEL_BLOCK;
-
-static float q1,q2;
-
+struct{
+	int16_t eval;
+	volatile ffp_t coeff;
+	union {
+		uint32_t u32;
+		ffp_t ffp;
+	}q1,q2;
+	uint16_t sample_count;
+	uint16_t blocksize;
+	int16_t blocksize_lb;	// log_2(blocksize) in 8.8 fixed point
+} goertzel_proc;
+volatile uint8_t tone_detector_active=0;
 volatile uint8_t tone_detect;
 volatile uint8_t tone_detect_updated = 0;
 
@@ -70,6 +75,7 @@ int16_t cic_int[4];
 int16_t cic_mem[4];
 uint8_t cic_ctr;
 
+volatile int16_t ge;
 
 
 
@@ -137,6 +143,8 @@ const uint8_t dtmf_index_tab[] PROGMEM =
 
 const uint16_t dtmf_tab_x[] PROGMEM = {1209, 1336, 1477, 1633 };
 const uint16_t dtmf_tab_y[] PROGMEM = {697, 770, 852, 941};
+
+void goertzel_init(const uint16_t ctcss_freq, const uint16_t blocksize);
 
 
 void adc_init()
@@ -359,19 +367,17 @@ void dtmf_key_to_frequency(uint8_t key, uint16_t * const freqx, uint16_t * const
 	   1000 / 100 = 10.0 Hz (0.1 s)
  */
 
-static inline void goertzel_reset(uint16_t block_size)
+static inline void goertzel_reset()
 {
-	q1=0;
-	q2=0;
-	g_blocksize = block_size;
-	g_block_ctr = block_size;
+	goertzel_proc.q1.u32 = goertzel_proc.q2.u32 = goertzel_proc.eval = 0;
+	goertzel_proc.sample_count = goertzel_proc.blocksize;
 }
 
 
 void tone_decoder_reset()
 {
 	taskENTER_CRITICAL();	
-	goertzel_reset(GOERTZEL_BLOCK);
+	goertzel_reset(goertzel_proc.blocksize);
 	tone_detect_updated = 0;
 	taskEXIT_CRITICAL();
 }
@@ -380,11 +386,13 @@ void tone_decoder_reset()
 	Calculates Goertzel filter coefficient
 	Input: Frequency in 1/10 Hz (e.g. 770 for 77.0 Hz)
 */
-void goertzel_init(uint16_t ctcss_freq)
+void goertzel_init(const uint16_t ctcss_freq, const uint16_t blocksize)
 {	//                 2 * pi * f_t / Fs
 	//	Fs = 1 kHz -> 2/Fs = 0.002 * 1/10 Hz = 0.0002
-	g_coeff = 2 * cos( 0.2F * M_PI * (float)ctcss_freq / (float)FS);
-	goertzel_reset(GOERTZEL_BLOCK);
+	goertzel_proc.coeff 	= fp2sfp( cos( 0.2F * M_PI * (float)ctcss_freq / (float)FS) * 2);
+	goertzel_proc.blocksize = blocksize;
+	goertzel_proc.blocksize_lb = ffp_logb(uint2sfp(blocksize))*2;
+	goertzel_reset();
 	tone_detect = 0;
 	adc_init();
 	start_Timer2();
@@ -394,7 +402,8 @@ void tone_decoder_start_index(uint8_t index){
 	uint16_t freq;
 	if(index > CTCSS_INDEX_OFF && index < CTCSS_TABMAX){
 		freq = pgm_read_word(&ctcss_tab[index]);
-		goertzel_init(freq);
+		goertzel_init(freq,GOERTZEL_BLOCK);
+		tone_detector_active = 1;
 	}
 	else{
 		tone_decoder_stop();
@@ -402,27 +411,30 @@ void tone_decoder_start_index(uint8_t index){
 }
 
 
-uint8_t goertzel_process(float * s)
+uint8_t goertzel_process(ffp_t * s)
 {
-	float q0;
+	ffp_t q0;
 
-	q0 = g_coeff * q1 - q2 + *s;
-	q2 = q1;
-	q1 = q0;
+	// q0 = g_coeff * q1 - q2 + s
+	q0 = ffp_mul(goertzel_proc.coeff, goertzel_proc.q1.ffp);
+	q0 = ffp_sub(q0, goertzel_proc.q2.ffp);
+	q0 = ffp_add(q0, *s);
+	goertzel_proc.q2.u32 = goertzel_proc.q1.u32;
+	goertzel_proc.q1.ffp = q0;
 
-	return (--g_block_ctr)? 0 : 1;
+	return (--goertzel_proc.sample_count)? 0 : 1;
 	
 	// estimated CPU load:
-	// 125 cycles per multiplication
-	// 275 cycles per addition (75 - 275)
+	// 77  cycles per multiplication
+	// 125 cycles per addition
 	//
-	// cycles = 125 + 275 + 275
-	//        = 675 cycles per goertzel sample
+	// cycles = 77 + 125 + 125
+	//        = 327 cycles per goertzel sample
 	// Fs_g = 1 kHz
 	//
-	// -> 675000 cycles / second
-	// -> 8,4% CPU load @ 8 MHz
-	//   13,8% CPU load @ 4.9 MHz
+	// -> 327000 cycles / second
+	// -> 4,1% CPU load @ 8 MHz
+	//    6,7% CPU load @ 4.9 MHz
 }
 
 
@@ -430,30 +442,39 @@ enum {GE_DETECTED, GE_NOTDETECTED, GE_UNCERTAIN};
 
 uint8_t goertzel_eval()
 {
-	float p;
-	int8_t po;
+	ffp_t p;
+	int16_t snr;	// some kind of signal to noise ratio
 
-	p = square(q2) + square(q1) - g_coeff * q1 * q2;
-	
+	//p = square(q2) + square(q1) - g_coeff * q1 * q2;
+	p = ffp_add(ffp_square(goertzel_proc.q2.ffp), ffp_square(goertzel_proc.q1.ffp));
+	p = ffp_sub(p,ffp_mul(ffp_mul(goertzel_proc.coeff,goertzel_proc.q1.ffp),goertzel_proc.q2.ffp));
+
 	// normalize output with respect to blocksize
-	p = 10*( log10(p) - 2*log10((float)g_blocksize));
-	ge = p;
-	po = (int8_t) p;
-
-	if(po > 62)
+	//
+	// 2*log10( g )   | g = h*10^i
+	//=2*lb( h*10^i) * ln(10)/ln(2)  | a = ln(10)/ln(2)
+//    =  lb( h*2^(i*2*a)) * a
+//    -> Exponent (i) *2*a
+//
+	//p = 10*( log10(p) - 2*log10((float)g_blocksize));
+	snr = ffp_logb(p) - goertzel_proc.blocksize_lb;
+	ge = snr;
+	// 62 -> 6,2 -> 20,59595
+	if(snr > 0x1498)
 		return GE_DETECTED;
 
-	if(po < 55)
+	// 55 -> 5,5 -> 18,27060
+	if(snr < 0x1245)
 		return GE_NOTDETECTED;
 
 	return GE_UNCERTAIN;
 
 	// estimated CPU load:
-	// 125 cycles per multiplication
-	// 175 cycles per addition (75 - 275)
+	// 77 cycles per multiplication
+	// 120 cycles per addition (75 - 275)
 	//
-	// cycles = 4*125 + 3*175
-	//        = 1025 cycles per GOERTZEL_BLOCK samples
+	// cycles = 4*77 + 3*120
+	//        = 668 cycles per GOERTZEL_BLOCK samples
 }
 
 
@@ -537,7 +558,7 @@ void cheby(float * x)
 
 void tone_decoder_stop()
 {
-	g_coeff = 0;
+	tone_detector_active = 0;
 	stop_Timer2();
 	tone_decoder_reset();
 }
@@ -574,10 +595,10 @@ uint8_t tone_decode()
 			// after rate conversion, this only runs at 1 kHz Samplerate
 			// and give us the time to perform the calculations using
 			// floating-point precision
-			float s;
+			ffp_t s;
 			
-			// get output of CIC filter and cast to float
-			s = (float) cic_comb[3];
+			// get output of CIC filter and cast to fast float
+			s = int2sfp(cic_comb[3]);
 
 			// apply chebychev low-pass for amplitude correction
 			// This is optional, remove this to lower CPU load
@@ -608,7 +629,7 @@ uint8_t tone_decode()
 				}
 				tone_detect = j;
 				tone_detect_updated = 1;
-				goertzel_reset(GOERTZEL_BLOCK);			
+				goertzel_reset();
 			}		
 		}
 	}
