@@ -657,7 +657,7 @@ void m_debug(uint8_t key)
 			mode = 4;
 			break;
 		case 5:
-			goertzel_init(770);
+			tone_decoder_start_freq(770);
 			break;
 		case 6:
 			tone_start_sel(1500);

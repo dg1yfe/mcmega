@@ -146,7 +146,7 @@ ISR(TIMER2_COMP_vect)
 		}
 		else
 		// check for single tone activity
-		if(pd=SEL_phase_delta)
+		if( (pd=SEL_phase_delta) )
 		{	uint16_t sp;
 			uint8_t amplitude;
 			sp = SEL_phase;

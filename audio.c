@@ -45,10 +45,6 @@
 #include "audio.h"
 #include "mcm_math.h"
 
-// 3.125 Hz resolution
-// 0.32 s evaluation time
-#define GOERTZEL_BLOCK 290
-
 struct{
 	int16_t eval;
 	volatile ffp_t coeff;
@@ -385,6 +381,7 @@ void tone_decoder_reset()
 /*
 	Calculates Goertzel filter coefficient
 	Input: Frequency in 1/10 Hz (e.g. 770 for 77.0 Hz)
+		   Blocksize in Samples (defines frequency resolution)
 */
 void goertzel_init(const uint16_t ctcss_freq, const uint16_t blocksize)
 {	//                 2 * pi * f_t / Fs
@@ -398,10 +395,21 @@ void goertzel_init(const uint16_t ctcss_freq, const uint16_t blocksize)
 	start_Timer2();
 }
 
-void tone_decoder_start_index(uint8_t index){
+void tone_decoder_start_index(const uint8_t index){
 	uint16_t freq;
 	if(index > CTCSS_INDEX_OFF && index < CTCSS_TABMAX){
 		freq = pgm_read_word(&ctcss_tab[index]);
+		goertzel_init(freq,GOERTZEL_BLOCK);
+		tone_detector_active = 1;
+	}
+	else{
+		tone_decoder_stop();
+	}
+}
+
+
+void tone_decoder_start_freq(const uint16_t freq){
+	if(freq){
 		goertzel_init(freq,GOERTZEL_BLOCK);
 		tone_detector_active = 1;
 	}
@@ -457,6 +465,7 @@ uint8_t goertzel_eval()
 //    -> Exponent (i) *2*a
 //
 	//p = 10*( log10(p) - 2*log10((float)g_blocksize));
+	//p * logb(10) = 10*( log2(p)  - 2*log2(blocksize_lb))
 	snr = ffp_logb(p) - goertzel_proc.blocksize_lb;
 	ge = snr;
 	// 62 -> 6,2 -> 20,59595
@@ -473,8 +482,8 @@ uint8_t goertzel_eval()
 	// 77 cycles per multiplication
 	// 120 cycles per addition (75 - 275)
 	//
-	// cycles = 4*77 + 3*120
-	//        = 668 cycles per GOERTZEL_BLOCK samples
+	// cycles = 4*77 + 3*120 + 240
+	//        = 908 cycles per GOERTZEL_BLOCK samples
 }
 
 

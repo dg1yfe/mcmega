@@ -360,7 +360,7 @@ void m_ctcss_submenu(char key)
 									
 					if(freq)
 					{
-						goertzel_init(freq);
+						tone_decoder_start_freq(freq);
 					}
 					else
 					{

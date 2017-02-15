@@ -486,6 +486,7 @@ const uint16_t logb_muladd_tab[] = {
 // 0.5 <= significant < 1
 //
 //
+// ca. 240 cycles
 int16_t ffp_logb(const ffp_t f){
 	uint16_t x = 0x8000;
 	uint16_t y = 0;
@@ -508,7 +509,8 @@ int16_t ffp_logb(const ffp_t f){
 			uint32_t l;
 		}z;
 
-		z.l = x * logb_muladd_tab[k];
+		//z.l = (uint32_t) x * logb_muladd_tab[k];
+		MultiU16X16to32(z.l,x,logb_muladd_tab[k]);		// 20 cycles
 
 		if (!z.overflow && z.sw <=  f.significant)
 		{
@@ -519,3 +521,30 @@ int16_t ffp_logb(const ffp_t f){
 
 	return y;
 }
+
+// Log of Base 10 from Log of Base 2
+//
+// log(x) of base n = log(x) of base m / log(n) of base m
+// therefore log(x) = lb(x) / lb(10)
+// lb(10) = 3.32192809
+// to avoid division, use the inverse ( 1/lb(10) ):
+// 1/lb(10) = 0.30103
+// converted to 8.8 fixed point (*256)
+// 1/lb(10)*256 = 77 (77.0637)
+#define FFP_LOG10_SCALE 77
+int16_t ffp_log10(const ffp_t f){
+	int16_t log;
+	int32_t l;
+	// multiply and round
+	// log = ((((int32_t) ffp_logb(f) * FFP_LOG10_SCALE) + 32768) >> 16);
+	MultiU16X16to32(l,ffp_logb(f), FFP_LOG10_SCALE);
+	if(l < 0){
+		log = ((l - 32768) >> 16);
+	}
+	else{
+		log = ((l + 32768) >> 16);
+	}
+
+	return log;
+}
+

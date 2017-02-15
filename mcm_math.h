@@ -115,7 +115,11 @@ ffp_t ffp_square(const ffp_t f);
 // fast float magnitude
 // (returns exponent) for binary logarithm approximation
 int8_t ffp_magnitude(const ffp_t f);
+// fast float binary logarithm
 int16_t ffp_logb(const ffp_t f);
+// fast float common logarithm
+int16_t ffp_log10(const ffp_t f);
+
 ffp_t int2sfp(const int16_t  i);
 ffp_t uint2sfp(const uint16_t  i);
 ffp_t fp2sfp(float a);

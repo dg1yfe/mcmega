@@ -47,6 +47,17 @@
 #define CTCSS_TABMAX 56
 #define CTCSS_INDEX_OFF 1
 
+// Resolution [Hz] = Samplerate / Samples
+// Samplerate = 1 kHz
+// Samples 	- Resolution- Evaluation time [s]
+// 320 		- 3.125 Hz	- 0.32 s
+// 290		- 3.448 Hz	- 0.29 s
+// 256		- 3.906 Hz	- 0.26 s
+// 200		- 5.000 Hz	- 0.20 s
+// 150		- 6.667 Hz	- 0.15 s
+
+#define GOERTZEL_BLOCK 290
+
 extern const uint8_t sin_tab[] PROGMEM;
 extern const uint8_t rec_tab[] PROGMEM;
 extern const uint16_t ctcss_tab[] PROGMEM;
@@ -78,7 +89,8 @@ void dtone_start(unsigned int freq1, unsigned int freq2);
 void dtmf_key_to_frequency(uint8_t key, uint16_t * const freqx, uint16_t * const freqy);
 
 uint8_t tone_decode();
-void tone_decoder_start_index(uint8_t index);
+void tone_decoder_start_index(const uint8_t index);
+void tone_decoder_start_freq(const uint16_t freq);
 void tone_decoder_stop();
 
 
